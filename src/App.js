@@ -1,29 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { dbGet, dbSet } from "./firebase";
-
+ 
 const REQUEST_DATA = {"신성근":"- 현장 점검후 부적합사항 조치관련 현장설명서 개정 및 후속조치\n\n- 욕실장 하자다발 관련  하자발생현장 검수 진행 _ 랩스 협업 (본부장님 지시사항)  → 원인파익 및 해결방안 유관팀 협의 진행\n\n- 타겟점검에 대한 신규아이템 발굴 및 체크리스트 반영 (리비젼관리_ AS,소송관련 항목들은 정기 업데이트가아닌 수시로)\n\n- 품질우수현장 인증서 (안전협의)_ 검토 (본부장님 지시사항)\n\n- 품질협의체 진행사항 모니터링 (담당 이정호M)\n\n- 설계 통합 플랫폼(이은주M) _ 천안6단지 파일럿테스트 적극 참여 / 의견개진","박정호":"- 통합 품질데이터 구조도 관련  유관파트와 회의일정 수립 및 진행사항 리뷰에 체크 / 목표일자 관리\n\n - 데이터 적기제공에 대한 계획안 수립 / 보고\n \n- 창떨림 방지 보강여부를 전수조사 확인할수 있도록 바랍니다 매니저 활용등으로 조사결과 보고필요 (본부장님 보고 할것)","박찬우":"아침 8시~9시 트리거 작동확인","배춘호":"- 레미콘 사전점검 종합보고서. 품질관리 맵 관련 목표 일자 관리","이정호":"- 품질협의체 상정안건 LIST 정리\n\n- 복층유리 아르곤가스 측정기 등 신규장비 / 점검방법 검토 (본부장님 지시시항)\n\n- 타겟점검에 대한 신규아이템 발굴 및 체크리스트 반영 (리비젼관리_ AS,소송관련 항목들은 정기 업데이트가아닌 수시로)\n\n- [본부장님 지시사항] 광주센테니얼_  가구 래핑 불량사진 첨부해서 업체 공문 발송 지시 후 본부장님 보고할것\n\n- 욕실장 거울변색 / 지하주차장 천장 단열재 탈락에 대한 품질협의체 안건 상정 및 후속조치 시행 (5/29)","한진헌":"","류지수":"","이희윤":"-  품질관련 target 점검 1건 1/4분기 실행","장효린":"- 판결보고 (엘포트, 평촌더샵, DMC센트럴) + 소송리스크 저감을 위한 핵심이행사항 보고","박형건":"-  판결보고 (엘포트, 평촌더샵, DMC센트럴) + 소송리스크 저감을 위한 핵심이행사항 보고","임병근":"- 소송핵심관리 검토용역 체크리스트 보고\n\n - 방화문 소송 ISSUE F/U","조성우":"- 부산서면 / 타일 균열들뜸 하자에 대한 하심위 접수 모니터링 (하자실사시 보수여부 결정)\n\n- 손끼임 방지재 관련 병점 시공시 _ 관리사무소와 긴밀협의지시(본부장님)_ 모든것은 관리사무소가 소요량 및 입주자 확인서명..등등등\n\n - 하자관련 협력회사 처리지연에 대한 제재방안 강구 _ 외주구매팀 요청사항\n\n - 조경직원 충원에 대한 협의진행 / 고사목 하자처리 Process 수립 / 수목유지관리비 현실화 검토\n\n - [본부장님 지시사항] 품질팀 대쉬보드 구축 지연","정경주":"- 고객센터 피드백 강화방안 수립 _ 상시 / 유관팀 협업 프로세스 정리 등\n\n- 소송핵심관리 검토 용역 _ 1차 보고서 취합 및 브리핑 준비    →   후속현장 입찰 시행 일정 수립\n\n- 준공현장 골조 균열 저감을 위한 공용부 점검 강화 _ 랩스 협의\n   : 균열저감 / 운영효율화 관련한 기초자료 수집 _ 랩스협업 (조사결과 데이터 수집 / 6개월, 1~3년 등)\n\n - 하자관련 협력회사 처리지연에 대한 제재방안 강구 _ 외주구매팀 요청사항\n\n - 소송핵심관리 검토용역 조경부위에 대한 모니터링 강화 및 준공도서 일치 여부 본부장님 보고 (춘천레이크시티 시행)","김성진":"- 원인불명 하자 모니터링 (오픈하우스 시행단지/ 준공 초기 현장)\n\n - 하자관련 협력회사 처리지연에 대한 제재방안 강구 _ 외주구매팀 요청사항\n\n - 잔공사 편성 시기 및 집행에 대해 변경관리 UNIT과 협의","이규현":"- 원인불명 하자 모니터링 (오픈하우스 시행단지/ 준공 초기 현장)\n\n - CS 업무처리 개선안 보고 _ 원인불명하자처리 / 입주초기 R&R","박성준":"- 원인불명 하자 처리 프로세스 파일럿 시행안 작성 (오픈하우스 시행단지/ 준공 초기 현장)\n\n - 춘천아이파크 스카이 라운지 투어 시 비상조치 및 운영계획 철저 수립 (본부장님)\n\n - NCSI, SQ 인증 준비사항 및 심사계획 보고"};
-
+ 
 const WORK_DATA = {"신성근":[],"박정호":[],"박찬우":[],"배춘호":[],"이정호":[],"한진헌":[],"류지수":[],"이희윤":[],"장효린":[],"박형건":[],"임병근":[],"조성우":[],"정경주":[],"김성진":[],"이규현":[],"박성준":[]};
-
-
-const dbGet = async (collection, docId) => {
-  try {
-    const db = await initFirebase();
-    const doc = await db.collection(collection).doc(docId).get();
-    return doc.exists ? doc.data() : null;
-  } catch(e) { console.error('dbGet 오류:', e); return null; }
-};
-
-const dbSet = async (collection, docId, data) => {
-  try {
-    const db = await initFirebase();
-    await db.collection(collection).doc(docId).set(data, { merge: true });
-    return true;
-  } catch(e) { console.error('dbSet 오류:', e); return false; }
-};
-
-
-
+ 
+ 
+ 
+ 
+ 
+ 
 const MEMBERS = {
   QC: {
     label: "QC 파트", color: "#8b5e3c",
@@ -134,24 +120,24 @@ const MEMBERS = {
     ]
   }
 };
-
+ 
 const CAT_COLOR = { 전략:"#8b5e3c", 업무:"#6b4226", 개인:"#a0785a" };
 const CAT_BG    = { 전략:"#f5ede4", 업무:"#e8d5c0", 개인:"#f0e6d8" };
 const rateColor = (r) => r >= 80 ? "#4a7c59" : r >= 50 ? "#b8860b" : r > 0 ? "#c0703a" : "#bba080";
-
+ 
 function calcRate(goals) {
   const tot  = goals.reduce((s,g) => s + g.배점, 0);
   const done = goals.reduce((s,g) => s + (g.실적||0), 0);
   return tot === 0 ? 0 : Math.round((done/tot)*100);
 }
-
-
+ 
+ 
 // ── 업무현황 패널 ────────────────────────────────────────────────────────
 const EMPTY_FORM = { 업무:"", 요청부서:"", 접수일:"", 목표일:"", 완료일:"", 상태:"진행중", 리뷰:"" };
 const 상태목록 = ["진행중","완료","검토중","보류","취소"];
 const 상태색 = { "진행중":"#b8860b", "완료":"#4a7c59", "검토중":"#8b5e3c", "보류":"#a08060", "취소":"#c0703a" };
 const 상태배경 = { "진행중":"#fef8e7", "완료":"#e8f5ed", "검토중":"#f5ede4", "보류":"#f5f0eb", "취소":"#fdf0eb" };
-
+ 
 function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -159,11 +145,11 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
   const [filterState, setFilterState] = useState("진행중");
   const [detailIdx, setDetailIdx] = useState(null); // 이력 모달용
   const [searchQuery, setSearchQuery] = useState("");
-
+ 
   const tasks = workData[name] || [];
-
+ 
   const today = new Date().toISOString().slice(0,10);
-
+ 
   const saveTask = () => {
     if (!form.업무.trim()) return;
     setWorkData(prev => {
@@ -183,7 +169,7 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
     });
     setForm(EMPTY_FORM); setShowForm(false); setEditIdx(null);
   };
-
+ 
   const addLog = (idx, memo) => {
     setWorkData(prev => {
       const list = [...(prev[name] || [])];
@@ -195,7 +181,7 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
       return next;
     });
   };
-
+ 
   const changeStatus = (idx, newState) => {
     setWorkData(prev => {
       const list = [...(prev[name] || [])];
@@ -208,7 +194,7 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
       return next;
     });
   };
-
+ 
   const deleteTask = (i) => {
     setWorkData(prev => {
       const list = [...(prev[name] || [])];
@@ -218,22 +204,22 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
       return next;
     });
   };
-
+ 
   const startEdit = (i) => {
     setForm({ ...tasks[i] });
     setEditIdx(i);
     setShowForm(true);
   };
-
+ 
   // 완료일 비어있으면 진행중으로 취급
   const effectiveState = (t) => (!t.완료일 && t.상태 !== "완료" && t.상태 !== "보류" && t.상태 !== "취소") ? "진행중" : t.상태;
   const filtered = (filterState === "전체" ? tasks : tasks.filter(t => effectiveState(t) === filterState))
     .filter(t => !searchQuery.trim() || t.업무.includes(searchQuery) || (t.요청부서||"").includes(searchQuery) || (t.리뷰||"").includes(searchQuery));
   const counts = 상태목록.reduce((acc,s) => { acc[s] = tasks.filter(t => effectiveState(t) === s).length; return acc; }, {});
-
+ 
   return (
     <div style={{ width:"50%", display:"flex", flexDirection:"column", background:"#fdf8f4", borderLeft:"1px solid #d4b896" }}>
-
+ 
       {/* 헤더 + 추가버튼 */}
       <div style={{ padding:"12px 20px", borderBottom:"2px solid #d4b896", background:"#f0e6d8", flexShrink:0 }}>
         <div style={{ fontSize:"10px", color:"#a08060", letterSpacing:"1.5px", textTransform:"uppercase", marginBottom:"2px" }}>2026 개인별 업무현황</div>
@@ -279,7 +265,7 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
           })}
         </div>
       </div>
-
+ 
       {/* 신규 입력 폼 */}
       {showForm && (
         <div style={{ padding:"14px 18px", borderBottom:"2px solid #c4a882", background:"#fff8f2", flexShrink:0 }}>
@@ -348,7 +334,7 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
           </div>
         </div>
       )}
-
+ 
       {/* 업무 목록 */}
       <div style={{ flex:1, overflowY:"auto", padding:"14px 18px", position:"relative" }}>
         {filtered.length === 0 && (
@@ -402,7 +388,7 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
           );
         })}
       </div>
-
+ 
       {/* ── 이력 모달 ── */}
       {detailIdx !== null && tasks[detailIdx] && (
         <DetailModal
@@ -414,23 +400,23 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
           onAddLog={(idx, memo) => { addLog(idx, memo); setDetailIdx(null); }}
         />
       )}
-
+ 
     </div>
   );
 }
-
+ 
 // ── 팀장 요청사항 컴포넌트 ─────────────────────────────────────────────
 function ReqSection({ name, reqData, setReqData, partColor }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const text = reqData[name] || "";
-
+ 
   const startEdit = () => { setDraft(text); setEditing(true); };
   const save = () => {
     setReqData(prev => ({ ...prev, [name]: draft }));
     setEditing(false);
   };
-
+ 
   if (!text.trim() && !editing) return (
     <div style={{ marginBottom:"8px" }}>
       <button onClick={startEdit}
@@ -440,7 +426,7 @@ function ReqSection({ name, reqData, setReqData, partColor }) {
       </button>
     </div>
   );
-
+ 
   return (
     <div style={{ background:"#fff3e0", border:"1px solid #e8a44a", borderLeft:"3px solid #d4842a",
       borderRadius:"5px", padding:"8px 12px", marginBottom:"8px" }}>
@@ -482,8 +468,8 @@ function ReqSection({ name, reqData, setReqData, partColor }) {
     </div>
   );
 }
-
-
+ 
+ 
 // ── 결과물 모달 컴포넌트 ──────────────────────────────────────────────────
 const RESULT_GROUPS = {
   전략: [
@@ -500,7 +486,7 @@ const RESULT_GROUPS = {
     { label:"개인 목표", match: () => true },
   ],
 };
-
+ 
 function ResultModal({ cat, allData, onClose }) {
   const color = cat==="전략"?"#8b5e3c":cat==="업무"?"#6b4226":"#a0785a";
   const groups = RESULT_GROUPS[cat];
@@ -511,7 +497,7 @@ function ResultModal({ cat, allData, onClose }) {
   const [selected, setSelected] = useState([]);
   // 편집 중인 merged 결과물 텍스트
   const [editMerge, setEditMerge] = useState({});
-
+ 
   const allRows = [];
   Object.entries(MEMBERS).forEach(([pk, pd]) => {
     (allData[pk]||[]).forEach(m => {
@@ -521,10 +507,10 @@ function ResultModal({ cat, allData, onClose }) {
       });
     });
   });
-
+ 
   const getRows = (g) => allRows.filter(r => g.match(r.과제));
   const getTotal = (g) => new Set(getRows(g).map(r => r.name)).size;
-
+ 
   // 묶기 처리된 행 목록 반환
   const getMergedRows = (gi) => {
     const rows = getRows(groups[gi]).filter(r => r.결과.trim());
@@ -550,12 +536,12 @@ function ResultModal({ cat, allData, onClose }) {
     });
     return result;
   };
-
+ 
   const getDoneCount = (g, gi) => {
     if (!getRows(g).filter(r=>r.결과.trim()).length) return 0;
     return getMergedRows(gi).length;
   };
-
+ 
   const handleMerge = (gi) => {
     if (selected.filter(s=>s.gi===gi).length < 2) return;
     const idxArr = selected.filter(s=>s.gi===gi).map(s=>s.idx);
@@ -565,7 +551,7 @@ function ResultModal({ cat, allData, onClose }) {
     }));
     setSelected(prev => prev.filter(s=>s.gi!==gi));
   };
-
+ 
   const handleUnmerge = (gi, mi) => {
     setMergedMap(prev => {
       const arr = [...(prev[gi]||[])];
@@ -574,7 +560,7 @@ function ResultModal({ cat, allData, onClose }) {
     });
     setEditMerge(prev => { const n={...prev}; delete n[`${gi}_${mi}`]; return n; });
   };
-
+ 
   const toggleSelect = (gi, idx) => {
     setSelected(prev => {
       const exists = prev.find(s=>s.gi===gi&&s.idx===idx);
@@ -582,7 +568,7 @@ function ResultModal({ cat, allData, onClose }) {
       return [...prev, {gi, idx}];
     });
   };
-
+ 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(59,26,10,0.5)", zIndex:2000,
       display:"flex", alignItems:"center", justifyContent:"center" }}
@@ -590,7 +576,7 @@ function ResultModal({ cat, allData, onClose }) {
       <div style={{ background:"#faf6f1", borderRadius:"12px", width:"640px", maxWidth:"94vw",
         maxHeight:"88vh", display:"flex", flexDirection:"column", boxShadow:"0 10px 40px rgba(91,51,23,0.3)" }}
         onClick={e => e.stopPropagation()}>
-
+ 
         {/* 헤더 */}
         <div style={{ padding:"14px 20px", background:color, borderRadius:"12px 12px 0 0",
           display:"flex", justifyContent:"space-between", alignItems:"center" }}>
@@ -603,7 +589,7 @@ function ResultModal({ cat, allData, onClose }) {
           <button onClick={onClose}
             style={{ background:"none", border:"none", fontSize:"20px", color:"rgba(255,255,255,0.8)", cursor:"pointer" }}>✕</button>
         </div>
-
+ 
         {/* 그룹 버튼 */}
         <div style={{ padding:"12px 20px 10px", borderBottom:"1px solid #d4b896", display:"flex", gap:"8px", flexWrap:"wrap" }}>
           {groups.map((g, gi) => {
@@ -628,7 +614,7 @@ function ResultModal({ cat, allData, onClose }) {
             );
           })}
         </div>
-
+ 
         {/* 본문 */}
         <div style={{ flex:1, overflowY:"auto", padding:"14px 20px" }}>
           {groups.map((g, gi) => {
@@ -637,7 +623,7 @@ function ResultModal({ cat, allData, onClose }) {
             const mergedRows = getMergedRows(gi);
             const hasResult = mergedRows.length > 0;
             const selForGroup = selected.filter(s=>s.gi===gi);
-
+ 
             return (
               <div key={gi} style={{ marginBottom:"16px", opacity: !isHighlight ? 0.35 : 1 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"7px" }}>
@@ -654,7 +640,7 @@ function ResultModal({ cat, allData, onClose }) {
                     <span style={{ fontSize:"10px", color:"#a08060" }}>하나 더 선택하면 묶기 가능</span>
                   )}
                 </div>
-
+ 
                 {!hasResult ? (
                   <div style={{ fontSize:"11px", color:"#c4a882", padding:"8px 0" }}>결과물 없음</div>
                 ) : (
@@ -754,14 +740,14 @@ function ResultModal({ cat, allData, onClose }) {
     </div>
   );
 }
-
-
+ 
+ 
 // ── 이력 상세 모달 컴포넌트 ──────────────────────────────────────────────
 function DetailModal({ task: t, taskIdx, partColor, onClose, onChangeStatus, onAddLog }) {
   const [logMemo, setLogMemo] = useState("");
   const bc = 상태색[t.상태] || "#8b6a4a";
   const bg = 상태배경[t.상태] || "#f0e6d8";
-
+ 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(59,26,10,0.45)", zIndex:1000,
       display:"flex", alignItems:"center", justifyContent:"center" }}
@@ -769,7 +755,7 @@ function DetailModal({ task: t, taskIdx, partColor, onClose, onChangeStatus, onA
       <div style={{ background:"#faf6f1", borderRadius:"10px", width:"520px", maxWidth:"92vw",
         maxHeight:"82vh", display:"flex", flexDirection:"column", boxShadow:"0 8px 32px rgba(91,51,23,0.28)" }}
         onClick={e => e.stopPropagation()}>
-
+ 
         {/* 모달 헤더 */}
         <div style={{ padding:"16px 20px", borderBottom:"1px solid #d4b896", background:"#f0e6d8",
           borderRadius:"10px 10px 0 0", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
@@ -786,7 +772,7 @@ function DetailModal({ task: t, taskIdx, partColor, onClose, onChangeStatus, onA
           <button onClick={onClose}
             style={{ background:"none", border:"none", fontSize:"20px", color:"#a08060", cursor:"pointer", padding:"0 2px", lineHeight:1, flexShrink:0 }}>✕</button>
         </div>
-
+ 
         {/* 상태 빠른 변경 */}
         <div style={{ padding:"10px 20px", borderBottom:"1px solid #ede0d0", background:"#fff8f2",
           display:"flex", alignItems:"center", gap:"8px", flexWrap:"wrap" }}>
@@ -804,19 +790,19 @@ function DetailModal({ task: t, taskIdx, partColor, onClose, onChangeStatus, onA
             ))}
           </div>
         </div>
-
+ 
         {/* 이력 타임라인 */}
         <div style={{ flex:1, overflowY:"auto", padding:"16px 20px" }}>
           <div style={{ fontSize:"10px", color:"#8b5e3c", fontWeight:"700", marginBottom:"12px", letterSpacing:"1px", textTransform:"uppercase" }}>
             진행 이력 {(t.이력||[]).length > 0 ? `(${(t.이력||[]).length}건)` : ""}
           </div>
-
+ 
           {(!t.이력 || t.이력.length === 0) && (
             <div style={{ fontSize:"11px", color:"#c4a882", textAlign:"center", padding:"24px 0" }}>
               아직 이력이 없습니다.<br/>아래에서 메모를 추가해보세요.
             </div>
           )}
-
+ 
           {(t.이력||[]).map((log, li) => {
             const dotColor = log.변경후상태==="완료" ? "#4a7c59" : log.변경후상태==="진행중" ? "#b8860b" : 상태색[log.변경후상태]||"#8b5e3c";
             const isLast = li === (t.이력||[]).length - 1;
@@ -851,7 +837,7 @@ function DetailModal({ task: t, taskIdx, partColor, onClose, onChangeStatus, onA
               </div>
             );
           })}
-
+ 
           {/* 메모 추가 영역 */}
           <div style={{ marginTop:"14px", background:"#f5ede4", border:"1px solid #c4a882", borderRadius:"7px", padding:"12px 14px" }}>
             <div style={{ fontSize:"10px", color:"#8b5e3c", fontWeight:"700", marginBottom:"7px" }}>+ 이력 메모 추가</div>
@@ -878,7 +864,7 @@ function DetailModal({ task: t, taskIdx, partColor, onClose, onChangeStatus, onA
     </div>
   );
 }
-
+ 
 function Bar({ rate, color, height="5px" }) {
   return (
     <div style={{ height, background:"#d4b896", borderRadius:"3px", overflow:"hidden", marginTop:"4px" }}>
@@ -886,12 +872,12 @@ function Bar({ rate, color, height="5px" }) {
     </div>
   );
 }
-
+ 
 // ── 대시보드 컴포넌트 ─────────────────────────────────────────────────────
 function Dashboard({ allData, allWork, onNavigate }) {
   const partKeys = Object.keys(MEMBERS);
   const rc = (r) => r>=80?"#4a7c59":r>=50?"#b8860b":"#c0703a";
-
+ 
   const MiniBar = ({ rate, color, width=80 }) => (
     <div style={{ display:"flex", alignItems:"center", gap:"3px" }}>
       <div style={{ width:`${width}px`, height:"5px", background:"#e8d5c0", borderRadius:"2px", overflow:"hidden", flexShrink:0 }}>
@@ -900,10 +886,10 @@ function Dashboard({ allData, allWork, onNavigate }) {
       <span style={{ fontSize:"9px", fontWeight:"700", color, minWidth:"26px" }}>{rate}%</span>
     </div>
   );
-
+ 
   // 통합 컬럼: 이름 | 전략 업무 개인 진행률 달성률 | 완료 미완료 완료율 변경일
   const COLS = "64px 1fr 1fr 1fr 1fr 1fr 6px 1fr 1fr 1fr 1fr";
-
+ 
   const PartSection = ({ pk, rowH=30 }) => {
     const pd = MEMBERS[pk];
     const pm = allData[pk];
@@ -912,7 +898,7 @@ function Dashboard({ allData, allWork, onNavigate }) {
     const allD  = pm.reduce((s,m)=>s+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0);
     const allU  = allT-allD;
     const allWR = allT>0?Math.round((allD/allT)*100):0;
-
+ 
     return (
       <div style={{ background:"#fff", border:"1px solid #d4b896", borderRadius:"8px", overflow:"hidden", marginBottom:"6px" }}>
         {/* 파트 헤더 */}
@@ -933,7 +919,7 @@ function Dashboard({ allData, allWork, onNavigate }) {
           <div style={{ fontSize:"8px", color:"rgba(255,255,255,0.8)", paddingLeft:"2px" }}>완료율</div>
           <div style={{ textAlign:"center", fontSize:"8px", color:"rgba(255,255,255,0.8)" }}>변경일</div>
         </div>
-
+ 
         {/* 개인별 행 */}
         {pm.map((m, mi) => {
           const r = calcRate(m.goals);
@@ -945,7 +931,7 @@ function Dashboard({ allData, allWork, onNavigate }) {
           const wc    = rc(wr);
           const undColor = und===0?"#4a7c59":und<=3?"#b8860b":"#c0703a";
           const lastDate = (()=>{const wl="완료일",al="접수일",t=tasks.filter(x=>x[wl]||x[al]).sort((a,b)=>(b[wl]||b[al]||"").localeCompare(a[wl]||a[al]||""))[0];return t?(t[wl]||t[al]||"").slice(5):"-";})();
-
+ 
           return (
             <div key={m.name} onClick={() => onNavigate(pk, mi)}
               onMouseEnter={e=>e.currentTarget.style.background="#f5ede4"}
@@ -975,7 +961,7 @@ function Dashboard({ allData, allWork, onNavigate }) {
             </div>
           );
         })}
-
+ 
         {/* 합계/평균 행 */}
         <div style={{ display:"grid", gridTemplateColumns:COLS, padding:"0 8px", height:"24px",
           background:pd.color+"18", borderTop:`1px solid ${pd.color}40`, alignItems:"center" }}>
@@ -999,7 +985,7 @@ function Dashboard({ allData, allWork, onNavigate }) {
       </div>
     );
   };
-
+ 
   // 전체 요약
   const totalMembers = partKeys.reduce((s,p)=>s+allData[p].length,0);
   const totalRate = Math.round(partKeys.reduce((s,p)=>s+allData[p].reduce((ss,m)=>ss+calcRate(m.goals),0),0)/totalMembers);
@@ -1007,13 +993,13 @@ function Dashboard({ allData, allWork, onNavigate }) {
   const totDone = partKeys.reduce((s,p)=>s+allData[p].reduce((ss,m)=>ss+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0),0);
   const totUnd  = totAll-totDone;
   const wRate   = totAll>0?Math.round((totDone/totAll)*100):0;
-
+ 
   return (
     <div style={{ width:"100%", height:"100%", overflow:"hidden", display:"flex", flexDirection:"column", background:"#faf6f1", boxSizing:"border-box" }}>
-
+ 
       {/* 상단 요약: 팀목표 달성현황(좌) / 개인업무현황(우) */}
       <div style={{ display:"flex", gap:"0", padding:"8px 16px 6px", flexShrink:0, alignItems:"stretch" }}>
-
+ 
         {/* 팀 목표 달성현황 */}
         <div style={{ flex:1, display:"flex", gap:"6px", alignItems:"center", paddingRight:"12px" }}>
           <div style={{ background:"linear-gradient(135deg,#5c3317,#8b5e3c)", borderRadius:"8px",
@@ -1048,10 +1034,10 @@ function Dashboard({ allData, allWork, onNavigate }) {
             );
           })}
         </div>
-
+ 
         {/* 구분선 */}
         <div style={{ width:"1px", background:"#d4b896", flexShrink:0, margin:"0 12px" }} />
-
+ 
         {/* 개인 업무현황 */}
         <div style={{ flex:1, display:"flex", gap:"6px", alignItems:"center" }}>
           <div style={{ background:"linear-gradient(135deg,#3b1f0a,#6b4226)", borderRadius:"8px",
@@ -1090,26 +1076,26 @@ function Dashboard({ allData, allWork, onNavigate }) {
             );
           })}
         </div>
-
+ 
       </div>
-
+ 
       {/* 파트별 섹션: 좌(BS+AS+소송) / 우(QC) */}
       <div style={{ flex:1, overflow:"hidden", display:"flex", gap:"8px", padding:"0 12px 12px", width:"100%", boxSizing:"border-box" }}>
-
+ 
         {/* 왼쪽: BS + AS + 소송 */}
         <div style={{ flex:1, display:"flex", flexDirection:"column", gap:"6px", overflow:"hidden", minWidth:0 }}>
           <PartSection pk="BS" rowH={30} />
           <PartSection pk="AS" rowH={30} />
           <PartSection pk="소송" rowH={30} />
         </div>
-
+ 
         {/* 오른쪽: QC */}
         <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column", minWidth:0 }}>
           <PartSection pk="QC" rowH={45} />
         </div>
-
+ 
       </div>
-
+ 
     </div>
   );
 }
@@ -1128,7 +1114,7 @@ export default function App() {
     });
     return d;
   });
-
+ 
   // 업무현황 state
   const [allWork, setAllWork] = useState(() => {
     const d = {};
@@ -1137,17 +1123,17 @@ export default function App() {
     });
     return d;
   });
-
+ 
   // 팀장 요청사항 state
   const [allReq, setAllReq] = useState(() => ({ ...REQUEST_DATA }));
-
+ 
   // 스토리지 로드 (마운트 시 1회)
   const [storageLoaded, setStorageLoaded] = useState(false);
   useEffect(() => {
     const load = async () => {
       try {
         const allNames = Object.values(MEMBERS).flatMap(pd => pd.members.map(m => m.name));
-
+ 
         // Firebase에서 개인별 goals 로드
         const newData = {};
         for (const [pk, pd] of Object.entries(MEMBERS)) {
@@ -1157,7 +1143,7 @@ export default function App() {
           }));
         }
         setAllData(newData);
-
+ 
         // Firebase에서 개인별 work 로드
         const newWork = {};
         for (const name of allNames) {
@@ -1165,29 +1151,29 @@ export default function App() {
           newWork[name] = saved?.tasks || [...(WORK_DATA[name]||[])];
         }
         setAllWork(newWork);
-
+ 
         // req 로드
         const savedReq = await dbGet('req', 'all');
         if (savedReq) setAllReq(savedReq);
-
+ 
       } catch(e) {
         console.error('로드 오류:', e);
       }
       setStorageLoaded(true);
     };    load();
   }, []);
-
+ 
   // 스토리지 저장 (데이터 변경 시)
   useEffect(() => {
     if (!storageLoaded) return;
     // req는 전체 키로 저장 (팀장 공통)
-
+ 
   }, [allReq, storageLoaded]);
-
+ 
   const part    = MEMBERS[activePart];
   const members = allData[activePart];
   const member  = members[activeMember];
-
+ 
   const update = (gi, field, val) => {
     setAllData(prev => {
       const next = { ...prev };
@@ -1208,16 +1194,16 @@ export default function App() {
       return next;
     });
   };
-
+ 
   const totalRate = calcRate(member.goals);
   const 배점합 = member.goals.reduce((s,g) => s+g.배점, 0);
   const 실적합 = member.goals.reduce((s,g) => s+(g.실적||0), 0);
-
+ 
   // 전체 평균 (헤더용)
   const allKeys = Object.keys(MEMBERS);
   const totalMembers = allKeys.reduce((s,p) => s+allData[p].length, 0);
   const overallRate = Math.round(allKeys.reduce((s,p) => s+allData[p].reduce((ss,m) => ss+calcRate(m.goals),0),0)/totalMembers);
-
+ 
   if (!storageLoaded) return (
     <div style={{ fontFamily:"'Noto Sans KR','Malgun Gothic',sans-serif", background:"#faf6f1", height:"100vh",
       display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:"12px" }}>
@@ -1227,10 +1213,10 @@ export default function App() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
-
+ 
   return (
     <div style={{ fontFamily:"'Noto Sans KR','Malgun Gothic',sans-serif", background:"#faf6f1", minHeight:"100vh", color:"#3b2a1a", display:"flex", flexDirection:"column", height:"100vh", width:"100vw", overflow:"hidden", boxSizing:"border-box" }}>
-
+ 
       {/* 헤더 */}
       <div style={{ background:"linear-gradient(90deg,#5c3317,#3b1f0a)", borderBottom:"1px solid #8b5e3c", padding:"12px 28px", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
         <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
@@ -1318,7 +1304,7 @@ export default function App() {
           </button>
         </div>
       </div>
-
+ 
       {/* 탭 */}
       <div style={{ display:"flex", background:"#f0e6d8", borderBottom:"1px solid #c4a882", flexShrink:0 }}>
         {/* 대시보드 탭 */}
@@ -1352,7 +1338,7 @@ export default function App() {
           );
         })}
       </div>
-
+ 
       {/* 콘텐츠 */}
       <div style={{ flex:1, overflow:"hidden", display:"flex" }}>
         {activeTab === "dashboard" ? (
@@ -1379,10 +1365,10 @@ export default function App() {
                 );
               })}
             </div>
-
+ 
                         {/* 우측: 목표관리(좌) + 업무현황(우) 2분할 */}
             <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
-
+ 
               {/* 왼쪽: 목표관리 */}
               <div style={{ width:"50%", borderRight:"1px solid #d4b896", overflowY:"auto", padding:"0", background:"#faf6f1", display:"flex", flexDirection:"column" }}>
                 {/* 왼쪽 제목 */}
@@ -1475,12 +1461,12 @@ export default function App() {
                 })}
                 </div>{/* 스크롤 래퍼 끝 */}
               </div>
-
+ 
               {/* 오른쪽: 업무현황 */}
               <WorkPanel name={member.name} partColor={part.color} workData={allWork} setWorkData={setAllWork} reqData={allReq} setReqData={setAllReq} />
-
+ 
             </div>
-
+ 
           </>
         )}
       </div>
@@ -1552,7 +1538,7 @@ export default function App() {
           </div>
         </div>
       )}
-
+ 
       {/* ── 결과물 모달 ── */}
       {resultModal && (
         <ResultModal
