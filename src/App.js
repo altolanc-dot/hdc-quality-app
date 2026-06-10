@@ -230,12 +230,12 @@ function ResultModal({ cat, allData, onClose }) {
 
   useEffect(()=>{
     dbGet('merged',cat).then(d=>{
-      if(d?.mergedMap) setMergedMap(d.mergedMap);
-      if(d?.editMerge) setEditMerge(d.editMerge);
+      if(d?.mergedMap) setMergedMap(typeof d.mergedMap==='string'?JSON.parse(d.mergedMap):d.mergedMap);
+      if(d?.editMerge) setEditMerge(typeof d.editMerge==='string'?JSON.parse(d.editMerge):d.editMerge);
     });
   },[cat]);
 
-  const saveNow = (mm,em) => dbSet('merged',cat,{mergedMap:mm,editMerge:em});
+  const saveNow = (mm,em) => dbSet('merged',cat,{mergedMap:JSON.stringify(mm),editMerge:JSON.stringify(em)});
 
   const allRows = [];
   Object.entries(MEMBERS).forEach(([pk,pd])=>{
