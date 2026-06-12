@@ -136,71 +136,84 @@ const calcRate = goals => {
   const done = goals.reduce((s,g)=>s+(g.실적||0),0);
   return tot===0?0:Math.round((done/tot)*100);
 };
-
 const 상태목록 = ["진행중","완료","검토중","보류","취소"];
 const 상태색 = { 진행중:"#b8860b", 완료:"#4a7c59", 검토중:"#8b5e3c", 보류:"#a08060", 취소:"#c0703a" };
 const 상태배경 = { 진행중:"#fef8e7", 완료:"#e8f5ed", 검토중:"#f5ede4", 보류:"#f5f0eb", 취소:"#fdf0eb" };
 const EMPTY_FORM = { 업무:"", 요청부서:"", 접수일:"", 목표일:"", 완료일:"", 상태:"진행중", 리뷰:"" };
 
+function NoticeModal({ onClose }) {
+  const [notice, setNotice] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  useEffect(()=>{ dbGet('notice','main').then(d=>{ if(d?.text) setNotice(d.text); setLoaded(true); }); },[]);
+  const save = () => { setNotice(draft); dbSet('notice','main',{text:draft}); setEditing(false); };
+  if(!loaded) return null;
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(59,26,10,0.6)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:"#faf6f1",borderRadius:"12px",width:"560px",maxWidth:"94vw",boxShadow:"0 10px 40px rgba(91,51,23,0.35)",display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"14px 20px",background:"linear-gradient(90deg,#5c3317,#8b5e3c)",borderRadius:"12px 12px 0 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div><div style={{fontSize:"9px",color:"rgba(255,255,255,0.7)",letterSpacing:"1px",marginBottom:"1px"}}>2026 품질팀</div><div style={{fontSize:"15px",fontWeight:"700",color:"#fff"}}>📢 공지사항</div></div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"20px",color:"rgba(255,255,255,0.8)",cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{padding:"20px 24px",minHeight:"160px"}}>
+          {!editing
+            ? <div style={{fontSize:"13px",color:"#3b1f0a",lineHeight:"1.9",whiteSpace:"pre-line",minHeight:"100px"}}>{notice.trim()?notice:<span style={{color:"#c4a882",fontSize:"12px"}}>등록된 공지사항이 없습니다.</span>}</div>
+            : <textarea value={draft} onChange={e=>setDraft(e.target.value)} rows={7} placeholder="공지사항 내용을 입력하세요"
+                style={{width:"100%",padding:"10px 12px",border:"1px solid #c4a882",borderRadius:"6px",fontSize:"13px",color:"#3b1f0a",background:"#fffaf5",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",outline:"none",lineHeight:"1.8"}} />
+          }
+        </div>
+        <div style={{padding:"12px 24px 16px",borderTop:"1px solid #e8d5c0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <button onClick={()=>{ const today=new Date().toISOString().slice(0,10); localStorage.setItem('notice_hide_until',today); onClose(); }}
+            style={{fontSize:"11px",color:"#a08060",background:"none",border:"1px solid #d4b896",borderRadius:"8px",padding:"5px 12px",cursor:"pointer"}}>오늘 다시 보지 않기</button>
+          <div style={{display:"flex",gap:"8px"}}>
+            {!editing
+              ? <button onClick={()=>{ setDraft(notice); setEditing(true); }} style={{padding:"6px 16px",background:"#f0e6d8",border:"none",borderRadius:"8px",fontSize:"12px",color:"#5c3317",cursor:"pointer",fontWeight:"600"}}>수정</button>
+              : <><button onClick={()=>setEditing(false)} style={{padding:"6px 16px",background:"#e8d5c0",border:"none",borderRadius:"8px",fontSize:"12px",color:"#6b4226",cursor:"pointer",fontWeight:"600"}}>취소</button>
+                 <button onClick={save} style={{padding:"6px 18px",background:"linear-gradient(90deg,#5c3317,#8b5e3c)",border:"none",borderRadius:"8px",fontSize:"12px",color:"#fff",cursor:"pointer",fontWeight:"700"}}>저장</button></>
+            }
+            <button onClick={onClose} style={{padding:"6px 16px",background:"#5c3317",border:"none",borderRadius:"8px",fontSize:"12px",color:"#fff",cursor:"pointer",fontWeight:"600"}}>닫기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ResultEditor({ gi, 결과, update }) {
   const [items, setItems] = useState(()=>(결과||"").split("||").filter(Boolean));
   const prevRef = useRef(결과);
-  useEffect(()=>{
-    if(prevRef.current !== 결과){
-      prevRef.current = 결과;
-      setItems((결과||"").split("||").filter(Boolean));
-    }
-  },[결과]);
-  const commit = arr => {
-    setItems(arr);
-    prevRef.current = arr.filter(s=>s.trim()).join("||");
-    update(gi,"결과",arr.filter(s=>s.trim()).join("||"));
-  };
-  const updateItem = (ii,val) => {
-    const arr=[...items]; arr[ii]=val; setItems(arr);
-    prevRef.current = arr.filter(s=>s.trim()).join("||");
-    update(gi,"결과",arr.filter(s=>s.trim()).join("||"));
-  };
+  useEffect(()=>{ if(prevRef.current!==결과){ prevRef.current=결과; setItems((결과||"").split("||").filter(Boolean)); } },[결과]);
+  const commit = arr => { setItems(arr); prevRef.current=arr.filter(s=>s.trim()).join("||"); update(gi,"결과",arr.filter(s=>s.trim()).join("||")); };
+  const updateItem = (ii,val) => { const arr=[...items]; arr[ii]=val; setItems(arr); prevRef.current=arr.filter(s=>s.trim()).join("||"); update(gi,"결과",arr.filter(s=>s.trim()).join("||")); };
   return (
     <div style={{marginTop:"5px"}}>
-      <div style={{marginBottom:"3px"}}>
-        <span style={{background:"#5c3317",color:"#fff",padding:"1px 6px",borderRadius:"4px",fontSize:"8px",fontWeight:"700"}}>결과물(승인본)</span>
-      </div>
+      <div style={{marginBottom:"3px"}}><span style={{background:"#5c3317",color:"#fff",padding:"1px 6px",borderRadius:"4px",fontSize:"8px",fontWeight:"700"}}>결과물(승인본)</span></div>
       {items.map((item,ii)=>(
         <div key={ii} style={{display:"flex",gap:"4px",marginBottom:"4px",alignItems:"center"}}>
-          <input value={item} onChange={e=>updateItem(ii,e.target.value)}
-            style={{flex:1,background:"#fff8f0",border:"1px solid #c4a882",borderLeft:"3px solid #5c3317",borderRadius:"3px",color:"#5c3317",fontWeight:"500",padding:"4px 6px",fontSize:"10px",fontFamily:"inherit",outline:"none"}} />
-          <button type="button" onPointerDown={e=>{e.stopPropagation();e.preventDefault();const arr=[...items];arr.splice(ii,1);commit(arr);}}
-            style={{background:"none",border:"none",color:"#c0703a",cursor:"pointer",fontSize:"14px",padding:"0 4px"}}>✕</button>
+          <input value={item} onChange={e=>updateItem(ii,e.target.value)} style={{flex:1,background:"#fff8f0",border:"1px solid #c4a882",borderLeft:"3px solid #5c3317",borderRadius:"3px",color:"#5c3317",fontWeight:"500",padding:"4px 6px",fontSize:"10px",fontFamily:"inherit",outline:"none"}} />
+          <button type="button" onPointerDown={e=>{ e.stopPropagation(); e.preventDefault(); const arr=[...items]; arr.splice(ii,1); commit(arr); }} style={{background:"none",border:"none",color:"#c0703a",cursor:"pointer",fontSize:"14px",padding:"0 4px"}}>✕</button>
         </div>
       ))}
-      <button type="button" onPointerDown={e=>{e.stopPropagation();e.preventDefault();setItems([...items,""]);}}
-        style={{fontSize:"9px",padding:"4px 10px",background:"#f5ede4",border:"1px dashed #c4a882",borderRadius:"4px",color:"#8b5e3c",cursor:"pointer",marginTop:"2px",display:"block"}}>+ 결과물 추가</button>
+      <button type="button" onPointerDown={e=>{ e.stopPropagation(); e.preventDefault(); setItems([...items,""]); }} style={{fontSize:"9px",padding:"4px 10px",background:"#f5ede4",border:"1px dashed #c4a882",borderRadius:"4px",color:"#8b5e3c",cursor:"pointer",marginTop:"2px",display:"block"}}>+ 결과물 추가</button>
     </div>
   );
 }
 
 function SelectableCard({ item, isSelected, isAddingMode, color, onSelect, onAddTo }) {
   return (
-    <div onClick={e=>{e.stopPropagation();if(isAddingMode)onAddTo();else onSelect();}}
-      style={{background:isAddingMode?"#e8f5ed":isSelected?"#f5ede4":"#faf6f1",
-        border:`1.5px solid ${isAddingMode?"#4a7c59":isSelected?color:"#e8d5c0"}`,
-        borderLeft:`3px solid ${isAddingMode?"#4a7c59":isSelected?color:"#c4a882"}`,
-        borderRadius:"6px",padding:"9px 12px",cursor:"pointer",userSelect:"none"}}>
+    <div onClick={e=>{ e.stopPropagation(); if(isAddingMode) onAddTo(); else onSelect(); }}
+      style={{background:isAddingMode?"#e8f5ed":isSelected?"#f5ede4":"#faf6f1",border:`1.5px solid ${isAddingMode?"#4a7c59":isSelected?color:"#e8d5c0"}`,borderLeft:`3px solid ${isAddingMode?"#4a7c59":isSelected?color:"#c4a882"}`,borderRadius:"6px",padding:"9px 12px",cursor:"pointer",userSelect:"none"}}>
       <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"5px"}}>
         {isAddingMode
           ? <span style={{fontSize:"9px",color:"#4a7c59",fontWeight:"700",background:"#e8f5ed",padding:"1px 6px",borderRadius:"6px",border:"1px solid #4a7c59"}}>+ 추가</span>
-          : <span style={{width:"14px",height:"14px",border:`2px solid ${isSelected?color:"#c4a882"}`,borderRadius:"3px",background:isSelected?color:"#fff",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              {isSelected&&<span style={{color:"#fff",fontSize:"10px",lineHeight:1}}>✓</span>}
-            </span>
+          : <span style={{width:"14px",height:"14px",border:`2px solid ${isSelected?color:"#c4a882"}`,borderRadius:"3px",background:isSelected?color:"#fff",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>{isSelected&&<span style={{color:"#fff",fontSize:"10px",lineHeight:1}}>✓</span>}</span>
         }
         <span style={{fontSize:"9px",fontWeight:"700",color:item.row.partColor,background:item.row.partColor+"18",padding:"1px 5px",borderRadius:"5px"}}>{item.row.part}</span>
         <span style={{fontSize:"12px",fontWeight:"700",color:"#3b1f0a"}}>{item.row.name}</span>
         <span style={{fontSize:"9px",color:"#a08060",marginLeft:"auto"}}>{item.row.과제}</span>
       </div>
-      <div style={{fontSize:"11px",color:"#5c3317",lineHeight:"1.6",fontWeight:"500",background:"#fff",border:"1px solid #e8d5c0",borderRadius:"4px",padding:"6px 9px"}}>
-        {item.row.결과}
-      </div>
+      <div style={{fontSize:"11px",color:"#5c3317",lineHeight:"1.6",fontWeight:"500",background:"#fff",border:"1px solid #e8d5c0",borderRadius:"4px",padding:"6px 9px"}}>{item.row.결과}</div>
     </div>
   );
 }
@@ -208,12 +221,12 @@ function SelectableCard({ item, isSelected, isAddingMode, color, onSelect, onAdd
 const RESULT_GROUPS = {
   전략:[
     {label:"예측기반 타겟점검", match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
-    {label:"건설 DX",           match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
-    {label:"소송핵심관리",      match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
+    {label:"건설 DX", match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
+    {label:"소송핵심관리", match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
   ],
   업무:[
-    {label:"하자비용 저감",   match:t=>t.includes("골조")||t.includes("타일")},
-    {label:"BS 하자 개선",    match:t=>t.includes("BS하자")},
+    {label:"하자비용 저감", match:t=>t.includes("골조")||t.includes("타일")},
+    {label:"BS 하자 개선", match:t=>t.includes("BS하자")},
     {label:"고객불만율 관리", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
   ],
   개인:[{label:"개인 목표", match:()=>true}],
@@ -227,79 +240,35 @@ function ResultModal({ cat, allData, onClose }) {
   const [selected, setSelected] = useState([]);
   const [editMerge, setEditMerge] = useState({});
   const [addingTo, setAddingTo] = useState(null);
-
-  useEffect(()=>{
-    dbGet('merged',cat).then(d=>{
-      if(d?.mergedMap) setMergedMap(typeof d.mergedMap==='string'?JSON.parse(d.mergedMap):d.mergedMap);
-      if(d?.editMerge) setEditMerge(typeof d.editMerge==='string'?JSON.parse(d.editMerge):d.editMerge);
-    });
-  },[cat]);
-
+  useEffect(()=>{ dbGet('merged',cat).then(d=>{ if(d?.mergedMap) setMergedMap(typeof d.mergedMap==='string'?JSON.parse(d.mergedMap):d.mergedMap); if(d?.editMerge) setEditMerge(typeof d.editMerge==='string'?JSON.parse(d.editMerge):d.editMerge); }); },[cat]);
   const saveNow = (mm,em) => dbSet('merged',cat,{mergedMap:JSON.stringify(mm),editMerge:JSON.stringify(em)});
-
   const allRows = [];
-  Object.entries(MEMBERS).forEach(([pk,pd])=>{
-    (allData[pk]||[]).forEach(m=>{
-      m.goals.filter(g=>g.cat===cat&&g.배점>0).forEach(g=>{
-        (g.결과||"").split("||").filter(s=>s.trim()).forEach((item,ii)=>{
-          allRows.push({part:pd.label.replace(" 파트",""),partColor:pd.color,name:m.name,과제:g.과제,배점:g.배점,결과:item.trim(),itemIdx:ii});
-        });
-      });
-    });
-  });
-
+  Object.entries(MEMBERS).forEach(([pk,pd])=>{ (allData[pk]||[]).forEach(m=>{ m.goals.filter(g=>g.cat===cat&&g.배점>0).forEach(g=>{ (g.결과||"").split("||").filter(s=>s.trim()).forEach((item,ii)=>{ allRows.push({part:pd.label.replace(" 파트",""),partColor:pd.color,name:m.name,과제:g.과제,배점:g.배점,결과:item.trim(),itemIdx:ii}); }); }); }); });
   const getRows = g => allRows.filter(r=>g.match(r.과제)&&r.결과.trim());
   const getTotal = g => new Set(getRows(g).map(r=>r.name)).size;
   const getMergedRows = gi => {
-    const rows = getRows(groups[gi]);
-    const merged = mergedMap[gi]||[];
-    const usedIdx = new Set(merged.flat());
-    const result = [];
-    merged.forEach((idxArr,mi)=>{
-      const members = idxArr.map(i=>rows[i]).filter(Boolean);
-      if(!members.length) return;
-      const key = `${gi}_${mi}`;
-      result.push({type:"merged",mi,gi,members,text:editMerge[key]!==undefined?editMerge[key]:members.map(m=>m.결과).join("\n")});
-    });
+    const rows=getRows(groups[gi]); const merged=mergedMap[gi]||[]; const usedIdx=new Set(merged.flat()); const result=[];
+    merged.forEach((idxArr,mi)=>{ const members=idxArr.map(i=>rows[i]).filter(Boolean); if(!members.length) return; const key=`${gi}_${mi}`; result.push({type:"merged",mi,gi,members,text:editMerge[key]!==undefined?editMerge[key]:members.map(m=>m.결과).join("\n")}); });
     rows.forEach((r,i)=>{ if(!usedIdx.has(i)) result.push({type:"single",idx:i,gi,row:r}); });
     return result;
   };
   const getDoneCount = (_,gi) => getMergedRows(gi).length;
-  const handleMerge = gi => {
-    const sel=selected.filter(s=>s.gi===gi); if(sel.length<2) return;
-    const newMM={...mergedMap,[gi]:[...(mergedMap[gi]||[]),sel.map(s=>s.idx)]};
-    setMergedMap(newMM); setSelected(p=>p.filter(s=>s.gi!==gi)); saveNow(newMM,editMerge);
-  };
-  const handleUnmerge = (gi,mi) => {
-    const newMM={...mergedMap}; const arr=[...(newMM[gi]||[])]; arr.splice(mi,1); newMM[gi]=arr;
-    const newEM={...editMerge}; delete newEM[`${gi}_${mi}`];
-    setMergedMap(newMM); setEditMerge(newEM); saveNow(newMM,newEM);
-  };
-  const handleAddToMerge = (gi,mi,idx) => {
-    const newMM={...mergedMap}; const arr=[...(newMM[gi]||[])]; arr[mi]=[...arr[mi],idx]; newMM[gi]=arr;
-    setMergedMap(newMM); setSelected(p=>p.filter(s=>!(s.gi===gi&&s.idx===idx))); saveNow(newMM,editMerge);
-  };
+  const handleMerge = gi => { const sel=selected.filter(s=>s.gi===gi); if(sel.length<2) return; const newMM={...mergedMap,[gi]:[...(mergedMap[gi]||[]),sel.map(s=>s.idx)]}; setMergedMap(newMM); setSelected(p=>p.filter(s=>s.gi!==gi)); saveNow(newMM,editMerge); };
+  const handleUnmerge = (gi,mi) => { const newMM={...mergedMap}; const arr=[...(newMM[gi]||[])]; arr.splice(mi,1); newMM[gi]=arr; const newEM={...editMerge}; delete newEM[`${gi}_${mi}`]; setMergedMap(newMM); setEditMerge(newEM); saveNow(newMM,newEM); };
+  const handleAddToMerge = (gi,mi,idx) => { const newMM={...mergedMap}; const arr=[...(newMM[gi]||[])]; arr[mi]=[...arr[mi],idx]; newMM[gi]=arr; setMergedMap(newMM); setSelected(p=>p.filter(s=>!(s.gi===gi&&s.idx===idx))); saveNow(newMM,editMerge); };
   const toggleSelect = (gi,idx) => setSelected(p=>{ const ex=p.find(s=>s.gi===gi&&s.idx===idx); return ex?p.filter(s=>!(s.gi===gi&&s.idx===idx)):[...p,{gi,idx}]; });
-
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(59,26,10,0.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
       <div style={{background:"#faf6f1",borderRadius:"12px",width:"640px",maxWidth:"94vw",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 10px 40px rgba(91,51,23,0.3)"}} onClick={e=>e.stopPropagation()}>
         <div style={{padding:"14px 20px",background:color,borderRadius:"12px 12px 0 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div>
-            <div style={{fontSize:"9px",color:"rgba(255,255,255,0.7)",letterSpacing:"1px",marginBottom:"1px"}}>2026 품질팀</div>
-            <div style={{fontSize:"15px",fontWeight:"700",color:"#fff"}}>{cat} 목표 결과물(승인본)</div>
-          </div>
+          <div><div style={{fontSize:"9px",color:"rgba(255,255,255,0.7)",letterSpacing:"1px",marginBottom:"1px"}}>2026 품질팀</div><div style={{fontSize:"15px",fontWeight:"700",color:"#fff"}}>{cat} 목표 결과물(승인본)</div></div>
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:"20px",color:"rgba(255,255,255,0.8)",cursor:"pointer"}}>✕</button>
         </div>
         <div style={{padding:"12px 20px 10px",borderBottom:"1px solid #d4b896",display:"flex",gap:"8px",flexWrap:"wrap"}}>
-          {groups.map((g,gi)=>{
-            const done=getDoneCount(g,gi); const total=getTotal(g); const isActive=activeGroup===gi;
-            return <button key={gi} onClick={e=>{e.stopPropagation();setActiveGroup(isActive?"all":gi);}}
-              style={{display:"flex",alignItems:"center",gap:"5px",padding:"6px 14px",background:isActive?color:"#fff",border:`1.5px solid ${isActive?color:"#d4b896"}`,borderRadius:"20px",cursor:"pointer",color:isActive?"#fff":"#5c3317",fontWeight:"600",fontSize:"12px"}}>
-              {g.label}
-              <span style={{background:isActive?"rgba(255,255,255,0.3)":color+"18",color:isActive?"#fff":color,fontSize:"10px",fontWeight:"800",padding:"1px 7px",borderRadius:"10px"}}>{done}/{total}</span>
-            </button>;
-          })}
+          {groups.map((g,gi)=>{ const done=getDoneCount(g,gi); const total=getTotal(g); const isActive=activeGroup===gi;
+            return <button key={gi} onClick={e=>{ e.stopPropagation(); setActiveGroup(isActive?"all":gi); }} style={{display:"flex",alignItems:"center",gap:"5px",padding:"6px 14px",background:isActive?color:"#fff",border:`1.5px solid ${isActive?color:"#d4b896"}`,borderRadius:"20px",cursor:"pointer",color:isActive?"#fff":"#5c3317",fontWeight:"600",fontSize:"12px"}}>
+              {g.label}<span style={{background:isActive?"rgba(255,255,255,0.3)":color+"18",color:isActive?"#fff":color,fontSize:"10px",fontWeight:"800",padding:"1px 7px",borderRadius:"10px"}}>{done}/{total}</span>
+            </button>; })}
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"14px 20px"}}>
           {groups.map((g,gi)=>{
@@ -310,7 +279,7 @@ function ResultModal({ cat, allData, onClose }) {
                 <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"7px"}}>
                   <div style={{width:"3px",height:"14px",background:activeGroup===gi?color:"#c4a882",borderRadius:"2px"}} />
                   <span style={{fontSize:"12px",fontWeight:"700",color:activeGroup===gi?color:"#8b6a4a"}}>{g.label}</span>
-                  {selForGroup.length>=2&&<button onClick={e=>{e.stopPropagation();handleMerge(gi);}} style={{padding:"2px 10px",background:color,border:"none",borderRadius:"10px",fontSize:"10px",color:"#fff",cursor:"pointer",fontWeight:"700"}}>✂ {selForGroup.length}개 묶기</button>}
+                  {selForGroup.length>=2&&<button onClick={e=>{ e.stopPropagation(); handleMerge(gi); }} style={{padding:"2px 10px",background:color,border:"none",borderRadius:"10px",fontSize:"10px",color:"#fff",cursor:"pointer",fontWeight:"700"}}>✂ {selForGroup.length}개 묶기</button>}
                   {selForGroup.length===1&&<span style={{fontSize:"10px",color:"#a08060"}}>하나 더 선택하면 묶기 가능</span>}
                 </div>
                 {mergedRows.length===0?<div style={{fontSize:"11px",color:"#c4a882",padding:"8px 0"}}>결과물 없음</div>:(
@@ -322,25 +291,15 @@ function ResultModal({ cat, allData, onClose }) {
                           <div key={ii} style={{background:"#fff8f0",border:`1.5px solid ${color}`,borderLeft:`4px solid ${color}`,borderRadius:"6px",padding:"10px 12px"}}>
                             <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"6px",flexWrap:"wrap"}}>
                               <span style={{fontSize:"9px",color:"#fff",background:color,padding:"1px 7px",borderRadius:"8px",fontWeight:"700"}}>{item.members.length}명 묶음</span>
-                              {item.members.map((m,mi)=>(
-                                <span key={mi} style={{display:"flex",alignItems:"center",gap:"3px"}}>
-                                  <span style={{fontSize:"9px",fontWeight:"700",color:m.partColor,background:m.partColor+"18",padding:"1px 5px",borderRadius:"5px"}}>{m.part}</span>
-                                  <span style={{fontSize:"11px",fontWeight:"600",color:"#3b1f0a"}}>{m.name}</span>
-                                </span>
-                              ))}
+                              {item.members.map((m,mi)=>(<span key={mi} style={{display:"flex",alignItems:"center",gap:"3px"}}><span style={{fontSize:"9px",fontWeight:"700",color:m.partColor,background:m.partColor+"18",padding:"1px 5px",borderRadius:"5px"}}>{m.part}</span><span style={{fontSize:"11px",fontWeight:"600",color:"#3b1f0a"}}>{m.name}</span></span>))}
                               <div style={{marginLeft:"auto",display:"flex",gap:"4px"}}>
-                                <button onClick={e=>{e.stopPropagation();setAddingTo(isAdding?null:{gi,mi:item.mi});}} style={{padding:"1px 8px",background:isAdding?"#e8d5c0":"#f0e6d8",border:"none",borderRadius:"8px",fontSize:"9px",color:"#8b5e3c",cursor:"pointer",fontWeight:"600"}}>{isAdding?"취소":"+ 추가"}</button>
-                                <button onClick={e=>{e.stopPropagation();handleUnmerge(gi,item.mi);}} style={{padding:"1px 8px",background:"#fdf0eb",border:"none",borderRadius:"8px",fontSize:"9px",color:"#c0703a",cursor:"pointer",fontWeight:"600"}}>묶기 해제</button>
+                                <button onClick={e=>{ e.stopPropagation(); setAddingTo(isAdding?null:{gi,mi:item.mi}); }} style={{padding:"1px 8px",background:isAdding?"#e8d5c0":"#f0e6d8",border:"none",borderRadius:"8px",fontSize:"9px",color:"#8b5e3c",cursor:"pointer",fontWeight:"600"}}>{isAdding?"취소":"+ 추가"}</button>
+                                <button onClick={e=>{ e.stopPropagation(); handleUnmerge(gi,item.mi); }} style={{padding:"1px 8px",background:"#fdf0eb",border:"none",borderRadius:"8px",fontSize:"9px",color:"#c0703a",cursor:"pointer",fontWeight:"600"}}>묶기 해제</button>
                               </div>
                             </div>
                             {isAdding&&<div style={{fontSize:"10px",color:"#8b5e3c",background:"#f5ede4",padding:"5px 8px",borderRadius:"5px",marginBottom:"6px"}}>↓ 아래 개별 항목을 클릭하면 이 묶음에 추가됩니다</div>}
                             <div style={{background:"#fff",border:"1px solid #e8d5c0",borderRadius:"4px",padding:"6px 9px"}}>
-                              {item.text.split("\n").filter(s=>s.trim()).map((line,li)=>(
-                                <div key={li} style={{display:"flex",gap:"6px",alignItems:"flex-start",marginBottom:"3px"}}>
-                                  <span style={{color:"#8b5e3c",fontWeight:"700",fontSize:"10px",flexShrink:0,marginTop:"2px"}}>{li+1}.</span>
-                                  <span style={{fontSize:"11px",color:"#5c3317",lineHeight:"1.6",fontWeight:"500"}}>{line.trim()}</span>
-                                </div>
-                              ))}
+                              {item.text.split("\n").filter(s=>s.trim()).map((line,li)=>(<div key={li} style={{display:"flex",gap:"6px",alignItems:"flex-start",marginBottom:"3px"}}><span style={{color:"#8b5e3c",fontWeight:"700",fontSize:"10px",flexShrink:0,marginTop:"2px"}}>{li+1}.</span><span style={{fontSize:"11px",color:"#5c3317",lineHeight:"1.6",fontWeight:"500"}}>{line.trim()}</span></div>))}
                             </div>
                           </div>
                         );
@@ -379,12 +338,7 @@ function DetailModal({ task:t, taskIdx, partColor, onClose, onChangeStatus, onAd
         </div>
         <div style={{padding:"10px 20px",borderBottom:"1px solid #ede0d0",background:"#fff8f2",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
           <span style={{fontSize:"10px",color:"#8b6a4a",fontWeight:"600"}}>상태 변경</span>
-          {상태목록.map(s=>(
-            <button key={s} onClick={()=>onChangeStatus(taskIdx,s)}
-              style={{padding:"3px 10px",border:"none",borderRadius:"10px",cursor:"pointer",fontSize:"10px",fontWeight:t.상태===s?"700":"400",
-                background:t.상태===s?(상태색[s]||"#8b6a4a"):(상태배경[s]||"#f0e6d8"),color:t.상태===s?"#fff":(상태색[s]||"#8b6a4a"),
-                outline:t.상태===s?`2px solid ${상태색[s]||"#8b6a4a"}`:"none"}}>{s}</button>
-          ))}
+          {상태목록.map(s=>(<button key={s} onClick={()=>onChangeStatus(taskIdx,s)} style={{padding:"3px 10px",border:"none",borderRadius:"10px",cursor:"pointer",fontSize:"10px",fontWeight:t.상태===s?"700":"400",background:t.상태===s?(상태색[s]||"#8b6a4a"):(상태배경[s]||"#f0e6d8"),color:t.상태===s?"#fff":(상태색[s]||"#8b6a4a"),outline:t.상태===s?`2px solid ${상태색[s]||"#8b6a4a"}`:"none"}}>{s}</button>))}
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
           <div style={{fontSize:"10px",color:"#8b5e3c",fontWeight:"700",marginBottom:"12px"}}>진행 이력 {(t.이력||[]).length>0?`(${(t.이력||[]).length}건)`:""}</div>
@@ -401,10 +355,7 @@ function DetailModal({ task:t, taskIdx, partColor, onClose, onChangeStatus, onAd
                 <div style={{flex:1,background:"#ffffff",border:"1px solid #ede0d0",borderRadius:"6px",padding:"9px 12px",marginBottom:"2px"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px",flexWrap:"wrap",gap:"4px"}}>
                     <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
-                      {log.변경전상태&&log.변경전상태!==log.변경후상태&&<>
-                        <span style={{fontSize:"9px",fontWeight:"700",color:상태색[log.변경전상태]||"#8b6a4a",background:상태배경[log.변경전상태]||"#f0e6d8",padding:"1px 7px",borderRadius:"6px"}}>{log.변경전상태}</span>
-                        <span style={{fontSize:"10px",color:"#a08060"}}>→</span>
-                      </>}
+                      {log.변경전상태&&log.변경전상태!==log.변경후상태&&<><span style={{fontSize:"9px",fontWeight:"700",color:상태색[log.변경전상태]||"#8b6a4a",background:상태배경[log.변경전상태]||"#f0e6d8",padding:"1px 7px",borderRadius:"6px"}}>{log.변경전상태}</span><span style={{fontSize:"10px",color:"#a08060"}}>→</span></>}
                       <span style={{fontSize:"9px",fontWeight:"700",color:상태색[log.변경후상태]||"#8b6a4a",background:상태배경[log.변경후상태]||"#f0e6d8",padding:"1px 7px",borderRadius:"6px"}}>{log.변경후상태||"등록"}</span>
                     </div>
                     <span style={{fontSize:"9px",color:"#b0907a"}}>{log.시각}</span>
@@ -416,11 +367,9 @@ function DetailModal({ task:t, taskIdx, partColor, onClose, onChangeStatus, onAd
           })}
           <div style={{marginTop:"14px",background:"#f5ede4",border:"1px solid #c4a882",borderRadius:"7px",padding:"12px 14px"}}>
             <div style={{fontSize:"10px",color:"#8b5e3c",fontWeight:"700",marginBottom:"7px"}}>+ 이력 메모 추가</div>
-            <textarea value={logMemo} onChange={e=>setLogMemo(e.target.value)} placeholder="진행 상황, 특이사항, 협의 내용 등" rows={3}
-              style={{width:"100%",padding:"7px 9px",border:"1px solid #c4a882",borderRadius:"5px",fontSize:"11px",color:"#3b1f0a",background:"#fff",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",outline:"none",lineHeight:"1.6"}} />
+            <textarea value={logMemo} onChange={e=>setLogMemo(e.target.value)} placeholder="진행 상황, 특이사항, 협의 내용 등" rows={3} style={{width:"100%",padding:"7px 9px",border:"1px solid #c4a882",borderRadius:"5px",fontSize:"11px",color:"#3b1f0a",background:"#fff",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",outline:"none",lineHeight:"1.6"}} />
             <div style={{display:"flex",justifyContent:"flex-end",marginTop:"7px"}}>
-              <button onClick={()=>{ if(logMemo.trim()){ onAddLog(taskIdx,logMemo); setLogMemo(""); } }}
-                style={{padding:"5px 16px",background:logMemo.trim()?partColor:"#c4a882",border:"none",borderRadius:"10px",fontSize:"11px",color:"#fff",cursor:logMemo.trim()?"pointer":"default",fontWeight:"700"}}>메모 저장</button>
+              <button onClick={()=>{ if(logMemo.trim()){ onAddLog(taskIdx,logMemo); setLogMemo(""); } }} style={{padding:"5px 16px",background:logMemo.trim()?partColor:"#c4a882",border:"none",borderRadius:"10px",fontSize:"11px",color:"#fff",cursor:logMemo.trim()?"pointer":"default",fontWeight:"700"}}>메모 저장</button>
             </div>
           </div>
         </div>
@@ -433,11 +382,7 @@ function ReqSection({ name, reqData, setReqData, partColor }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const text = reqData[name]||"";
-  if(!text.trim()&&!editing) return (
-    <div style={{marginBottom:"8px"}}>
-      <button onClick={()=>{ setDraft(text); setEditing(true); }} style={{fontSize:"9px",color:"#d4842a",background:"none",border:"1px dashed #e8a44a",borderRadius:"4px",padding:"3px 10px",cursor:"pointer"}}>+ 팀장 요청사항 추가</button>
-    </div>
-  );
+  if(!text.trim()&&!editing) return (<div style={{marginBottom:"8px"}}><button onClick={()=>{ setDraft(text); setEditing(true); }} style={{fontSize:"9px",color:"#d4842a",background:"none",border:"1px dashed #e8a44a",borderRadius:"4px",padding:"3px 10px",cursor:"pointer"}}>+ 팀장 요청사항 추가</button></div>);
   return (
     <div style={{background:"#fff3e0",border:"1px solid #e8a44a",borderLeft:"3px solid #d4842a",borderRadius:"5px",padding:"8px 12px",marginBottom:"8px"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"5px"}}>
@@ -451,16 +396,8 @@ function ReqSection({ name, reqData, setReqData, partColor }) {
         }
       </div>
       {!editing
-        ? <div style={{fontSize:"10px",color:"#5a3a0a",lineHeight:"1.8"}}>
-            {text.trim().split("\n").filter(l=>l.trim()).map((line,i)=>(
-              <div key={i} style={{display:"flex",gap:"5px",marginBottom:"2px"}}>
-                <span style={{color:"#d4842a",fontWeight:"700",flexShrink:0,minWidth:"14px"}}>{i+1}.</span>
-                <span>{line.trim()}</span>
-              </div>
-            ))}
-          </div>
-        : <textarea value={draft} onChange={e=>setDraft(e.target.value)} rows={5}
-            style={{width:"100%",padding:"6px 8px",border:"1px solid #e8a44a",borderRadius:"4px",fontSize:"10px",color:"#3b1f0a",background:"#fffaf5",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",outline:"none",lineHeight:"1.7"}} />
+        ? <div style={{fontSize:"10px",color:"#5a3a0a",lineHeight:"1.8"}}>{text.trim().split("\n").filter(l=>l.trim()).map((line,i)=>(<div key={i} style={{display:"flex",gap:"5px",marginBottom:"2px"}}><span style={{color:"#d4842a",fontWeight:"700",flexShrink:0,minWidth:"14px"}}>{i+1}.</span><span>{line.trim()}</span></div>))}</div>
+        : <textarea value={draft} onChange={e=>setDraft(e.target.value)} rows={5} style={{width:"100%",padding:"6px 8px",border:"1px solid #e8a44a",borderRadius:"4px",fontSize:"10px",color:"#3b1f0a",background:"#fffaf5",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",outline:"none",lineHeight:"1.7"}} />
       }
     </div>
   );
@@ -478,13 +415,10 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
   const effState = t => (!t.상태||t.상태==="진행중")?"진행중":t.상태;
   const saveTask = () => {
     if(!form.업무.trim()) return;
-    setWorkData(prev=>{
-      const list=[...(prev[name]||[])];
-      const now=new Date().toISOString().slice(0,16).replace("T"," ");
+    setWorkData(prev=>{ const list=[...(prev[name]||[])]; const now=new Date().toISOString().slice(0,16).replace("T"," ");
       if(editIdx!==null){ const pt=list[editIdx]; list[editIdx]={...form,이력:[...(pt.이력||[]),{시각:now,변경전상태:pt.상태,변경후상태:form.상태,메모:form.리뷰}]}; }
       else { list.push({...form,접수일:form.접수일||today,이력:[{시각:now,변경전상태:"",변경후상태:form.상태,메모:form.리뷰||"신규 등록"}]}); }
-      const next={...prev,[name]:list}; dbSet('work',name,{tasks:list}); return next;
-    });
+      const next={...prev,[name]:list}; dbSet('work',name,{tasks:list}); return next; });
     setForm(EMPTY_FORM); setShowForm(false); setEditIdx(null);
   };
   const addLog=(idx,memo)=>{ setWorkData(prev=>{ const list=[...(prev[name]||[])]; const t=list[idx]; const now=new Date().toISOString().slice(0,16).replace("T"," "); list[idx]={...t,이력:[...(t.이력||[]),{시각:now,변경전상태:t.상태,변경후상태:t.상태,메모:memo}]}; const next={...prev,[name]:list}; dbSet('work',name,{tasks:list}); return next; }); };
@@ -559,11 +493,7 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
 }
 
 function Bar({ rate, color, height="5px" }) {
-  return (
-    <div style={{height,background:"#d4b896",borderRadius:"3px",overflow:"hidden",marginTop:"4px"}}>
-      <div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:color||rateColor(rate),borderRadius:"3px",transition:"width 0.5s"}} />
-    </div>
-  );
+  return (<div style={{height,background:"#d4b896",borderRadius:"3px",overflow:"hidden",marginTop:"4px"}}><div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:color||rateColor(rate),borderRadius:"3px",transition:"width 0.5s"}} /></div>);
 }
 
 function Dashboard({ allData, allWork, onNavigate }) {
@@ -572,84 +502,48 @@ function Dashboard({ allData, allWork, onNavigate }) {
   const leftRef = useRef(null);
   const [qcRowH, setQcRowH] = useState(44);
   const [openItem, setOpenItem] = useState(null);
-
-  useEffect(()=>{
-    const calc=()=>{ if(!leftRef.current) return; const leftH=leftRef.current.getBoundingClientRect().height; setQcRowH(Math.max(24,Math.floor((leftH-28-24)/allData["QC"].length))); };
-    const ro=new ResizeObserver(calc); if(leftRef.current) ro.observe(leftRef.current); setTimeout(calc,0); return ()=>ro.disconnect();
-  },[allData]);
+  useEffect(()=>{ const calc=()=>{ if(!leftRef.current) return; const leftH=leftRef.current.getBoundingClientRect().height; setQcRowH(Math.max(24,Math.floor((leftH-28-24)/allData["QC"].length))); }; const ro=new ResizeObserver(calc); if(leftRef.current) ro.observe(leftRef.current); setTimeout(calc,0); return ()=>ro.disconnect(); },[allData]);
 
   const STRATEGY_ITEMS = [
     {label:"예측기반 타겟점검", match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
-    {label:"건설 DX",           match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
-    {label:"소송핵심관리",      match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
+    {label:"건설 DX", match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
+    {label:"소송핵심관리", match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
   ];
   const WORK_ITEMS = [
-    {label:"하자비용 저감",   match:t=>t.includes("골조")||t.includes("타일")},
-    {label:"BS 하자 개선",    match:t=>t.includes("BS하자")},
+    {label:"하자비용 저감", match:t=>t.includes("골조")||t.includes("타일")},
+    {label:"BS 하자 개선", match:t=>t.includes("BS하자")},
     {label:"고객불만율 관리", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
   ];
-
-  const getMemberRates = (item, cat) => {
-    const result = [];
-    partKeys.forEach(pk=>{ allData[pk].forEach(m=>{ const goals=m.goals.filter(g=>g.cat===cat&&item.match(g.과제)); if(!goals.length) return; const ts=goals.reduce((s,g)=>s+g.배점,0); const td=goals.reduce((s,g)=>s+(g.실적||0),0); result.push({name:m.name,part:MEMBERS[pk].label.replace(" 파트",""),partColor:MEMBERS[pk].color,rate:ts>0?Math.round((td/ts)*100):0,totalScore:ts,totalDone:td}); }); });
-    return result;
-  };
-
+  const getMemberRates = (item, cat) => { const result=[]; partKeys.forEach(pk=>{ allData[pk].forEach(m=>{ const goals=m.goals.filter(g=>g.cat===cat&&item.match(g.과제)); if(!goals.length) return; const ts=goals.reduce((s,g)=>s+g.배점,0); const td=goals.reduce((s,g)=>s+(g.실적||0),0); result.push({name:m.name,part:MEMBERS[pk].label.replace(" 파트",""),partColor:MEMBERS[pk].color,rate:ts>0?Math.round((td/ts)*100):0,totalScore:ts,totalDone:td}); }); }); return result; };
   const ItemBar = ({ item, cat, idx }) => {
-    const key=`${cat}_${idx}`; const isOpen=openItem===key;
-    const members=getMemberRates(item,cat);
-    const ts=members.reduce((s,m)=>s+m.totalScore,0); const td=members.reduce((s,m)=>s+m.totalDone,0);
-    const rate=ts>0?Math.round((td/ts)*100):0;
-    const color=cat==="전략"?"#8b5e3c":"#6b4226";
+    const key=`${cat}_${idx}`; const isOpen=openItem===key; const members=getMemberRates(item,cat);
+    const ts=members.reduce((s,m)=>s+m.totalScore,0); const td=members.reduce((s,m)=>s+m.totalDone,0); const rate=ts>0?Math.round((td/ts)*100):0; const color=cat==="전략"?"#8b5e3c":"#6b4226";
     return (
       <div style={{marginBottom:idx<2?"6px":"0"}}>
         <div onClick={()=>setOpenItem(isOpen?null:key)} style={{cursor:"pointer"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"3px"}}>
-            <span style={{fontSize:"10px",color:"#5c3317",fontWeight:"600",display:"flex",alignItems:"center",gap:"4px"}}>
-              {item.label}
-              <span style={{fontSize:"8px",color:color,background:color+"15",padding:"1px 5px",borderRadius:"6px"}}>{members.length}명 {isOpen?"▲":"▼"}</span>
-            </span>
+            <span style={{fontSize:"10px",color:"#5c3317",fontWeight:"600",display:"flex",alignItems:"center",gap:"4px"}}>{item.label}<span style={{fontSize:"8px",color:color,background:color+"15",padding:"1px 5px",borderRadius:"6px"}}>{members.length}명 {isOpen?"▲":"▼"}</span></span>
             <span style={{fontSize:"11px",fontWeight:"900",color:rc(rate),minWidth:"34px",textAlign:"right"}}>{rate}%</span>
           </div>
-          <div style={{height:"5px",background:"#e8d5c0",borderRadius:"3px",overflow:"hidden"}}>
-            <div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:rc(rate),borderRadius:"3px",transition:"width 0.5s"}} />
-          </div>
+          <div style={{height:"5px",background:"#e8d5c0",borderRadius:"3px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:rc(rate),borderRadius:"3px",transition:"width 0.5s"}} /></div>
         </div>
-        {isOpen&&(
-          <div style={{marginTop:"6px",background:"#faf6f1",border:`1px solid ${color}30`,borderRadius:"6px",padding:"8px 10px"}}>
-            {members.map((m,mi)=>(
-              <div key={mi} style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:mi<members.length-1?"5px":"0"}}>
-                <span style={{fontSize:"9px",fontWeight:"700",color:m.partColor,background:m.partColor+"18",padding:"1px 5px",borderRadius:"4px",flexShrink:0,minWidth:"22px",textAlign:"center"}}>{m.part}</span>
-                <span style={{fontSize:"10px",fontWeight:"600",color:"#3b1f0a",minWidth:"36px",flexShrink:0}}>{m.name}</span>
-                <div style={{flex:1,height:"5px",background:"#e8d5c0",borderRadius:"3px",overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${Math.min(m.rate,100)}%`,background:rc(m.rate),borderRadius:"3px",transition:"width 0.5s"}} />
-                </div>
-                <span style={{fontSize:"10px",fontWeight:"800",color:rc(m.rate),minWidth:"30px",textAlign:"right"}}>{m.rate}%</span>
-                <span style={{fontSize:"9px",color:"#a08060",minWidth:"40px",textAlign:"right"}}>{m.totalDone}/{m.totalScore}점</span>
-              </div>
-            ))}
-          </div>
-        )}
+        {isOpen&&(<div style={{marginTop:"6px",background:"#faf6f1",border:`1px solid ${color}30`,borderRadius:"6px",padding:"8px 10px"}}>
+          {members.map((m,mi)=>(<div key={mi} style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:mi<members.length-1?"5px":"0"}}>
+            <span style={{fontSize:"9px",fontWeight:"700",color:m.partColor,background:m.partColor+"18",padding:"1px 5px",borderRadius:"4px",flexShrink:0,minWidth:"22px",textAlign:"center"}}>{m.part}</span>
+            <span style={{fontSize:"10px",fontWeight:"600",color:"#3b1f0a",minWidth:"36px",flexShrink:0}}>{m.name}</span>
+            <div style={{flex:1,height:"5px",background:"#e8d5c0",borderRadius:"3px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(m.rate,100)}%`,background:rc(m.rate),borderRadius:"3px",transition:"width 0.5s"}} /></div>
+            <span style={{fontSize:"10px",fontWeight:"800",color:rc(m.rate),minWidth:"30px",textAlign:"right"}}>{m.rate}%</span>
+            <span style={{fontSize:"9px",color:"#a08060",minWidth:"40px",textAlign:"right"}}>{m.totalDone}/{m.totalScore}점</span>
+          </div>))}
+        </div>)}
       </div>
     );
   };
-
-  const MiniBar = ({ rate, color, width=80 }) => (
-    <div style={{display:"flex",alignItems:"center",gap:"3px"}}>
-      <div style={{width:`${width}px`,height:"5px",background:"#e8d5c0",borderRadius:"2px",overflow:"hidden",flexShrink:0}}>
-        <div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:color,borderRadius:"2px"}} />
-      </div>
-      <span style={{fontSize:"9px",fontWeight:"700",color,minWidth:"26px"}}>{rate}%</span>
-    </div>
-  );
+  const MiniBar = ({ rate, color, width=80 }) => (<div style={{display:"flex",alignItems:"center",gap:"3px"}}><div style={{width:`${width}px`,height:"5px",background:"#e8d5c0",borderRadius:"2px",overflow:"hidden",flexShrink:0}}><div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:color,borderRadius:"2px"}} /></div><span style={{fontSize:"9px",fontWeight:"700",color,minWidth:"26px"}}>{rate}%</span></div>);
   const COLS = "64px 1fr 1fr 1fr 1fr 1fr 6px 1fr 1fr 1fr 1fr";
-
   const PartSection = ({ pk, rowH=30 }) => {
-    const pd=MEMBERS[pk]; const pm=allData[pk];
-    const avgRate=Math.round(pm.reduce((s,m)=>s+calcRate(m.goals),0)/pm.length);
-    const allT=pm.reduce((s,m)=>s+(allWork[m.name]||[]).length,0);
-    const allD=pm.reduce((s,m)=>s+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0);
-    const allU=allT-allD; const allWR=allT>0?Math.round((allD/allT)*100):0;
+    const pd=MEMBERS[pk]; const pm=allData[pk]; const avgRate=Math.round(pm.reduce((s,m)=>s+calcRate(m.goals),0)/pm.length);
+    const allT=pm.reduce((s,m)=>s+(allWork[m.name]||[]).length,0); const allD=pm.reduce((s,m)=>s+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0); const allU=allT-allD; const allWR=allT>0?Math.round((allD/allT)*100):0;
     return (
       <div style={{background:"#fff",border:"1px solid #d4b896",borderRadius:"8px",overflow:"hidden",marginBottom:"6px"}}>
         <div style={{display:"grid",gridTemplateColumns:COLS,background:pd.color,padding:"0 8px",height:"28px",alignItems:"center"}}>
@@ -658,29 +552,22 @@ function Dashboard({ allData, allWork, onNavigate }) {
           <div style={{borderLeft:"1px solid rgba(255,255,255,0.3)",height:"16px"}} />
           {["완료","미완료","완료율","변경일"].map(l=><div key={l} style={{textAlign:"center",fontSize:"8px",color:"rgba(255,255,255,0.8)"}}>{l}</div>)}
         </div>
-        {pm.map((m,mi)=>{
-          const r=calcRate(m.goals); const tasks=allWork[m.name]||[];
-          const total=tasks.length; const done=tasks.filter(t=>t.상태==="완료").length;
-          const und=total-done; const wr=total>0?Math.round((done/total)*100):0;
-          const wc=rc(wr); const undColor=und===0?"#4a7c59":und<=3?"#b8860b":"#c0703a";
+        {pm.map((m,mi)=>{ const r=calcRate(m.goals); const tasks=allWork[m.name]||[]; const total=tasks.length; const done=tasks.filter(t=>t.상태==="완료").length; const und=total-done; const wr=total>0?Math.round((done/total)*100):0; const wc=rc(wr); const undColor=und===0?"#4a7c59":und<=3?"#b8860b":"#c0703a";
           const lastDate=(()=>{ const t=tasks.filter(x=>x.완료일||x.접수일).sort((a,b)=>(b.완료일||b.접수일||"").localeCompare(a.완료일||a.접수일||""))[0]; return t?(t.완료일||t.접수일||"").slice(5):"-"; })();
-          return (
-            <div key={m.name} onClick={()=>onNavigate(pk,mi)} onMouseEnter={e=>e.currentTarget.style.background="#f5ede4"} onMouseLeave={e=>e.currentTarget.style.background=mi%2===0?"#fff":"#fdf8f4"}
-              style={{display:"grid",gridTemplateColumns:COLS,padding:"0 8px",height:`${rowH}px`,borderTop:"1px solid #f0e8e0",background:mi%2===0?"#fff":"#fdf8f4",alignItems:"center",cursor:"pointer"}}>
-              <div style={{fontSize:"11px",fontWeight:"600",color:"#3b1f0a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</div>
-              <div style={{textAlign:"center",fontSize:"10px",color:"#8b5e3c",fontWeight:"600"}}>{m.전략}%</div>
-              <div style={{textAlign:"center",fontSize:"10px",color:"#6b4226",fontWeight:"600"}}>{m.업무}%</div>
-              <div style={{textAlign:"center",fontSize:"10px",color:"#a0785a",fontWeight:"600"}}>{m.개인}%</div>
-              <div style={{paddingLeft:"2px"}}><MiniBar rate={r} color={rc(r)} /></div>
-              <div style={{textAlign:"center"}}><span style={{fontSize:"12px",fontWeight:"900",color:rc(r)}}>{r}<span style={{fontSize:"9px"}}>%</span></span></div>
-              <div style={{borderLeft:"1px solid #e8d5c0",height:"18px"}} />
-              <div style={{textAlign:"center",fontSize:"11px",fontWeight:"700",color:"#4a7c59"}}>{done}</div>
-              <div style={{textAlign:"center"}}><span style={{fontSize:und>9?"14px":und>0?"12px":"11px",fontWeight:"900",color:undColor}}>{und}</span></div>
-              <div style={{paddingLeft:"2px"}}><MiniBar rate={wr} color={wc} /></div>
-              <div style={{textAlign:"center",fontSize:"9px",color:"#a08060"}}>{lastDate}</div>
-            </div>
-          );
-        })}
+          return (<div key={m.name} onClick={()=>onNavigate(pk,mi)} onMouseEnter={e=>e.currentTarget.style.background="#f5ede4"} onMouseLeave={e=>e.currentTarget.style.background=mi%2===0?"#fff":"#fdf8f4"}
+            style={{display:"grid",gridTemplateColumns:COLS,padding:"0 8px",height:`${rowH}px`,borderTop:"1px solid #f0e8e0",background:mi%2===0?"#fff":"#fdf8f4",alignItems:"center",cursor:"pointer"}}>
+            <div style={{fontSize:"11px",fontWeight:"600",color:"#3b1f0a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</div>
+            <div style={{textAlign:"center",fontSize:"10px",color:"#8b5e3c",fontWeight:"600"}}>{m.전략}%</div>
+            <div style={{textAlign:"center",fontSize:"10px",color:"#6b4226",fontWeight:"600"}}>{m.업무}%</div>
+            <div style={{textAlign:"center",fontSize:"10px",color:"#a0785a",fontWeight:"600"}}>{m.개인}%</div>
+            <div style={{paddingLeft:"2px"}}><MiniBar rate={r} color={rc(r)} /></div>
+            <div style={{textAlign:"center"}}><span style={{fontSize:"12px",fontWeight:"900",color:rc(r)}}>{r}<span style={{fontSize:"9px"}}>%</span></span></div>
+            <div style={{borderLeft:"1px solid #e8d5c0",height:"18px"}} />
+            <div style={{textAlign:"center",fontSize:"11px",fontWeight:"700",color:"#4a7c59"}}>{done}</div>
+            <div style={{textAlign:"center"}}><span style={{fontSize:und>9?"14px":und>0?"12px":"11px",fontWeight:"900",color:undColor}}>{und}</span></div>
+            <div style={{paddingLeft:"2px"}}><MiniBar rate={wr} color={wc} /></div>
+            <div style={{textAlign:"center",fontSize:"9px",color:"#a08060"}}>{lastDate}</div>
+          </div>); })}
         <div style={{display:"grid",gridTemplateColumns:COLS,padding:"0 8px",height:"24px",background:pd.color+"18",borderTop:`1px solid ${pd.color}40`,alignItems:"center"}}>
           <div style={{fontSize:"10px",fontWeight:"700",color:pd.color}}>평균/합계</div>
           {["-","-","-"].map((v,i)=><div key={i} style={{textAlign:"center",fontSize:"8px",color:"#bbb"}}>{v}</div>)}
@@ -695,13 +582,11 @@ function Dashboard({ allData, allWork, onNavigate }) {
       </div>
     );
   };
-
   const totalMembers=partKeys.reduce((s,p)=>s+allData[p].length,0);
   const totalRate=Math.round(partKeys.reduce((s,p)=>s+allData[p].reduce((ss,m)=>ss+calcRate(m.goals),0),0)/totalMembers);
   const totAll=partKeys.reduce((s,p)=>s+allData[p].reduce((ss,m)=>ss+(allWork[m.name]||[]).length,0),0);
   const totDone=partKeys.reduce((s,p)=>s+allData[p].reduce((ss,m)=>ss+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0),0);
   const totUnd=totAll-totDone; const wRate=totAll>0?Math.round((totDone/totAll)*100):0;
-
   return (
     <div style={{width:"100%",height:"100%",overflow:"hidden",display:"flex",flexDirection:"column",background:"#faf6f1",boxSizing:"border-box"}}>
       <div style={{display:"flex",padding:"8px 16px 6px",flexShrink:0,alignItems:"stretch"}}>
@@ -712,8 +597,7 @@ function Dashboard({ allData, allWork, onNavigate }) {
             <div style={{fontSize:"8px",color:"#f5d5b5",marginTop:"1px"}}>총 {totalMembers}명</div>
           </div>
           {partKeys.map(pk=>{ const pd=MEMBERS[pk]; const pm=allData[pk]; const avg=Math.round(pm.reduce((s,m)=>s+calcRate(m.goals),0)/pm.length); const rc2=r=>r>=80?"#4a7c59":r>=50?"#b8860b":"#c0703a";
-            return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
-              style={{background:"#fff",border:`1px solid ${pd.color}20`,borderTop:`3px solid ${pd.color}`,borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
+            return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"} style={{background:"#fff",border:`1px solid ${pd.color}20`,borderTop:`3px solid ${pd.color}`,borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
               <div style={{fontSize:"9px",color:pd.color,fontWeight:"700"}}>{pd.label}</div>
               <div style={{fontSize:"20px",fontWeight:"900",color:rc2(avg),lineHeight:1}}>{avg}<span style={{fontSize:"9px"}}>%</span></div>
               <div style={{height:"3px",background:"#e8d5c0",borderRadius:"2px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(avg,100)}%`,background:pd.color}} /></div>
@@ -727,8 +611,7 @@ function Dashboard({ allData, allWork, onNavigate }) {
             <div style={{fontSize:"8px",color:"#f5d5b5",marginTop:"1px"}}>미완료 {totUnd} · {wRate}%</div>
           </div>
           {partKeys.map(pk=>{ const pd=MEMBERS[pk]; const pm=allData[pk]; const pAll=pm.reduce((s,m)=>s+(allWork[m.name]||[]).length,0); const pDone=pm.reduce((s,m)=>s+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0); const pUnd=pAll-pDone; const pWR=pAll>0?Math.round((pDone/pAll)*100):0; const uc=pUnd===0?"#4a7c59":pUnd<=5?"#b8860b":"#c0703a";
-            return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
-              style={{background:"#fff",border:`1px solid ${pd.color}20`,borderTop:`3px solid ${pd.color}`,borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
+            return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"} style={{background:"#fff",border:`1px solid ${pd.color}20`,borderTop:`3px solid ${pd.color}`,borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
               <div style={{fontSize:"9px",color:pd.color,fontWeight:"700"}}>{pd.label}</div>
               <div style={{display:"flex",alignItems:"flex-end",gap:"4px"}}><span style={{fontSize:"18px",fontWeight:"900",color:uc,lineHeight:1}}>{pUnd}</span><span style={{fontSize:"8px",color:"#a08060",marginBottom:"1px"}}>미완료</span></div>
               <div><div style={{fontSize:"8px",color:"#a08060",marginBottom:"2px"}}>전체 {pAll} · {pWR}%</div><div style={{height:"3px",background:"#e8d5c0",borderRadius:"2px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(pWR,100)}%`,background:uc}} /></div></div>
@@ -749,9 +632,7 @@ function Dashboard({ allData, allWork, onNavigate }) {
         <div style={{flex:1,display:"flex",flexDirection:"column",gap:"6px",minWidth:0}} ref={leftRef}>
           <PartSection pk="BS" rowH={30} /><PartSection pk="AS" rowH={30} /><PartSection pk="소송" rowH={30} />
         </div>
-        <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
-          <PartSection pk="QC" rowH={qcRowH} />
-        </div>
+        <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}><PartSection pk="QC" rowH={qcRowH} /></div>
       </div>
     </div>
   );
@@ -759,6 +640,7 @@ function Dashboard({ allData, allWork, onNavigate }) {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [showNotice, setShowNotice] = useState(false);
   const [resultModal, setResultModal] = useState(null);
   const [restoreModal, setRestoreModal] = useState(false);
   const [restoreText, setRestoreText] = useState("");
@@ -768,6 +650,8 @@ export default function App() {
   const [allWork, setAllWork] = useState(()=>{ const d={}; Object.keys(WORK_DATA).forEach(n=>{ d[n]=[...(WORK_DATA[n]||[])]; }); return d; });
   const [allReq, setAllReq] = useState(()=>({...REQUEST_DATA}));
   const [storageLoaded, setStorageLoaded] = useState(false);
+
+  useEffect(()=>{ const hideUntil=localStorage.getItem('notice_hide_until'); const today=new Date().toISOString().slice(0,10); if(hideUntil!==today) setShowNotice(true); },[]);
 
   useEffect(()=>{
     const load=async()=>{
@@ -787,9 +671,7 @@ export default function App() {
 
   const part=MEMBERS[activePart]; const members=allData[activePart]; const member=members[activeMember];
   const update=(gi,field,val)=>{ setAllData(prev=>{ const next={...prev}; next[activePart]=next[activePart].map((m,mi)=>mi!==activeMember?m:{...m,goals:m.goals.map((g,idx)=>idx!==gi?g:{...g,[field]:field==="실적"?Math.min(Number(val),g.배점):val})}); const mem=next[activePart]?.[activeMember]; if(mem){ const gd={}; mem.goals.forEach((g,gi)=>{ gd[gi]={실적:g.실적||0,비고:g.비고||'',결과:g.결과||''}; }); dbSet('goals',mem.name,gd); } return next; }); };
-  const totalRate=calcRate(member.goals);
-  const 배점합=member.goals.reduce((s,g)=>s+g.배점,0);
-  const 실적합=member.goals.reduce((s,g)=>s+(g.실적||0),0);
+  const totalRate=calcRate(member.goals); const 배점합=member.goals.reduce((s,g)=>s+g.배점,0); const 실적합=member.goals.reduce((s,g)=>s+(g.실적||0),0);
 
   if(!storageLoaded) return (
     <div style={{fontFamily:"'Noto Sans KR','Malgun Gothic',sans-serif",background:"#faf6f1",height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:"12px"}}>
@@ -804,16 +686,15 @@ export default function App() {
       <div style={{background:"linear-gradient(90deg,#5c3317,#3b1f0a)",borderBottom:"1px solid #8b5e3c",padding:"12px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
           <div style={{width:"4px",height:"28px",background:"linear-gradient(#c49a6c,#8b5e3c)",borderRadius:"2px"}} />
-          <div>
-            <div style={{fontSize:"10px",letterSpacing:"3px",color:"#c9a880",textTransform:"uppercase"}}>2026 품질팀</div>
-            <div style={{fontSize:"16px",fontWeight:"700",color:"#fff"}}>팀원 목표 & 실적 관리</div>
-          </div>
+          <div><div style={{fontSize:"10px",letterSpacing:"3px",color:"#c9a880",textTransform:"uppercase"}}>2026 품질팀</div><div style={{fontSize:"16px",fontWeight:"700",color:"#fff"}}>팀원 목표 & 실적 관리</div></div>
         </div>
         <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
           {["전략","업무","개인"].map(cat=>{ const cnt=Object.values(allData).flat().reduce((s,m)=>s+m.goals.filter(g=>g.cat===cat&&g.배점>0&&(g.결과||"").trim()).length,0);
             return <button key={cat} onClick={()=>setResultModal(cat)} style={{display:"flex",alignItems:"center",gap:"5px",padding:"5px 14px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:"16px",color:"#f5d5b5",fontSize:"11px",fontWeight:"600",cursor:"pointer"}}>
               {cat} 목표{cnt>0&&<span style={{background:"rgba(255,255,255,0.25)",color:"#fff",fontSize:"10px",fontWeight:"800",padding:"1px 6px",borderRadius:"9px"}}>{cnt}</span>}
             </button>; })}
+          <div style={{width:"1px",height:"20px",background:"rgba(255,255,255,0.2)"}} />
+          <button onClick={()=>setShowNotice(true)} style={{padding:"4px 10px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:"10px",color:"#f5d5b5",fontSize:"12px",cursor:"pointer"}}>📢 공지</button>
           <div style={{width:"1px",height:"20px",background:"rgba(255,255,255,0.2)"}} />
           <button onClick={()=>{ const bk={allData,allWork,allReq,savedAt:new Date().toISOString()}; navigator.clipboard.writeText(JSON.stringify(bk)).then(()=>alert("✅ 백업 완료!")).catch(()=>alert("클립보드 복사 실패")); }} style={{padding:"4px 8px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"10px",color:"#c9a880",fontSize:"13px",cursor:"pointer"}}>BK</button>
           <button onClick={()=>{ setRestoreText(""); setRestoreModal(true); }} style={{padding:"4px 8px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"10px",color:"#c9a880",fontSize:"13px",cursor:"pointer"}}>RS</button>
@@ -828,75 +709,69 @@ export default function App() {
           </button>; })}
       </div>
       <div style={{flex:1,overflow:"hidden",display:"flex"}}>
-        {activeTab==="dashboard"?(
-          <div style={{flex:1,overflow:"hidden",display:"flex"}}><Dashboard allData={allData} allWork={allWork} onNavigate={(p,mi)=>{ setActiveTab("detail"); setActivePart(p); setActiveMember(mi??0); }} /></div>
-        ):(
-          <>
-            <div style={{width:"160px",minWidth:"160px",background:"#f0e6d8",borderRight:"1px solid #c4a882",overflowY:"auto"}}>
-              {members.map((m,i)=>{ const r=calcRate(m.goals); const isA=activeMember===i;
-                return <button key={m.name} onClick={()=>setActiveMember(i)} style={{display:"block",width:"100%",padding:"12px 14px",textAlign:"left",border:"none",cursor:"pointer",background:isA?"#ffffff":"transparent",borderLeft:`3px solid ${isA?part.color:"transparent"}`,borderBottom:"1px solid #d4b896"}}>
-                  <div style={{fontSize:"13px",fontWeight:isA?"700":"400",color:isA?"#3b1f0a":"#7a5c40"}}>{m.name}</div>
-                  <div style={{fontSize:"10px",color:rateColor(r),marginTop:"3px"}}>달성 {r}%</div>
-                  <Bar rate={r} />
-                </button>; })}
-            </div>
-            <div style={{flex:1,display:"flex",overflow:"hidden"}}>
-              <div style={{width:"50%",borderRight:"1px solid #d4b896",overflowY:"auto",background:"#faf6f1",display:"flex",flexDirection:"column"}}>
-                <div style={{padding:"12px 20px",borderBottom:"2px solid #d4b896",background:"#f0e6d8",flexShrink:0}}>
-                  <div style={{fontSize:"10px",color:"#a08060",letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:"2px"}}>2026 팀원 목표</div>
-                  <div style={{fontSize:"14px",fontWeight:"700",color:"#5c3317"}}>개인별 목표 관리</div>
-                </div>
-                <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                      <span style={{fontSize:"9px",fontWeight:"700",color:part.color,background:part.color+"18",border:`1px solid ${part.color}50`,padding:"2px 8px",borderRadius:"8px"}}>{part.label.replace(" 파트","")}</span>
-                      <div style={{fontSize:"15px",fontWeight:"700",color:"#3b1f0a"}}>{member.name}</div>
-                      <div style={{fontSize:"10px",color:"#8b6a4a"}}>전략 {member.전략}점 · 업무 {member.업무}점 · 개인 {member.개인}점</div>
-                    </div>
-                    <div style={{textAlign:"right"}}>
-                      <div style={{fontSize:"22px",fontWeight:"800",color:rateColor(totalRate)}}>{totalRate}<span style={{fontSize:"11px"}}>%</span></div>
-                      <div style={{fontSize:"10px",color:"#8b6a4a"}}>{실적합}/{배점합}점</div>
-                    </div>
-                  </div>
-                  <div style={{height:"7px",background:"#d4b896",borderRadius:"4px",marginBottom:"14px",overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${Math.min(totalRate,100)}%`,background:`linear-gradient(90deg,${part.color},${rateColor(totalRate)})`,borderRadius:"4px",transition:"width 0.5s"}} />
-                  </div>
-                  {member.goals.map((g,gi)=>{
-                    const pct=g.배점>0?Math.round(((g.실적||0)/g.배점)*100):0;
-                    return (
-                      <div key={gi} style={{background:"#ffffff",border:"1px solid #d4b896",borderLeft:`3px solid ${CAT_COLOR[g.cat]}`,borderRadius:"5px",padding:"12px 14px",marginBottom:"8px"}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"4px"}}>
-                          <div style={{flex:1,marginRight:"8px"}}>
-                            <span style={{fontSize:"9px",background:CAT_BG[g.cat],color:CAT_COLOR[g.cat],padding:"1px 6px",borderRadius:"8px",marginRight:"5px",fontWeight:"700"}}>{g.cat}</span>
-                            <span style={{fontSize:"12px",fontWeight:"600",color:"#3b1f0a"}}>{g.과제}</span>
-                          </div>
-                          <span style={{fontSize:"10px",color:"#8b6a4a",whiteSpace:"nowrap"}}>{g.배점}점</span>
-                        </div>
-                        <div style={{fontSize:"10px",color:"#7a5c40",lineHeight:"1.5",marginBottom:"7px",whiteSpace:"pre-line"}}>{g.내용}</div>
-                        <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"5px"}}>
-                          <label style={{fontSize:"10px",color:"#8b6a4a",whiteSpace:"nowrap"}}>실적</label>
-                          <input type="number" min="0" max={g.배점} value={g.실적||0} onChange={e=>update(gi,"실적",Math.min(Math.max(0,Number(e.target.value)),g.배점))}
-                            style={{width:"50px",background:"#f5ede4",border:`1px solid ${(g.실적||0)>=g.배점&&g.배점>0?"#4a7c59":CAT_COLOR[g.cat]}`,borderRadius:"3px",color:"#3b1f0a",padding:"3px 6px",fontSize:"12px",fontWeight:"700",textAlign:"center"}} />
-                          <span style={{fontSize:"10px",color:"#8b6a4a"}}>/ {g.배점}점</span>
-                          <span style={{fontSize:"10px",fontWeight:"800",color:"#fff",background:rateColor(pct),padding:"2px 8px",borderRadius:"10px",minWidth:"34px",textAlign:"center"}}>{pct}%</span>
-                          <span style={{fontSize:"9px",color:"#a08060",fontStyle:"italic"}}>(진행률을 점수로 환산)</span>
-                        </div>
-                        <Bar rate={pct} color={CAT_COLOR[g.cat]} />
-                        <div style={{marginTop:"6px"}}>
-                          <div style={{fontSize:"9px",color:"#a08060",marginBottom:"2px",fontWeight:"600"}}>현재 진행현황</div>
-                          <textarea value={g.비고||""} onChange={e=>update(gi,"비고",e.target.value)} placeholder="진행 상황 입력" rows={2}
-                            style={{width:"100%",background:"#f5ede4",border:"1px solid #d4b896",borderRadius:"3px",color:"#6b4a30",padding:"4px 6px",fontSize:"10px",lineHeight:"1.5",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",outline:"none"}} />
-                        </div>
-                        <ResultEditor gi={gi} 결과={g.결과||""} update={update} />
-                      </div>
-                    );
-                  })}
-                </div>
+        {activeTab==="dashboard"
+          ? <div style={{flex:1,overflow:"hidden",display:"flex"}}><Dashboard allData={allData} allWork={allWork} onNavigate={(p,mi)=>{ setActiveTab("detail"); setActivePart(p); setActiveMember(mi??0); }} /></div>
+          : <>
+              <div style={{width:"160px",minWidth:"160px",background:"#f0e6d8",borderRight:"1px solid #c4a882",overflowY:"auto"}}>
+                {members.map((m,i)=>{ const r=calcRate(m.goals); const isA=activeMember===i;
+                  return <button key={m.name} onClick={()=>setActiveMember(i)} style={{display:"block",width:"100%",padding:"12px 14px",textAlign:"left",border:"none",cursor:"pointer",background:isA?"#ffffff":"transparent",borderLeft:`3px solid ${isA?part.color:"transparent"}`,borderBottom:"1px solid #d4b896"}}>
+                    <div style={{fontSize:"13px",fontWeight:isA?"700":"400",color:isA?"#3b1f0a":"#7a5c40"}}>{m.name}</div>
+                    <div style={{fontSize:"10px",color:rateColor(r),marginTop:"3px"}}>달성 {r}%</div>
+                    <Bar rate={r} />
+                  </button>; })}
               </div>
-              <WorkPanel name={member.name} partColor={part.color} workData={allWork} setWorkData={setAllWork} reqData={allReq} setReqData={setAllReq} />
-            </div>
-          </>
-        )}
+              <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+                <div style={{width:"50%",borderRight:"1px solid #d4b896",overflowY:"auto",background:"#faf6f1",display:"flex",flexDirection:"column"}}>
+                  <div style={{padding:"12px 20px",borderBottom:"2px solid #d4b896",background:"#f0e6d8",flexShrink:0}}>
+                    <div style={{fontSize:"10px",color:"#a08060",letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:"2px"}}>2026 팀원 목표</div>
+                    <div style={{fontSize:"14px",fontWeight:"700",color:"#5c3317"}}>개인별 목표 관리</div>
+                  </div>
+                  <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                        <span style={{fontSize:"9px",fontWeight:"700",color:part.color,background:part.color+"18",border:`1px solid ${part.color}50`,padding:"2px 8px",borderRadius:"8px"}}>{part.label.replace(" 파트","")}</span>
+                        <div style={{fontSize:"15px",fontWeight:"700",color:"#3b1f0a"}}>{member.name}</div>
+                        <div style={{fontSize:"10px",color:"#8b6a4a"}}>전략 {member.전략}점 · 업무 {member.업무}점 · 개인 {member.개인}점</div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:"22px",fontWeight:"800",color:rateColor(totalRate)}}>{totalRate}<span style={{fontSize:"11px"}}>%</span></div>
+                        <div style={{fontSize:"10px",color:"#8b6a4a"}}>{실적합}/{배점합}점</div>
+                      </div>
+                    </div>
+                    <div style={{height:"7px",background:"#d4b896",borderRadius:"4px",marginBottom:"14px",overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${Math.min(totalRate,100)}%`,background:`linear-gradient(90deg,${part.color},${rateColor(totalRate)})`,borderRadius:"4px",transition:"width 0.5s"}} />
+                    </div>
+                    {member.goals.map((g,gi)=>{
+                      const pct=g.배점>0?Math.round(((g.실적||0)/g.배점)*100):0;
+                      return (
+                        <div key={gi} style={{background:"#ffffff",border:"1px solid #d4b896",borderLeft:`3px solid ${CAT_COLOR[g.cat]}`,borderRadius:"5px",padding:"12px 14px",marginBottom:"8px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"4px"}}>
+                            <div style={{flex:1,marginRight:"8px"}}><span style={{fontSize:"9px",background:CAT_BG[g.cat],color:CAT_COLOR[g.cat],padding:"1px 6px",borderRadius:"8px",marginRight:"5px",fontWeight:"700"}}>{g.cat}</span><span style={{fontSize:"12px",fontWeight:"600",color:"#3b1f0a"}}>{g.과제}</span></div>
+                            <span style={{fontSize:"10px",color:"#8b6a4a",whiteSpace:"nowrap"}}>{g.배점}점</span>
+                          </div>
+                          <div style={{fontSize:"10px",color:"#7a5c40",lineHeight:"1.5",marginBottom:"7px",whiteSpace:"pre-line"}}>{g.내용}</div>
+                          <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"5px"}}>
+                            <label style={{fontSize:"10px",color:"#8b6a4a",whiteSpace:"nowrap"}}>실적</label>
+                            <input type="number" min="0" max={g.배점} value={g.실적||0} onChange={e=>update(gi,"실적",Math.min(Math.max(0,Number(e.target.value)),g.배점))} style={{width:"50px",background:"#f5ede4",border:`1px solid ${(g.실적||0)>=g.배점&&g.배점>0?"#4a7c59":CAT_COLOR[g.cat]}`,borderRadius:"3px",color:"#3b1f0a",padding:"3px 6px",fontSize:"12px",fontWeight:"700",textAlign:"center"}} />
+                            <span style={{fontSize:"10px",color:"#8b6a4a"}}>/ {g.배점}점</span>
+                            <span style={{fontSize:"10px",fontWeight:"800",color:"#fff",background:rateColor(pct),padding:"2px 8px",borderRadius:"10px",minWidth:"34px",textAlign:"center"}}>{pct}%</span>
+                            <span style={{fontSize:"9px",color:"#a08060",fontStyle:"italic"}}>(진행률을 점수로 환산)</span>
+                          </div>
+                          <Bar rate={pct} color={CAT_COLOR[g.cat]} />
+                          <div style={{marginTop:"6px"}}>
+                            <div style={{fontSize:"9px",color:"#a08060",marginBottom:"2px",fontWeight:"600"}}>현재 진행현황</div>
+                            <textarea value={g.비고||""} onChange={e=>update(gi,"비고",e.target.value)} placeholder="진행 상황 입력" rows={2} style={{width:"100%",background:"#f5ede4",border:"1px solid #d4b896",borderRadius:"3px",color:"#6b4a30",padding:"4px 6px",fontSize:"10px",lineHeight:"1.5",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",outline:"none"}} />
+                          </div>
+                          <ResultEditor gi={gi} 결과={g.결과||""} update={update} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <WorkPanel name={member.name} partColor={part.color} workData={allWork} setWorkData={setAllWork} reqData={allReq} setReqData={setAllReq} />
+              </div>
+            </>
+        }
       </div>
       {restoreModal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(59,26,10,0.5)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setRestoreModal(false)}>
@@ -907,23 +782,19 @@ export default function App() {
             </div>
             <div style={{padding:"16px 20px"}}>
               <div style={{fontSize:"11px",color:"#8b6a4a",marginBottom:"8px"}}>백업 텍스트를 아래에 붙여넣기 하세요 (Ctrl+V)</div>
-              <textarea value={restoreText} onChange={e=>setRestoreText(e.target.value)} placeholder="백업 텍스트를 여기에 붙여넣기 하세요..." rows={6}
-                style={{width:"100%",padding:"8px 10px",border:"1px solid #c4a882",borderRadius:"5px",fontSize:"11px",color:"#3b1f0a",background:"#fff",resize:"none",boxSizing:"border-box",fontFamily:"inherit",outline:"none"}} />
+              <textarea value={restoreText} onChange={e=>setRestoreText(e.target.value)} placeholder="백업 텍스트를 여기에 붙여넣기 하세요..." rows={6} style={{width:"100%",padding:"8px 10px",border:"1px solid #c4a882",borderRadius:"5px",fontSize:"11px",color:"#3b1f0a",background:"#fff",resize:"none",boxSizing:"border-box",fontFamily:"inherit",outline:"none"}} />
               <div style={{display:"flex",justifyContent:"flex-end",gap:"8px",marginTop:"10px"}}>
                 <button onClick={()=>setRestoreModal(false)} style={{padding:"6px 16px",background:"#e8d5c0",border:"none",borderRadius:"8px",fontSize:"11px",color:"#6b4226",cursor:"pointer",fontWeight:"600"}}>취소</button>
                 <button onClick={async()=>{
                   try {
                     const data=JSON.parse(restoreText);
-                    if(data.allData) setAllData(data.allData);
-                    if(data.allWork) setAllWork(data.allWork);
-                    if(data.allReq) setAllReq(data.allReq);
+                    if(data.allData) setAllData(data.allData); if(data.allWork) setAllWork(data.allWork); if(data.allReq) setAllReq(data.allReq);
                     try {
                       for(const pk of Object.keys(data.allData||{})){ for(const m of (data.allData[pk]||[])){ const gd={}; (m.goals||[]).forEach((g,gi)=>{ gd[gi]={실적:g.실적||0,비고:g.비고||'',결과:g.결과||''}; }); await dbSet('goals',m.name,gd); } }
                       for(const [name,tasks] of Object.entries(data.allWork||{})){ await dbSet('work',name,{tasks:Array.isArray(tasks)?tasks:[]}); }
                       if(data.allReq) await dbSet('req','all',data.allReq);
                     } catch(e){ console.error(e); }
-                    setRestoreModal(false); setRestoreText("");
-                    alert(`✅ 복원 완료!\n저장일시: ${data.savedAt?new Date(data.savedAt).toLocaleString("ko-KR"):"알 수 없음"}`);
+                    setRestoreModal(false); setRestoreText(""); alert(`✅ 복원 완료!\n저장일시: ${data.savedAt?new Date(data.savedAt).toLocaleString("ko-KR"):"알 수 없음"}`);
                   } catch(err){ alert("❌ 형식이 올바르지 않습니다."); }
                 }} style={{padding:"6px 18px",background:"#5c3317",border:"none",borderRadius:"8px",fontSize:"11px",color:"#fff",cursor:"pointer",fontWeight:"700"}}>복원 실행</button>
               </div>
@@ -931,6 +802,7 @@ export default function App() {
           </div>
         </div>
       )}
+      {showNotice&&<NoticeModal onClose={()=>setShowNotice(false)} />}
       {resultModal&&<ResultModal cat={resultModal} allData={allData} onClose={()=>setResultModal(null)} />}
     </div>
   );
