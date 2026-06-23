@@ -1,47 +1,16 @@
-/**
- * ============================================================
- *  HDC 품질팀 React 대시보드 - App.js
- *  VERSION: V20
- * ------------------------------------------------------------
- *  [V19 -> V20 주요 변경사항]
- *   - 구글시트 "주요업무 추진실적" 탭과 Firestore(hdc-quality-team)
- *     'goals' 컬렉션을 Google Apps Script로 1시간마다 자동 동기화
- *     (별도 파일: gas-quality-sync.js, 구글시트 Extensions > Apps Script에 등록)
- *   - 연동 항목(7개) 및 셀 주소:
- *       예측기반 타겟점검   I164
- *       하자비용 저감       I170
- *       소송핵심관리        I176
- *       BS하자개선          I182
- *       고객불만율관리      I188
- *       품질협의체 운영개선 I194
- *       건설DX              I201
- *   - App.js 자체 로직/데이터 구조 변경 없음 (헤더에 V20 배지만 추가)
- * ============================================================
- */
 import { useState, useEffect, useRef } from "react";
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyB8CS6XJKBAqlSTaOZY1g1Dt3zCVjqMvBE",
-  authDomain: "hdc-quality-team.firebaseapp.com",
-  projectId: "hdc-quality-team",
-  storageBucket: "hdc-quality-team.firebasestorage.app",
-  messagingSenderId: "730234114654",
-  appId: "1:730234114654:web:1aa11f0f21084254775acf"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
 const dbGet = async (col, id) => {
   try {
-    const snap = await getDoc(doc(db, col, id));
-    return snap.exists() ? snap.data() : null;
+    const timeout = new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 3000));
+    const r = await Promise.race([window.storage.get(col+'_'+id, true), timeout]);
+    return r ? JSON.parse(r.value) : null;
   } catch(e) { return null; }
 };
 const dbSet = async (col, id, data) => {
   try {
-    await setDoc(doc(db, col, id), data, { merge: true });
+    const timeout = new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 3000));
+    await Promise.race([window.storage.set(col+'_'+id, JSON.stringify(data), true), timeout]);
     return true;
   } catch(e) { return false; }
 };
@@ -50,7 +19,7 @@ const REQUEST_DATA = {"신성근":"- 현장 점검후 부적합사항 조치관�
 const WORK_DATA = {"신성근":[],"박정호":[],"박찬우":[],"배춘호":[],"이정호":[],"한진헌":[],"류지수":[],"이희윤":[],"장효린":[],"박형건":[],"임병근":[],"조성우":[],"정경주":[],"김성진":[],"이규현":[],"박성준":[]};
 
 const MEMBERS = {
-  QC: { label:"QC 파트", color:"#8b5e3c", members:[
+  QC:{ label:"QC 파트", color:"#8b5e3c", members:[
     { name:"신성근", 전략:70, 업무:30, 개인:0, goals:[
       { cat:"전략", 과제:"예측기반의 타겟점검 운영", 배점:40, 내용:"현장 품질관리 핵심사항에 대한 타겟점검 시행 및 F/B" },
       { cat:"전략", 과제:"건설 DX (클라우드 기반 도서검토)", 배점:30, 내용:"클라우드 기반의 초기 도서검토 프로세스 개선" },
@@ -92,7 +61,7 @@ const MEMBERS = {
       { cat:"개인", 과제:"전국 지방 레미콘사 주요 현황 관리", 배점:20, 내용:"전국 지방 레미콘사 주요 현황 관리" },
     ]},
   ]},
-  BS: { label:"BS 파트", color:"#6b4226", members:[
+  BS:{ label:"BS 파트", color:"#6b4226", members:[
     { name:"김성진", 전략:30, 업무:60, 개인:10, goals:[
       { cat:"전략", 과제:"건설 DX (AI VOC 기반 현장관리)", 배점:30, 내용:"AI VOC 기반 지능형 현장 관리 체계" },
       { cat:"업무", 과제:"BS하자 처리율 개선", 배점:20, 내용:"입주 전 원인불명, 자재건 하자처리율 상승 (10%→30%)" },
@@ -112,7 +81,7 @@ const MEMBERS = {
       { cat:"업무", 과제:"BS하자 처리율 개선", 배점:40, 내용:"입주초기 하자, 민원에 대한 R&R 재정립" },
     ]},
   ]},
-  AS: { label:"AS 파트", color:"#a0785a", members:[
+  AS:{ label:"AS 파트", color:"#a0785a", members:[
     { name:"조성우", 전략:30, 업무:70, 개인:0, goals:[
       { cat:"전략", 과제:"건설 DX (아이클릭 고도화)", 배점:15, 내용:"아이클릭 Data 활용 고도화" },
       { cat:"전략", 과제:"건설 DX (위젯형 대시보드)", 배점:15, 내용:"품질팀 위젯형 업무 대시보드 구축" },
@@ -126,7 +95,7 @@ const MEMBERS = {
       { cat:"업무", 과제:"골조/타일 하자비용 저감 (균열조사~보수)", 배점:25, 내용:"준공 전후 균열조사~보수 절차 개선" },
     ]},
   ]},
-  소송: { label:"소송 파트", color:"#5c3317", members:[
+  소송:{ label:"소송 파트", color:"#5c3317", members:[
     { name:"장효린", 전략:50, 업무:50, 개인:0, goals:[
       { cat:"전략", 과제:"준공도서 사전검토 (소송핵심관리 현장평가)", 배점:25, 내용:"소송핵심관리 용역개선 및 현장 평가안 수립" },
       { cat:"전략", 과제:"건설 DX (하자소송 DB)", 배점:25, 내용:"AI기반의 하자소송 분석 DB화 추진" },
@@ -149,22 +118,37 @@ const MEMBERS = {
 };
 
 const CAT_COLOR = { 전략:"#8b5e3c", 업무:"#6b4226", 개인:"#a0785a" };
-const CAT_BG = { 전략:"#f5ede4", 업무:"#e8d5c0", 개인:"#f0e6d8" };
+const CAT_BG    = { 전략:"#f5ede4", 업무:"#e8d5c0", 개인:"#f0e6d8" };
 const rateColor = r => r>=80?"#4a7c59":r>=50?"#b8860b":r>0?"#c0703a":"#bba080";
-const calcRate = goals => {
+const calcRate  = goals => {
   const tot = goals.reduce((s,g)=>s+g.배점,0);
-  const done = goals.reduce((s,g)=>s+(g.실적||0),0);
+  const done= goals.reduce((s,g)=>s+(g.실적||0),0);
   return tot===0?0:Math.round((done/tot)*100);
 };
 const 상태목록 = ["진행중","완료","검토중","보류","취소"];
-const 상태색 = { 진행중:"#b8860b", 완료:"#4a7c59", 검토중:"#8b5e3c", 보류:"#a08060", 취소:"#c0703a" };
-const 상태배경 = { 진행중:"#fef8e7", 완료:"#e8f5ed", 검토중:"#f5ede4", 보류:"#f5f0eb", 취소:"#fdf0eb" };
-const EMPTY_FORM = { 업무:"", 요청부서:"", 접수일:"", 목표일:"", 완료일:"", 상태:"진행중", 리뷰:"" };
+const 상태색   = {진행중:"#b8860b",완료:"#4a7c59",검토중:"#8b5e3c",보류:"#a08060",취소:"#c0703a"};
+const 상태배경 = {진행중:"#fef8e7",완료:"#e8f5ed",검토중:"#f5ede4",보류:"#f5f0eb",취소:"#fdf0eb"};
+const EMPTY_FORM = {업무:"",요청부서:"",접수일:"",목표일:"",완료일:"",상태:"진행중",리뷰:""};
 
+const RESULT_GROUPS = {
+  전략:[
+    {label:"예측기반 타겟점검", match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
+    {label:"건설 DX",           match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
+    {label:"소송핵심관리",      match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
+  ],
+  업무:[
+    {label:"하자비용 저감",   match:t=>t.includes("골조")||t.includes("타일")},
+    {label:"BS 하자 개선",    match:t=>t.includes("BS하자")},
+    {label:"고객불만율 관리", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
+  ],
+  개인:[{label:"개인 목표", match:()=>true}],
+};
+
+// ── 공지사항 팝업 ──────────────────────────────────────────────
 function NoticeModal({ onClose }) {
   const [notice, setNotice] = useState("");
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft]   = useState("");
   const [loaded, setLoaded] = useState(false);
   useEffect(()=>{ dbGet('notice','main').then(d=>{ if(d?.text) setNotice(d.text); setLoaded(true); }); },[]);
   const save = () => { setNotice(draft); dbSet('notice','main',{text:draft}); setEditing(false); };
@@ -176,15 +160,15 @@ function NoticeModal({ onClose }) {
           <div><div style={{fontSize:"9px",color:"rgba(255,255,255,0.7)",letterSpacing:"1px",marginBottom:"1px"}}>2026 품질팀</div><div style={{fontSize:"15px",fontWeight:"700",color:"#fff"}}>📢 공지사항</div></div>
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:"20px",color:"rgba(255,255,255,0.8)",cursor:"pointer"}}>✕</button>
         </div>
-        <div style={{padding:"20px 24px",minHeight:"160px"}}>
+        <div style={{padding:"20px 24px",minHeight:"140px"}}>
           {!editing
-            ? <div style={{fontSize:"13px",color:"#3b1f0a",lineHeight:"1.9",whiteSpace:"pre-line",minHeight:"100px"}}>{notice.trim()?notice:<span style={{color:"#c4a882",fontSize:"12px"}}>등록된 공지사항이 없습니다.</span>}</div>
+            ? <div style={{fontSize:"13px",color:"#3b1f0a",lineHeight:"1.9",whiteSpace:"pre-line",minHeight:"80px"}}>{notice.trim()||<span style={{color:"#c4a882",fontSize:"12px"}}>등록된 공지사항이 없습니다.</span>}</div>
             : <textarea value={draft} onChange={e=>setDraft(e.target.value)} rows={7} placeholder="공지사항 내용을 입력하세요"
                 style={{width:"100%",padding:"10px 12px",border:"1px solid #c4a882",borderRadius:"6px",fontSize:"13px",color:"#3b1f0a",background:"#fffaf5",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",outline:"none",lineHeight:"1.8"}} />
           }
         </div>
         <div style={{padding:"12px 24px 16px",borderTop:"1px solid #e8d5c0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <button onClick={()=>{ const today=new Date().toISOString().slice(0,10); localStorage.setItem('notice_hide_until',today); onClose(); }}
+          <button onClick={()=>{ localStorage.setItem('notice_hide_until',new Date().toISOString().slice(0,10)); onClose(); }}
             style={{fontSize:"11px",color:"#a08060",background:"none",border:"1px solid #d4b896",borderRadius:"8px",padding:"5px 12px",cursor:"pointer"}}>오늘 다시 보지 않기</button>
           <div style={{display:"flex",gap:"8px"}}>
             {!editing
@@ -200,18 +184,217 @@ function NoticeModal({ onClose }) {
   );
 }
 
+// ── ResultModal ────────────────────────────────────────────────
+function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
+  const color  = cat==="전략"?"#8b5e3c":cat==="업무"?"#6b4226":"#a0785a";
+  const groups = RESULT_GROUPS[cat] || [];
+  const [activeGroup, setActiveGroup] = useState(Math.min(initialGroup, groups.length-1));
+  const [mergedMap, setMergedMap]     = useState({});
+  const [selected, setSelected]       = useState([]);
+  const [addingTo, setAddingTo]       = useState(null);
+
+  useEffect(()=>{
+    dbGet('merged',cat).then(d=>{
+      if(d?.mergedMap){
+        try { setMergedMap(typeof d.mergedMap==='string'?JSON.parse(d.mergedMap):d.mergedMap); } catch(e){}
+      }
+    });
+  },[cat]);
+
+  const saveNow = mm => dbSet('merged',cat,{mergedMap:JSON.stringify(mm)});
+
+  // 팀원+과제 단위로 수집
+  const buildRows = () => {
+    const rows = [];
+    Object.entries(MEMBERS).forEach(([pk,pd])=>{
+      (allData[pk]||[]).forEach(m=>{
+        m.goals.filter(g=>g.cat===cat&&g.배점>0).forEach(g=>{
+          const 결과items = (g.결과||"").split("||").filter(s=>s.trim());
+          const 비고      = (g.비고||"").trim();
+          if(결과items.length>0||비고){
+            rows.push({
+              part:pd.label.replace(" 파트",""), partColor:pd.color,
+              name:m.name, 과제:g.과제, 배점:g.배점,
+              결과items, 비고,
+            });
+          }
+        });
+      });
+    });
+    return rows;
+  };
+  const allRows = buildRows();
+
+  const getGroupRows = gi => allRows.filter(r=>groups[gi]?.match(r.과제));
+  const getTotal     = gi => new Set(getGroupRows(gi).map(r=>r.name)).size;
+
+  const getMerged = gi => {
+    const rows   = getGroupRows(gi);
+    const merged = Array.isArray(mergedMap[gi]) ? mergedMap[gi] : [];
+    const used   = new Set(merged.flat());
+    const result = [];
+    merged.forEach((idxArr,mi)=>{
+      const members = idxArr.map(i=>rows[i]).filter(Boolean);
+      if(members.length) result.push({type:"merged",mi,members});
+    });
+    rows.forEach((r,i)=>{ if(!used.has(i)) result.push({type:"single",idx:i,row:r}); });
+    return result;
+  };
+
+  const handleMerge = gi => {
+    const sel = selected.filter(s=>s.gi===gi);
+    if(sel.length<2) return;
+    const newMM = {...mergedMap,[gi]:[...(Array.isArray(mergedMap[gi])?mergedMap[gi]:[]),sel.map(s=>s.idx)]};
+    setMergedMap(newMM); setSelected(p=>p.filter(s=>s.gi!==gi)); saveNow(newMM);
+  };
+  const handleUnmerge = (gi,mi) => {
+    const arr = [...(Array.isArray(mergedMap[gi])?mergedMap[gi]:[])];
+    arr.splice(mi,1);
+    const newMM = {...mergedMap,[gi]:arr};
+    setMergedMap(newMM); saveNow(newMM);
+  };
+  const handleAddTo = (gi,mi,idx) => {
+    const arr = [...(Array.isArray(mergedMap[gi])?mergedMap[gi]:[])];
+    if(arr[mi]) arr[mi]=[...arr[mi],idx];
+    const newMM = {...mergedMap,[gi]:arr};
+    setMergedMap(newMM); setSelected(p=>p.filter(s=>!(s.gi===gi&&s.idx===idx))); saveNow(newMM);
+  };
+  const toggleSel = (gi,idx) => setSelected(p=>{ const ex=p.find(s=>s.gi===gi&&s.idx===idx); return ex?p.filter(s=>!(s.gi===gi&&s.idx===idx)):[...p,{gi,idx}]; });
+
+  const gi      = activeGroup;
+  const items   = getMerged(gi);
+  const selGrp  = selected.filter(s=>s.gi===gi);
+  const isAdding= addingTo?.gi===gi;
+
+  const MemberCard = ({ row, isMerged }) => {
+    const 결과items = Array.isArray(row?.결과items)?row.결과items:[];
+    const 비고      = row?.비고||"";
+    return (
+      <div style={{background:"#faf6f1",border:"1px solid #e8d5c0",borderLeft:`3px solid ${isMerged?color:"#c4a882"}`,borderRadius:"5px",padding:"9px 11px",marginBottom:isMerged?"6px":"0"}}>
+        <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"5px"}}>
+          <span style={{fontSize:"9px",fontWeight:"700",color:row?.partColor||"#888",background:(row?.partColor||"#888")+"18",padding:"1px 5px",borderRadius:"5px"}}>{row?.part}</span>
+          <span style={{fontSize:"12px",fontWeight:"700",color:"#3b1f0a"}}>{row?.name}</span>
+          <span style={{fontSize:"9px",color:"#a08060",marginLeft:"auto"}}>{row?.과제}</span>
+        </div>
+        {비고?(
+          <div style={{marginBottom:결과items.length?"6px":"0",background:"#fff8f0",border:"1px solid #e8d5c0",borderLeft:"3px solid #d4b896",borderRadius:"4px",padding:"6px 9px"}}>
+            <div style={{fontSize:"8px",color:"#a08060",fontWeight:"700",marginBottom:"2px"}}>📋 현재 진행현황</div>
+            <div style={{fontSize:"10px",color:"#6b4a30",lineHeight:"1.7",whiteSpace:"pre-line"}}>{비고}</div>
+          </div>
+        ):null}
+        {결과items.length?(
+          <div style={{background:"#fff",border:"1px solid #e8d5c0",borderLeft:"3px solid #8b5e3c",borderRadius:"4px",padding:"6px 9px"}}>
+            <div style={{fontSize:"8px",color:"#8b5e3c",fontWeight:"700",marginBottom:"3px"}}>✅ 결과물(승인본)</div>
+            {결과items.map((r,ri)=>(
+              <div key={ri} style={{display:"flex",gap:"5px",alignItems:"flex-start",marginBottom:ri<결과items.length-1?"3px":"0"}}>
+                <span style={{color:"#8b5e3c",fontWeight:"700",fontSize:"10px",flexShrink:0,marginTop:"1px"}}>{ri+1}.</span>
+                <span style={{fontSize:"11px",color:"#5c3317",lineHeight:"1.6",fontWeight:"500"}}>{r}</span>
+              </div>
+            ))}
+          </div>
+        ):null}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(59,26,10,0.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
+      <div style={{background:"#faf6f1",borderRadius:"12px",width:"660px",maxWidth:"94vw",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 10px 40px rgba(91,51,23,0.3)"}} onClick={e=>e.stopPropagation()}>
+        {/* 헤더 */}
+        <div style={{padding:"14px 20px",background:color,borderRadius:"12px 12px 0 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div><div style={{fontSize:"9px",color:"rgba(255,255,255,0.7)",letterSpacing:"1px",marginBottom:"1px"}}>2026 품질팀</div><div style={{fontSize:"15px",fontWeight:"700",color:"#fff"}}>{cat} 목표 진행현황 & 결과물</div></div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"20px",color:"rgba(255,255,255,0.8)",cursor:"pointer"}}>✕</button>
+        </div>
+        {/* 탭 */}
+        <div style={{padding:"10px 20px 8px",borderBottom:"1px solid #d4b896",display:"flex",gap:"6px",flexWrap:"wrap"}}>
+          {groups.map((g,i)=>{
+            const isA=activeGroup===i;
+            return (
+              <button key={i} onClick={e=>{e.stopPropagation();setActiveGroup(i);setSelected([]);setAddingTo(null);}}
+                style={{display:"flex",alignItems:"center",gap:"5px",padding:"5px 14px",background:isA?color:"#fff",border:`1.5px solid ${isA?color:"#d4b896"}`,borderRadius:"20px",cursor:"pointer",color:isA?"#fff":"#5c3317",fontWeight:"600",fontSize:"12px"}}>
+                {g.label}
+                <span style={{background:isA?"rgba(255,255,255,0.3)":color+"18",color:isA?"#fff":color,fontSize:"10px",fontWeight:"800",padding:"1px 6px",borderRadius:"10px"}}>{getMerged(i).length}/{getTotal(i)}</span>
+              </button>
+            );
+          })}
+        </div>
+        {/* 본문 */}
+        <div style={{flex:1,overflowY:"auto",padding:"14px 20px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"10px"}}>
+            <div style={{width:"3px",height:"14px",background:color,borderRadius:"2px"}} />
+            <span style={{fontSize:"12px",fontWeight:"700",color}}>{groups[gi]?.label}</span>
+            {selGrp.length>=2&&<button onClick={e=>{e.stopPropagation();handleMerge(gi);}} style={{padding:"2px 10px",background:color,border:"none",borderRadius:"10px",fontSize:"10px",color:"#fff",cursor:"pointer",fontWeight:"700"}}>✂ {selGrp.length}개 묶기</button>}
+            {selGrp.length===1&&<span style={{fontSize:"10px",color:"#a08060"}}>하나 더 선택하면 묶기 가능</span>}
+            {isAdding&&<span style={{fontSize:"10px",color:"#4a7c59",fontWeight:"700"}}>↓ 추가할 카드 클릭</span>}
+          </div>
+          {items.length===0
+            ? <div style={{textAlign:"center",color:"#c4a882",fontSize:"12px",padding:"32px 0"}}>진행현황 또는 결과물이 없습니다</div>
+            : <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+                {items.map((item,ii)=>{
+                  if(item.type==="merged"){
+                    const isAdd = addingTo?.gi===gi&&addingTo?.mi===item.mi;
+                    return (
+                      <div key={ii} style={{background:"#fff8f0",border:`1.5px solid ${color}`,borderLeft:`4px solid ${color}`,borderRadius:"8px",padding:"10px 12px"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"8px",flexWrap:"wrap"}}>
+                          <span style={{fontSize:"9px",color:"#fff",background:color,padding:"1px 7px",borderRadius:"8px",fontWeight:"700"}}>{item.members.length}명 묶음</span>
+                          {item.members.map((m,mi)=>(
+                            <span key={mi} style={{display:"flex",alignItems:"center",gap:"3px"}}>
+                              <span style={{fontSize:"9px",fontWeight:"700",color:m.partColor,background:m.partColor+"18",padding:"1px 5px",borderRadius:"5px"}}>{m.part}</span>
+                              <span style={{fontSize:"11px",fontWeight:"600",color:"#3b1f0a"}}>{m.name}</span>
+                            </span>
+                          ))}
+                          <div style={{marginLeft:"auto",display:"flex",gap:"4px"}}>
+                            <button onClick={e=>{e.stopPropagation();setAddingTo(isAdd?null:{gi,mi:item.mi});}}
+                              style={{padding:"1px 8px",background:isAdd?"#e8d5c0":"#f0e6d8",border:"none",borderRadius:"8px",fontSize:"9px",color:"#8b5e3c",cursor:"pointer",fontWeight:"600"}}>{isAdd?"취소":"+ 추가"}</button>
+                            <button onClick={e=>{e.stopPropagation();handleUnmerge(gi,item.mi);}}
+                              style={{padding:"1px 8px",background:"#fdf0eb",border:"none",borderRadius:"8px",fontSize:"9px",color:"#c0703a",cursor:"pointer",fontWeight:"600"}}>묶기 해제</button>
+                          </div>
+                        </div>
+                        {item.members.map((m,mi)=><MemberCard key={mi} row={m} isMerged={true} />)}
+                      </div>
+                    );
+                  }
+                  // 개별 카드
+                  const isSel   = selGrp.some(s=>s.idx===item.idx);
+                  const isAddM  = isAdding;
+                  return (
+                    <div key={ii}
+                      onClick={e=>{ e.stopPropagation(); if(isAddM){ handleAddTo(gi,addingTo.mi,item.idx); setAddingTo(null); } else toggleSel(gi,item.idx); }}
+                      style={{background:isAddM?"#e8f5ed":isSel?"#f5ede4":"#fff",border:`1.5px solid ${isAddM?"#4a7c59":isSel?color:"#e8d5c0"}`,borderLeft:`3px solid ${isAddM?"#4a7c59":isSel?color:"#c4a882"}`,borderRadius:"8px",padding:"10px 12px",cursor:"pointer",userSelect:"none"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"8px"}}>
+                        {isAddM
+                          ? <span style={{fontSize:"9px",color:"#4a7c59",fontWeight:"700",background:"#e8f5ed",padding:"1px 5px",borderRadius:"5px",border:"1px solid #4a7c59"}}>+ 추가</span>
+                          : <span style={{width:"13px",height:"13px",border:`2px solid ${isSel?color:"#c4a882"}`,borderRadius:"3px",background:isSel?color:"#fff",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>{isSel&&<span style={{color:"#fff",fontSize:"9px",lineHeight:1}}>✓</span>}</span>
+                        }
+                        <span style={{fontSize:"9px",fontWeight:"700",color:item.row.partColor,background:item.row.partColor+"18",padding:"1px 5px",borderRadius:"5px"}}>{item.row.part}</span>
+                        <span style={{fontSize:"12px",fontWeight:"700",color:"#3b1f0a"}}>{item.row.name}</span>
+                        <span style={{fontSize:"9px",color:"#a08060",marginLeft:"auto"}}>{item.row.과제}</span>
+                      </div>
+                      <MemberCard row={item.row} isMerged={false} />
+                    </div>
+                  );
+                })}
+              </div>
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ResultEditor ───────────────────────────────────────────────
 function ResultEditor({ gi, 결과, update }) {
   const [items, setItems] = useState(()=>(결과||"").split("||").filter(Boolean));
   const prevRef = useRef(결과);
   useEffect(()=>{ if(prevRef.current!==결과){ prevRef.current=결과; setItems((결과||"").split("||").filter(Boolean)); } },[결과]);
   const commit = arr => { setItems(arr); prevRef.current=arr.filter(s=>s.trim()).join("||"); update(gi,"결과",arr.filter(s=>s.trim()).join("||")); };
-  const updateItem = (ii,val) => { const arr=[...items]; arr[ii]=val; setItems(arr); prevRef.current=arr.filter(s=>s.trim()).join("||"); update(gi,"결과",arr.filter(s=>s.trim()).join("||")); };
+  const updItem= (ii,val)=>{ const arr=[...items]; arr[ii]=val; setItems(arr); prevRef.current=arr.filter(s=>s.trim()).join("||"); update(gi,"결과",arr.filter(s=>s.trim()).join("||")); };
   return (
     <div style={{marginTop:"5px"}}>
       <div style={{marginBottom:"3px"}}><span style={{background:"#5c3317",color:"#fff",padding:"1px 6px",borderRadius:"4px",fontSize:"8px",fontWeight:"700"}}>결과물(승인본)</span></div>
       {items.map((item,ii)=>(
         <div key={ii} style={{display:"flex",gap:"4px",marginBottom:"4px",alignItems:"center"}}>
-          <input value={item} onChange={e=>updateItem(ii,e.target.value)} style={{flex:1,background:"#fff8f0",border:"1px solid #c4a882",borderLeft:"3px solid #5c3317",borderRadius:"3px",color:"#5c3317",fontWeight:"500",padding:"4px 6px",fontSize:"10px",fontFamily:"inherit",outline:"none"}} />
+          <input value={item} onChange={e=>updItem(ii,e.target.value)} style={{flex:1,background:"#fff8f0",border:"1px solid #c4a882",borderLeft:"3px solid #5c3317",borderRadius:"3px",color:"#5c3317",fontWeight:"500",padding:"4px 6px",fontSize:"10px",fontFamily:"inherit",outline:"none"}} />
           <button type="button" onPointerDown={e=>{ e.stopPropagation(); e.preventDefault(); const arr=[...items]; arr.splice(ii,1); commit(arr); }} style={{background:"none",border:"none",color:"#c0703a",cursor:"pointer",fontSize:"14px",padding:"0 4px"}}>✕</button>
         </div>
       ))}
@@ -220,143 +403,7 @@ function ResultEditor({ gi, 결과, update }) {
   );
 }
 
-function SelectableCard({ item, isSelected, isAddingMode, color, onSelect, onAddTo }) {
-  return (
-    <div onClick={e=>{ e.stopPropagation(); if(isAddingMode) onAddTo(); else onSelect(); }}
-      style={{background:isAddingMode?"#e8f5ed":isSelected?"#f5ede4":"#faf6f1",border:`1.5px solid ${isAddingMode?"#4a7c59":isSelected?color:"#e8d5c0"}`,borderLeft:`3px solid ${isAddingMode?"#4a7c59":isSelected?color:"#c4a882"}`,borderRadius:"6px",padding:"9px 12px",cursor:"pointer",userSelect:"none"}}>
-      <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"5px"}}>
-        {isAddingMode
-          ? <span style={{fontSize:"9px",color:"#4a7c59",fontWeight:"700",background:"#e8f5ed",padding:"1px 6px",borderRadius:"6px",border:"1px solid #4a7c59"}}>+ 추가</span>
-          : <span style={{width:"14px",height:"14px",border:`2px solid ${isSelected?color:"#c4a882"}`,borderRadius:"3px",background:isSelected?color:"#fff",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>{isSelected&&<span style={{color:"#fff",fontSize:"10px",lineHeight:1}}>✓</span>}</span>
-        }
-        <span style={{fontSize:"9px",fontWeight:"700",color:item.row.partColor,background:item.row.partColor+"18",padding:"1px 5px",borderRadius:"5px"}}>{item.row.part}</span>
-        <span style={{fontSize:"12px",fontWeight:"700",color:"#3b1f0a"}}>{item.row.name}</span>
-        <span style={{fontSize:"9px",color:"#a08060",marginLeft:"auto"}}>{item.row.과제}</span>
-      </div>
-      <div style={{fontSize:"11px",color:"#5c3317",lineHeight:"1.6",fontWeight:"500",background:"#fff",border:"1px solid #e8d5c0",borderRadius:"4px",padding:"6px 9px"}}>{item.row.결과}</div>
-      {item.row.비고&&item.row.비고.trim()&&(
-        <div style={{marginTop:"5px",background:"#fef8f0",border:"1px solid #e8c87a",borderLeft:"3px solid #b8860b",borderRadius:"4px",padding:"5px 8px"}}>
-          <div style={{fontSize:"8px",color:"#b8860b",fontWeight:"700",marginBottom:"2px"}}>현재 진행현황</div>
-          <div style={{fontSize:"10px",color:"#5a3e10",lineHeight:"1.6",whiteSpace:"pre-line"}}>{item.row.비고.trim()}</div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-const RESULT_GROUPS = {
-  전략:[
-    {label:"예측기반 타겟점검", match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
-    {label:"건설 DX", match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
-    {label:"소송핵심관리", match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
-  ],
-  업무:[
-    {label:"하자비용 저감", match:t=>t.includes("골조")||t.includes("타일")},
-    {label:"BS 하자 개선", match:t=>t.includes("BS하자")},
-    {label:"고객불만율 관리", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
-  ],
-  개인:[{label:"개인 목표", match:()=>true}],
-};
-
-function ResultModal({ cat, allData, onClose }) {
-  const color = cat==="전략"?"#8b5e3c":cat==="업무"?"#6b4226":"#a0785a";
-  const groups = RESULT_GROUPS[cat];
-  const [activeGroup, setActiveGroup] = useState("all");
-  const [mergedMap, setMergedMap] = useState({});
-  const [selected, setSelected] = useState([]);
-  const [editMerge, setEditMerge] = useState({});
-  const [addingTo, setAddingTo] = useState(null);
-  useEffect(()=>{ dbGet('merged',cat).then(d=>{ if(d?.mergedMap) setMergedMap(typeof d.mergedMap==='string'?JSON.parse(d.mergedMap):d.mergedMap); if(d?.editMerge) setEditMerge(typeof d.editMerge==='string'?JSON.parse(d.editMerge):d.editMerge); }); },[cat]);
-  const saveNow = (mm,em) => dbSet('merged',cat,{mergedMap:JSON.stringify(mm),editMerge:JSON.stringify(em)});
-  const allRows = [];
-  Object.entries(MEMBERS).forEach(([pk,pd])=>{ (allData[pk]||[]).forEach(m=>{ m.goals.filter(g=>g.cat===cat&&g.배점>0).forEach(g=>{ (g.결과||"").split("||").filter(s=>s.trim()).forEach((item,ii)=>{ allRows.push({part:pd.label.replace(" 파트",""),partColor:pd.color,name:m.name,과제:g.과제,배점:g.배점,결과:item.trim(),비고:g.비고||"",itemIdx:ii}); }); }); }); });
-  const getRows = g => allRows.filter(r=>g.match(r.과제)&&r.결과.trim());
-  const getTotal = g => new Set(getRows(g).map(r=>r.name)).size;
-  const getMergedRows = gi => {
-    const rows=getRows(groups[gi]); const merged=mergedMap[gi]||[]; const usedIdx=new Set(merged.flat()); const result=[];
-              merged.forEach((idxArr,mi)=>{ const members=idxArr.map(i=>rows[i]).filter(Boolean); if(!members.length) return; const key=`${gi}_${mi}`; result.push({type:"merged",mi,gi,members,text:editMerge[key]!==undefined?editMerge[key]:members.map(m=>m.결과).join("\n")}); });
-    rows.forEach((r,i)=>{ if(!usedIdx.has(i)) result.push({type:"single",idx:i,gi,row:r}); });
-    return result;
-  };
-  const getDoneCount = (_,gi) => getMergedRows(gi).length;
-  const handleMerge = gi => { const sel=selected.filter(s=>s.gi===gi); if(sel.length<2) return; const newMM={...mergedMap,[gi]:[...(mergedMap[gi]||[]),sel.map(s=>s.idx)]}; setMergedMap(newMM); setSelected(p=>p.filter(s=>s.gi!==gi)); saveNow(newMM,editMerge); };
-  const handleUnmerge = (gi,mi) => { const newMM={...mergedMap}; const arr=[...(newMM[gi]||[])]; arr.splice(mi,1); newMM[gi]=arr; const newEM={...editMerge}; delete newEM[`${gi}_${mi}`]; setMergedMap(newMM); setEditMerge(newEM); saveNow(newMM,newEM); };
-  const handleAddToMerge = (gi,mi,idx) => { const newMM={...mergedMap}; const arr=[...(newMM[gi]||[])]; arr[mi]=[...arr[mi],idx]; newMM[gi]=arr; setMergedMap(newMM); setSelected(p=>p.filter(s=>!(s.gi===gi&&s.idx===idx))); saveNow(newMM,editMerge); };
-  const toggleSelect = (gi,idx) => setSelected(p=>{ const ex=p.find(s=>s.gi===gi&&s.idx===idx); return ex?p.filter(s=>!(s.gi===gi&&s.idx===idx)):[...p,{gi,idx}]; });
-  return (
-    <div style={{position:"fixed",inset:0,background:"rgba(59,26,10,0.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:"#faf6f1",borderRadius:"12px",width:"640px",maxWidth:"94vw",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 10px 40px rgba(91,51,23,0.3)"}} onClick={e=>e.stopPropagation()}>
-        <div style={{padding:"14px 20px",background:color,borderRadius:"12px 12px 0 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><div style={{fontSize:"9px",color:"rgba(255,255,255,0.7)",letterSpacing:"1px",marginBottom:"1px"}}>2026 품질팀</div><div style={{fontSize:"15px",fontWeight:"700",color:"#fff"}}>{cat} 목표 결과물(승인본)</div></div>
-          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"20px",color:"rgba(255,255,255,0.8)",cursor:"pointer"}}>✕</button>
-        </div>
-        <div style={{padding:"12px 20px 10px",borderBottom:"1px solid #d4b896",display:"flex",gap:"8px",flexWrap:"wrap"}}>
-          {groups.map((g,gi)=>{ const done=getDoneCount(g,gi); const total=getTotal(g); const isActive=activeGroup===gi;
-            return <button key={gi} onClick={e=>{ e.stopPropagation(); setActiveGroup(isActive?"all":gi); }} style={{display:"flex",alignItems:"center",gap:"5px",padding:"6px 14px",background:isActive?color:"#fff",border:`1.5px solid ${isActive?color:"#d4b896"}`,borderRadius:"20px",cursor:"pointer",color:isActive?"#fff":"#5c3317",fontWeight:"600",fontSize:"12px"}}>
-              {g.label}<span style={{background:isActive?"rgba(255,255,255,0.3)":color+"18",color:isActive?"#fff":color,fontSize:"10px",fontWeight:"800",padding:"1px 7px",borderRadius:"10px"}}>{done}/{total}</span>
-            </button>; })}
-        </div>
-        <div style={{flex:1,overflowY:"auto",padding:"14px 20px"}}>
-          {groups.map((g,gi)=>{
-            if(activeGroup!=="all"&&activeGroup!==gi) return null;
-            const mergedRows=getMergedRows(gi); const selForGroup=selected.filter(s=>s.gi===gi);
-            return (
-              <div key={gi} style={{marginBottom:"16px"}}>
-                <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"7px"}}>
-                  <div style={{width:"3px",height:"14px",background:activeGroup===gi?color:"#c4a882",borderRadius:"2px"}} />
-                  <span style={{fontSize:"12px",fontWeight:"700",color:activeGroup===gi?color:"#8b6a4a"}}>{g.label}</span>
-                  {selForGroup.length>=2&&<button onClick={e=>{ e.stopPropagation(); handleMerge(gi); }} style={{padding:"2px 10px",background:color,border:"none",borderRadius:"10px",fontSize:"10px",color:"#fff",cursor:"pointer",fontWeight:"700"}}>✂ {selForGroup.length}개 묶기</button>}
-                  {selForGroup.length===1&&<span style={{fontSize:"10px",color:"#a08060"}}>하나 더 선택하면 묶기 가능</span>}
-                </div>
-                {mergedRows.length===0?<div style={{fontSize:"11px",color:"#c4a882",padding:"8px 0"}}>결과물 없음</div>:(
-                  <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
-                    {mergedRows.map((item,ii)=>{
-                      if(item.type==="merged") {
-                        const isAdding=addingTo?.gi===gi&&addingTo?.mi===item.mi;
-                        return (
-                          <div key={ii} style={{background:"#fff8f0",border:`1.5px solid ${color}`,borderLeft:`4px solid ${color}`,borderRadius:"6px",padding:"10px 12px"}}>
-                            <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"6px",flexWrap:"wrap"}}>
-                              <span style={{fontSize:"9px",color:"#fff",background:color,padding:"1px 7px",borderRadius:"8px",fontWeight:"700"}}>{item.members.length}명 묶음</span>
-                              {item.members.map((m,mi)=>(<span key={mi} style={{display:"flex",alignItems:"center",gap:"3px"}}><span style={{fontSize:"9px",fontWeight:"700",color:m.partColor,background:m.partColor+"18",padding:"1px 5px",borderRadius:"5px"}}>{m.part}</span><span style={{fontSize:"11px",fontWeight:"600",color:"#3b1f0a"}}>{m.name}</span></span>))}
-                              <div style={{marginLeft:"auto",display:"flex",gap:"4px"}}>
-                                <button onClick={e=>{ e.stopPropagation(); setAddingTo(isAdding?null:{gi,mi:item.mi}); }} style={{padding:"1px 8px",background:isAdding?"#e8d5c0":"#f0e6d8",border:"none",borderRadius:"8px",fontSize:"9px",color:"#8b5e3c",cursor:"pointer",fontWeight:"600"}}>{isAdding?"취소":"+ 추가"}</button>
-                                <button onClick={e=>{ e.stopPropagation(); handleUnmerge(gi,item.mi); }} style={{padding:"1px 8px",background:"#fdf0eb",border:"none",borderRadius:"8px",fontSize:"9px",color:"#c0703a",cursor:"pointer",fontWeight:"600"}}>묶기 해제</button>
-                              </div>
-                            </div>
-                            {isAdding&&<div style={{fontSize:"10px",color:"#8b5e3c",background:"#f5ede4",padding:"5px 8px",borderRadius:"5px",marginBottom:"6px"}}>↓ 아래 개별 항목을 클릭하면 이 묶음에 추가됩니다</div>}
-                            <div style={{background:"#fff",border:"1px solid #e8d5c0",borderRadius:"4px",padding:"6px 9px"}}>
-                              {item.text.split("\n").filter(s=>s.trim()).map((line,li)=>(<div key={li} style={{display:"flex",gap:"6px",alignItems:"flex-start",marginBottom:"3px"}}><span style={{color:"#8b5e3c",fontWeight:"700",fontSize:"10px",flexShrink:0,marginTop:"2px"}}>{li+1}.</span><span style={{fontSize:"11px",color:"#5c3317",lineHeight:"1.6",fontWeight:"500"}}>{line.trim()}</span></div>))}
-                            </div>
-                            {item.members.some(m=>m.비고&&m.비고.trim())&&(
-                              <div style={{marginTop:"6px",background:"#fef8f0",border:"1px solid #e8c87a",borderLeft:"3px solid #b8860b",borderRadius:"4px",padding:"6px 9px"}}>
-                                <div style={{fontSize:"8px",color:"#b8860b",fontWeight:"700",marginBottom:"4px"}}>현재 진행현황</div>
-                                {item.members.filter(m=>m.비고&&m.비고.trim()).map((m,mi)=>(
-                                  <div key={mi} style={{marginBottom:mi<item.members.length-1?"6px":"0"}}>
-                                    <div style={{display:"flex",alignItems:"center",gap:"4px",marginBottom:"2px"}}>
-                                      <span style={{fontSize:"9px",fontWeight:"700",color:m.partColor,background:m.partColor+"18",padding:"1px 5px",borderRadius:"4px"}}>{m.part}</span>
-                                      <span style={{fontSize:"10px",fontWeight:"600",color:"#3b1f0a"}}>{m.name}</span>
-                                    </div>
-                                    <div style={{fontSize:"10px",color:"#5a3e10",lineHeight:"1.6",whiteSpace:"pre-line",paddingLeft:"4px"}}>{m.비고.trim()}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-                      return <SelectableCard key={ii} item={item} isSelected={selForGroup.some(s=>s.idx===item.idx)} isAddingMode={addingTo?.gi===gi} color={color} onSelect={()=>toggleSelect(gi,item.idx)} onAddTo={()=>{ handleAddToMerge(gi,addingTo.mi,item.idx); setAddingTo(null); }} />;
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
+// ── DetailModal ────────────────────────────────────────────────
 function DetailModal({ task:t, taskIdx, partColor, onClose, onChangeStatus, onAddLog }) {
   const [logMemo, setLogMemo] = useState("");
   const bc=상태색[t.상태]||"#8b6a4a"; const bg=상태배경[t.상태]||"#f0e6d8";
@@ -378,7 +425,9 @@ function DetailModal({ task:t, taskIdx, partColor, onClose, onChangeStatus, onAd
         </div>
         <div style={{padding:"10px 20px",borderBottom:"1px solid #ede0d0",background:"#fff8f2",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
           <span style={{fontSize:"10px",color:"#8b6a4a",fontWeight:"600"}}>상태 변경</span>
-          {상태목록.map(s=>(<button key={s} onClick={()=>onChangeStatus(taskIdx,s)} style={{padding:"3px 10px",border:"none",borderRadius:"10px",cursor:"pointer",fontSize:"10px",fontWeight:t.상태===s?"700":"400",background:t.상태===s?(상태색[s]||"#8b6a4a"):(상태배경[s]||"#f0e6d8"),color:t.상태===s?"#fff":(상태색[s]||"#8b6a4a"),outline:t.상태===s?`2px solid ${상태색[s]||"#8b6a4a"}`:"none"}}>{s}</button>))}
+          {상태목록.map(s=>(
+            <button key={s} onClick={()=>onChangeStatus(taskIdx,s)} style={{padding:"3px 10px",border:"none",borderRadius:"10px",cursor:"pointer",fontSize:"10px",fontWeight:t.상태===s?"700":"400",background:t.상태===s?(상태색[s]||"#8b6a4a"):(상태배경[s]||"#f0e6d8"),color:t.상태===s?"#fff":(상태색[s]||"#8b6a4a"),outline:t.상태===s?`2px solid ${상태색[s]||"#8b6a4a"}`:"none"}}>{s}</button>
+          ))}
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
           <div style={{fontSize:"10px",color:"#8b5e3c",fontWeight:"700",marginBottom:"12px"}}>진행 이력 {(t.이력||[]).length>0?`(${(t.이력||[]).length}건)`:""}</div>
@@ -407,9 +456,11 @@ function DetailModal({ task:t, taskIdx, partColor, onClose, onChangeStatus, onAd
           })}
           <div style={{marginTop:"14px",background:"#f5ede4",border:"1px solid #c4a882",borderRadius:"7px",padding:"12px 14px"}}>
             <div style={{fontSize:"10px",color:"#8b5e3c",fontWeight:"700",marginBottom:"7px"}}>+ 이력 메모 추가</div>
-            <textarea value={logMemo} onChange={e=>setLogMemo(e.target.value)} placeholder="진행 상황, 특이사항, 협의 내용 등" rows={3} style={{width:"100%",padding:"7px 9px",border:"1px solid #c4a882",borderRadius:"5px",fontSize:"11px",color:"#3b1f0a",background:"#fff",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",outline:"none",lineHeight:"1.6"}} />
+            <textarea value={logMemo} onChange={e=>setLogMemo(e.target.value)} placeholder="진행 상황, 특이사항, 협의 내용 등" rows={3}
+              style={{width:"100%",padding:"7px 9px",border:"1px solid #c4a882",borderRadius:"5px",fontSize:"11px",color:"#3b1f0a",background:"#fff",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",outline:"none",lineHeight:"1.6"}} />
             <div style={{display:"flex",justifyContent:"flex-end",marginTop:"7px"}}>
-              <button onClick={()=>{ if(logMemo.trim()){ onAddLog(taskIdx,logMemo); setLogMemo(""); } }} style={{padding:"5px 16px",background:logMemo.trim()?partColor:"#c4a882",border:"none",borderRadius:"10px",fontSize:"11px",color:"#fff",cursor:logMemo.trim()?"pointer":"default",fontWeight:"700"}}>메모 저장</button>
+              <button onClick={()=>{ if(logMemo.trim()){ onAddLog(taskIdx,logMemo); setLogMemo(""); } }}
+                style={{padding:"5px 16px",background:logMemo.trim()?partColor:"#c4a882",border:"none",borderRadius:"10px",fontSize:"11px",color:"#fff",cursor:logMemo.trim()?"pointer":"default",fontWeight:"700"}}>메모 저장</button>
             </div>
           </div>
         </div>
@@ -418,11 +469,16 @@ function DetailModal({ task:t, taskIdx, partColor, onClose, onChangeStatus, onAd
   );
 }
 
+// ── ReqSection ─────────────────────────────────────────────────
 function ReqSection({ name, reqData, setReqData, partColor }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft]     = useState("");
   const text = reqData[name]||"";
-  if(!text.trim()&&!editing) return (<div style={{marginBottom:"8px"}}><button onClick={()=>{ setDraft(text); setEditing(true); }} style={{fontSize:"9px",color:"#d4842a",background:"none",border:"1px dashed #e8a44a",borderRadius:"4px",padding:"3px 10px",cursor:"pointer"}}>+ 팀장 요청사항 추가</button></div>);
+  if(!text.trim()&&!editing) return (
+    <div style={{marginBottom:"8px"}}>
+      <button onClick={()=>{ setDraft(text); setEditing(true); }} style={{fontSize:"9px",color:"#d4842a",background:"none",border:"1px dashed #e8a44a",borderRadius:"4px",padding:"3px 10px",cursor:"pointer"}}>+ 팀장 요청사항 추가</button>
+    </div>
+  );
   return (
     <div style={{background:"#fff3e0",border:"1px solid #e8a44a",borderLeft:"3px solid #d4842a",borderRadius:"5px",padding:"8px 12px",marginBottom:"8px"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"5px"}}>
@@ -431,7 +487,8 @@ function ReqSection({ name, reqData, setReqData, partColor }) {
           ? <button onClick={()=>{ setDraft(text); setEditing(true); }} style={{fontSize:"9px",color:"#d4842a",background:"#ffe0b2",border:"none",borderRadius:"6px",padding:"2px 8px",cursor:"pointer",fontWeight:"600"}}>수정</button>
           : <div style={{display:"flex",gap:"4px"}}>
               <button onClick={()=>setEditing(false)} style={{fontSize:"9px",color:"#8b6a4a",background:"#e8d5c0",border:"none",borderRadius:"6px",padding:"2px 8px",cursor:"pointer"}}>취소</button>
-              <button onClick={()=>{ const next={...reqData,[name]:draft}; setReqData(next); dbSet('req','all',next); setEditing(false); }} style={{fontSize:"9px",color:"#fff",background:partColor,border:"none",borderRadius:"6px",padding:"2px 8px",cursor:"pointer",fontWeight:"700"}}>저장</button>
+              <button onClick={()=>{ const next={...reqData,[name]:draft}; setReqData(next); dbSet('req','all',next); setEditing(false); }}
+                style={{fontSize:"9px",color:"#fff",background:partColor,border:"none",borderRadius:"6px",padding:"2px 8px",cursor:"pointer",fontWeight:"700"}}>저장</button>
             </div>
         }
       </div>
@@ -443,30 +500,35 @@ function ReqSection({ name, reqData, setReqData, partColor }) {
   );
 }
 
+// ── WorkPanel ──────────────────────────────────────────────────
 function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData }) {
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [editIdx, setEditIdx] = useState(null);
-  const [filterState, setFilterState] = useState("진행중");
+  const [showForm, setShowForm]   = useState(false);
+  const [form, setForm]           = useState(EMPTY_FORM);
+  const [editIdx, setEditIdx]     = useState(null);
+  const [filterState, setFilter]  = useState("진행중");
   const [detailIdx, setDetailIdx] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearch]  = useState("");
   const tasks = workData[name]||[];
   const today = new Date().toISOString().slice(0,10);
   const effState = t => (!t.상태||t.상태==="진행중")?"진행중":t.상태;
+
   const saveTask = () => {
     if(!form.업무.trim()) return;
-    setWorkData(prev=>{ const list=[...(prev[name]||[])]; const now=new Date().toISOString().slice(0,16).replace("T"," ");
+    setWorkData(prev=>{
+      const list=[...(prev[name]||[])]; const now=new Date().toISOString().slice(0,16).replace("T"," ");
       if(editIdx!==null){ const pt=list[editIdx]; list[editIdx]={...form,이력:[...(pt.이력||[]),{시각:now,변경전상태:pt.상태,변경후상태:form.상태,메모:form.리뷰}]}; }
       else { list.push({...form,접수일:form.접수일||today,이력:[{시각:now,변경전상태:"",변경후상태:form.상태,메모:form.리뷰||"신규 등록"}]}); }
-      const next={...prev,[name]:list}; dbSet('work',name,{tasks:list}); return next; });
+      const next={...prev,[name]:list}; dbSet('work',name,{tasks:list}); return next;
+    });
     setForm(EMPTY_FORM); setShowForm(false); setEditIdx(null);
   };
   const addLog=(idx,memo)=>{ setWorkData(prev=>{ const list=[...(prev[name]||[])]; const t=list[idx]; const now=new Date().toISOString().slice(0,16).replace("T"," "); list[idx]={...t,이력:[...(t.이력||[]),{시각:now,변경전상태:t.상태,변경후상태:t.상태,메모:memo}]}; const next={...prev,[name]:list}; dbSet('work',name,{tasks:list}); return next; }); };
-  const changeStatus=(idx,newState)=>{ setWorkData(prev=>{ const list=[...(prev[name]||[])]; const t=list[idx]; const now=new Date().toISOString().slice(0,16).replace("T"," "); list[idx]={...t,상태:newState,완료일:newState==="완료"?today:t.완료일,이력:[...(t.이력||[]),{시각:now,변경전상태:t.상태,변경후상태:newState,메모:`상태 변경: ${t.상태} → ${newState}`}]}; const next={...prev,[name]:list}; dbSet('work',name,{tasks:list}); return next; }); };
+  const changeStatus=(idx,ns)=>{ setWorkData(prev=>{ const list=[...(prev[name]||[])]; const t=list[idx]; const now=new Date().toISOString().slice(0,16).replace("T"," "); list[idx]={...t,상태:ns,완료일:ns==="완료"?today:t.완료일,이력:[...(t.이력||[]),{시각:now,변경전상태:t.상태,변경후상태:ns,메모:`상태 변경: ${t.상태} → ${ns}`}]}; const next={...prev,[name]:list}; dbSet('work',name,{tasks:list}); return next; }); };
   const deleteTask=i=>{ setWorkData(prev=>{ const list=[...(prev[name]||[])]; list.splice(i,1); const next={...prev,[name]:list}; dbSet('work',name,{tasks:list}); return next; }); };
   const startEdit=i=>{ setForm({...tasks[i]}); setEditIdx(i); setShowForm(true); };
   const filtered=(filterState==="전체"?tasks:tasks.filter(t=>effState(t)===filterState)).filter(t=>!searchQuery.trim()||t.업무.includes(searchQuery)||(t.요청부서||"").includes(searchQuery)||(t.리뷰||"").includes(searchQuery));
   const counts=상태목록.reduce((acc,s)=>{ acc[s]=tasks.filter(t=>effState(t)===s).length; return acc; },{});
+
   return (
     <div style={{width:"50%",display:"flex",flexDirection:"column",background:"#fdf8f4",borderLeft:"1px solid #d4b896"}}>
       <div style={{padding:"12px 20px",borderBottom:"2px solid #d4b896",background:"#f0e6d8",flexShrink:0}}>
@@ -477,12 +539,12 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
         </div>
         <ReqSection name={name} reqData={reqData} setReqData={setReqData} partColor={partColor} />
         <div style={{position:"relative",marginBottom:"6px"}}>
-          <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="업무명, 요청부서, 리뷰 검색..." style={{width:"100%",padding:"5px 28px 5px 8px",border:"1px solid #d4b896",borderRadius:"6px",fontSize:"11px",color:"#3b1f0a",background:"#faf6f1",boxSizing:"border-box",outline:"none"}} />
-          {searchQuery&&<button onClick={()=>setSearchQuery("")} style={{position:"absolute",right:"6px",top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#a08060",fontSize:"13px"}}>✕</button>}
+          <input value={searchQuery} onChange={e=>setSearch(e.target.value)} placeholder="업무명, 요청부서, 리뷰 검색..." style={{width:"100%",padding:"5px 28px 5px 8px",border:"1px solid #d4b896",borderRadius:"6px",fontSize:"11px",color:"#3b1f0a",background:"#faf6f1",boxSizing:"border-box",outline:"none"}} />
+          {searchQuery&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:"6px",top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#a08060",fontSize:"13px"}}>✕</button>}
         </div>
         <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
           {["전체",...상태목록].map(s=>{ const cnt=s==="전체"?tasks.length:(counts[s]||0); const isA=filterState===s;
-            return <button key={s} onClick={()=>setFilterState(s)} style={{padding:"2px 8px",border:"none",borderRadius:"10px",cursor:"pointer",fontSize:"9px",fontWeight:isA?"700":"400",background:isA?(s==="전체"?"#8b5e3c":(상태배경[s]||"#f0e6d8")):"#ffffff",color:isA?(s==="전체"?"#fff":(상태색[s]||"#8b6a4a")):"#a08060",outline:isA?`1px solid ${s==="전체"?"#8b5e3c":(상태색[s]||"#c4a882")}`:"none"}}>{s} ({cnt})</button>; })}
+            return <button key={s} onClick={()=>setFilter(s)} style={{padding:"2px 8px",border:"none",borderRadius:"10px",cursor:"pointer",fontSize:"9px",fontWeight:isA?"700":"400",background:isA?(s==="전체"?"#8b5e3c":(상태배경[s]||"#f0e6d8")):"#fff",color:isA?(s==="전체"?"#fff":(상태색[s]||"#8b6a4a")):"#a08060",outline:isA?`1px solid ${s==="전체"?"#8b5e3c":(상태색[s]||"#c4a882")}`:"none"}}>{s} ({cnt})</button>; })}
         </div>
       </div>
       {showForm&&(
@@ -505,7 +567,7 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
         {filtered.length===0&&<div style={{textAlign:"center",color:"#c4a882",fontSize:"12px",marginTop:"40px"}}>{filterState==="전체"?"등록된 업무가 없습니다":`${filterState} 업무가 없습니다`}</div>}
         {[...filtered].reverse().map((t,fi)=>{ const realIdx=tasks.indexOf(t); const es=effState(t); const bc=상태색[es]||"#8b6a4a"; const bg=상태배경[es]||"#f0e6d8";
           return (
-            <div key={fi} onClick={()=>setDetailIdx(realIdx)} style={{background:"#ffffff",border:"1px solid #d4b896",borderLeft:`3px solid ${bc}`,borderRadius:"5px",padding:"9px 11px",marginBottom:"7px",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 2px 8px #c4a88244"} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
+            <div key={fi} onClick={()=>setDetailIdx(realIdx)} style={{background:"#fff",border:"1px solid #d4b896",borderLeft:`3px solid ${bc}`,borderRadius:"5px",padding:"9px 11px",marginBottom:"7px",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 2px 8px #c4a88244"} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"4px"}}>
                 <div style={{fontSize:"12px",fontWeight:"600",color:"#3b1f0a",flex:1,lineHeight:"1.4",marginRight:"6px"}}><span style={{color:"#c4a882",fontWeight:"700",marginRight:"5px",fontSize:"11px"}}>#{realIdx+1}</span>{t.업무}</div>
                 <div style={{display:"flex",gap:"4px",flexShrink:0}} onClick={e=>e.stopPropagation()}>
@@ -532,58 +594,89 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
   );
 }
 
+// ── Bar ────────────────────────────────────────────────────────
 function Bar({ rate, color, height="5px" }) {
   return (<div style={{height,background:"#d4b896",borderRadius:"3px",overflow:"hidden",marginTop:"4px"}}><div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:color||rateColor(rate),borderRadius:"3px",transition:"width 0.5s"}} /></div>);
 }
 
-function Dashboard({ allData, allWork, onNavigate }) {
+// ── Dashboard ──────────────────────────────────────────────────
+function Dashboard({ allData, allWork, onNavigate, onOpenResult }) {
   const partKeys = Object.keys(MEMBERS);
   const rc = r=>r>=80?"#4a7c59":r>=50?"#b8860b":"#c0703a";
   const leftRef = useRef(null);
   const [qcRowH, setQcRowH] = useState(44);
   const [openItem, setOpenItem] = useState(null);
-  useEffect(()=>{ const calc=()=>{ if(!leftRef.current) return; const leftH=leftRef.current.getBoundingClientRect().height; setQcRowH(Math.max(24,Math.floor((leftH-28-24)/allData["QC"].length))); }; const ro=new ResizeObserver(calc); if(leftRef.current) ro.observe(leftRef.current); setTimeout(calc,0); return ()=>ro.disconnect(); },[allData]);
+
+  useEffect(()=>{
+    const calc=()=>{ if(!leftRef.current) return; setQcRowH(Math.max(24,Math.floor((leftRef.current.getBoundingClientRect().height-28-24)/allData["QC"].length))); };
+    const ro=new ResizeObserver(calc); if(leftRef.current) ro.observe(leftRef.current); setTimeout(calc,0); return ()=>ro.disconnect();
+  },[allData]);
 
   const STRATEGY_ITEMS = [
     {label:"예측기반 타겟점검", match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
-    {label:"건설 DX", match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
-    {label:"소송핵심관리", match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
+    {label:"건설 DX",           match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
+    {label:"소송핵심관리",      match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
   ];
   const WORK_ITEMS = [
-    {label:"하자비용 저감", match:t=>t.includes("골조")||t.includes("타일")},
-    {label:"BS 하자 개선", match:t=>t.includes("BS하자")},
+    {label:"하자비용 저감",   match:t=>t.includes("골조")||t.includes("타일")},
+    {label:"BS 하자 개선",    match:t=>t.includes("BS하자")},
     {label:"고객불만율 관리", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
   ];
-  const getMemberRates = (item, cat) => { const result=[]; partKeys.forEach(pk=>{ allData[pk].forEach(m=>{ const goals=m.goals.filter(g=>g.cat===cat&&item.match(g.과제)); if(!goals.length) return; const ts=goals.reduce((s,g)=>s+g.배점,0); const td=goals.reduce((s,g)=>s+(g.실적||0),0); result.push({name:m.name,part:MEMBERS[pk].label.replace(" 파트",""),partColor:MEMBERS[pk].color,rate:ts>0?Math.round((td/ts)*100):0,totalScore:ts,totalDone:td}); }); }); return result; };
+
+  const getMemberRates = (item, cat) => {
+    const result=[];
+    partKeys.forEach(pk=>{ allData[pk].forEach(m=>{ const goals=m.goals.filter(g=>g.cat===cat&&item.match(g.과제)); if(!goals.length) return; const ts=goals.reduce((s,g)=>s+g.배점,0); const td=goals.reduce((s,g)=>s+(g.실적||0),0); result.push({name:m.name,part:MEMBERS[pk].label.replace(" 파트",""),partColor:MEMBERS[pk].color,rate:ts>0?Math.round((td/ts)*100):0,totalScore:ts,totalDone:td}); }); });
+    return result;
+  };
+
   const ItemBar = ({ item, cat, idx }) => {
-    const key=`${cat}_${idx}`; const isOpen=openItem===key; const members=getMemberRates(item,cat);
-    const ts=members.reduce((s,m)=>s+m.totalScore,0); const td=members.reduce((s,m)=>s+m.totalDone,0); const rate=ts>0?Math.round((td/ts)*100):0; const color=cat==="전략"?"#8b5e3c":"#6b4226";
+    const key=`${cat}_${idx}`; const isOpen=openItem===key;
+    const members=getMemberRates(item,cat);
+    const ts=members.reduce((s,m)=>s+m.totalScore,0); const td=members.reduce((s,m)=>s+m.totalDone,0);
+    const rate=ts>0?Math.round((td/ts)*100):0; const color=cat==="전략"?"#8b5e3c":"#6b4226";
     return (
       <div style={{marginBottom:idx<2?"6px":"0"}}>
         <div onClick={()=>setOpenItem(isOpen?null:key)} style={{cursor:"pointer"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"3px"}}>
-            <span style={{fontSize:"10px",color:"#5c3317",fontWeight:"600",display:"flex",alignItems:"center",gap:"4px"}}>{item.label}<span style={{fontSize:"8px",color:color,background:color+"15",padding:"1px 5px",borderRadius:"6px"}}>{members.length}명 {isOpen?"▲":"▼"}</span></span>
+            <span style={{fontSize:"10px",color:"#5c3317",fontWeight:"600",display:"flex",alignItems:"center",gap:"4px"}}>
+              {item.label}
+              <span style={{fontSize:"8px",color:color,background:color+"15",padding:"1px 5px",borderRadius:"6px"}}>{members.length}명 {isOpen?"▲":"▼"}</span>
+            </span>
             <span style={{fontSize:"11px",fontWeight:"900",color:rc(rate),minWidth:"34px",textAlign:"right"}}>{rate}%</span>
           </div>
           <div style={{height:"5px",background:"#e8d5c0",borderRadius:"3px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:rc(rate),borderRadius:"3px",transition:"width 0.5s"}} /></div>
         </div>
-        {isOpen&&(<div style={{marginTop:"6px",background:"#faf6f1",border:`1px solid ${color}30`,borderRadius:"6px",padding:"8px 10px"}}>
-          {members.map((m,mi)=>(<div key={mi} style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:mi<members.length-1?"5px":"0"}}>
-            <span style={{fontSize:"9px",fontWeight:"700",color:m.partColor,background:m.partColor+"18",padding:"1px 5px",borderRadius:"4px",flexShrink:0,minWidth:"22px",textAlign:"center"}}>{m.part}</span>
-            <span style={{fontSize:"10px",fontWeight:"600",color:"#3b1f0a",minWidth:"36px",flexShrink:0}}>{m.name}</span>
-            <div style={{flex:1,height:"5px",background:"#e8d5c0",borderRadius:"3px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(m.rate,100)}%`,background:rc(m.rate),borderRadius:"3px",transition:"width 0.5s"}} /></div>
-            <span style={{fontSize:"10px",fontWeight:"800",color:rc(m.rate),minWidth:"30px",textAlign:"right"}}>{m.rate}%</span>
-            <span style={{fontSize:"9px",color:"#a08060",minWidth:"40px",textAlign:"right"}}>{m.totalDone}/{m.totalScore}점</span>
-          </div>))}
-        </div>)}
+        {isOpen&&(
+          <div style={{marginTop:"6px",background:"#faf6f1",border:`1px solid ${color}30`,borderRadius:"6px",padding:"8px 10px"}}>
+            {members.map((m,mi)=>(
+              <div key={mi} style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:mi<members.length-1?"5px":"0"}}>
+                <span style={{fontSize:"9px",fontWeight:"700",color:m.partColor,background:m.partColor+"18",padding:"1px 5px",borderRadius:"4px",flexShrink:0,minWidth:"22px",textAlign:"center"}}>{m.part}</span>
+                <span style={{fontSize:"10px",fontWeight:"600",color:"#3b1f0a",minWidth:"36px",flexShrink:0}}>{m.name}</span>
+                <div style={{flex:1,height:"5px",background:"#e8d5c0",borderRadius:"3px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(m.rate,100)}%`,background:rc(m.rate),borderRadius:"3px"}} /></div>
+                <span style={{fontSize:"10px",fontWeight:"800",color:rc(m.rate),minWidth:"30px",textAlign:"right"}}>{m.rate}%</span>
+                <span style={{fontSize:"9px",color:"#a08060",minWidth:"40px",textAlign:"right"}}>{m.totalDone}/{m.totalScore}점</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
-  const MiniBar = ({ rate, color, width=80 }) => (<div style={{display:"flex",alignItems:"center",gap:"3px"}}><div style={{width:`${width}px`,height:"5px",background:"#e8d5c0",borderRadius:"2px",overflow:"hidden",flexShrink:0}}><div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:color,borderRadius:"2px"}} /></div><span style={{fontSize:"9px",fontWeight:"700",color,minWidth:"26px"}}>{rate}%</span></div>);
+
+  const MiniBar = ({ rate, color, width=80 }) => (
+    <div style={{display:"flex",alignItems:"center",gap:"3px"}}>
+      <div style={{width:`${width}px`,height:"5px",background:"#e8d5c0",borderRadius:"2px",overflow:"hidden",flexShrink:0}}><div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:color,borderRadius:"2px"}} /></div>
+      <span style={{fontSize:"9px",fontWeight:"700",color,minWidth:"26px"}}>{rate}%</span>
+    </div>
+  );
   const COLS = "64px 1fr 1fr 1fr 1fr 1fr 6px 1fr 1fr 1fr 1fr";
+
   const PartSection = ({ pk, rowH=30 }) => {
-    const pd=MEMBERS[pk]; const pm=allData[pk]; const avgRate=Math.round(pm.reduce((s,m)=>s+calcRate(m.goals),0)/pm.length);
-    const allT=pm.reduce((s,m)=>s+(allWork[m.name]||[]).length,0); const allD=pm.reduce((s,m)=>s+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0); const allU=allT-allD; const allWR=allT>0?Math.round((allD/allT)*100):0;
+    const pd=MEMBERS[pk]; const pm=allData[pk];
+    const avgRate=Math.round(pm.reduce((s,m)=>s+calcRate(m.goals),0)/pm.length);
+    const allT=pm.reduce((s,m)=>s+(allWork[m.name]||[]).length,0);
+    const allD=pm.reduce((s,m)=>s+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0);
+    const allU=allT-allD; const allWR=allT>0?Math.round((allD/allT)*100):0;
     return (
       <div style={{background:"#fff",border:"1px solid #d4b896",borderRadius:"8px",overflow:"hidden",marginBottom:"6px"}}>
         <div style={{display:"grid",gridTemplateColumns:COLS,background:pd.color,padding:"0 8px",height:"28px",alignItems:"center"}}>
@@ -592,22 +685,29 @@ function Dashboard({ allData, allWork, onNavigate }) {
           <div style={{borderLeft:"1px solid rgba(255,255,255,0.3)",height:"16px"}} />
           {["완료","미완료","완료율","변경일"].map(l=><div key={l} style={{textAlign:"center",fontSize:"8px",color:"rgba(255,255,255,0.8)"}}>{l}</div>)}
         </div>
-        {pm.map((m,mi)=>{ const r=calcRate(m.goals); const tasks=allWork[m.name]||[]; const total=tasks.length; const done=tasks.filter(t=>t.상태==="완료").length; const und=total-done; const wr=total>0?Math.round((done/total)*100):0; const wc=rc(wr); const undColor=und===0?"#4a7c59":und<=3?"#b8860b":"#c0703a";
+        {pm.map((m,mi)=>{
+          const r=calcRate(m.goals); const tasks=allWork[m.name]||[];
+          const total=tasks.length; const done=tasks.filter(t=>t.상태==="완료").length;
+          const und=total-done; const wr=total>0?Math.round((done/total)*100):0;
+          const wc=rc(wr); const undColor=und===0?"#4a7c59":und<=3?"#b8860b":"#c0703a";
           const lastDate=(()=>{ const t=tasks.filter(x=>x.완료일||x.접수일).sort((a,b)=>(b.완료일||b.접수일||"").localeCompare(a.완료일||a.접수일||""))[0]; return t?(t.완료일||t.접수일||"").slice(5):"-"; })();
-          return (<div key={m.name} onClick={()=>onNavigate(pk,mi)} onMouseEnter={e=>e.currentTarget.style.background="#f5ede4"} onMouseLeave={e=>e.currentTarget.style.background=mi%2===0?"#fff":"#fdf8f4"}
-            style={{display:"grid",gridTemplateColumns:COLS,padding:"0 8px",height:`${rowH}px`,borderTop:"1px solid #f0e8e0",background:mi%2===0?"#fff":"#fdf8f4",alignItems:"center",cursor:"pointer"}}>
-            <div style={{fontSize:"11px",fontWeight:"600",color:"#3b1f0a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</div>
-            <div style={{textAlign:"center",fontSize:"10px",color:"#8b5e3c",fontWeight:"600"}}>{m.전략}%</div>
-            <div style={{textAlign:"center",fontSize:"10px",color:"#6b4226",fontWeight:"600"}}>{m.업무}%</div>
-            <div style={{textAlign:"center",fontSize:"10px",color:"#a0785a",fontWeight:"600"}}>{m.개인}%</div>
-            <div style={{paddingLeft:"2px"}}><MiniBar rate={r} color={rc(r)} /></div>
-            <div style={{textAlign:"center"}}><span style={{fontSize:"12px",fontWeight:"900",color:rc(r)}}>{r}<span style={{fontSize:"9px"}}>%</span></span></div>
-            <div style={{borderLeft:"1px solid #e8d5c0",height:"18px"}} />
-            <div style={{textAlign:"center",fontSize:"11px",fontWeight:"700",color:"#4a7c59"}}>{done}</div>
-            <div style={{textAlign:"center"}}><span style={{fontSize:und>9?"14px":und>0?"12px":"11px",fontWeight:"900",color:undColor}}>{und}</span></div>
-            <div style={{paddingLeft:"2px"}}><MiniBar rate={wr} color={wc} /></div>
-            <div style={{textAlign:"center",fontSize:"9px",color:"#a08060"}}>{lastDate}</div>
-          </div>); })}
+          return (
+            <div key={m.name} onClick={()=>onNavigate(pk,mi)} onMouseEnter={e=>e.currentTarget.style.background="#f5ede4"} onMouseLeave={e=>e.currentTarget.style.background=mi%2===0?"#fff":"#fdf8f4"}
+              style={{display:"grid",gridTemplateColumns:COLS,padding:"0 8px",height:`${rowH}px`,borderTop:"1px solid #f0e8e0",background:mi%2===0?"#fff":"#fdf8f4",alignItems:"center",cursor:"pointer"}}>
+              <div style={{fontSize:"11px",fontWeight:"600",color:"#3b1f0a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</div>
+              <div style={{textAlign:"center",fontSize:"10px",color:"#8b5e3c",fontWeight:"600"}}>{m.전략}%</div>
+              <div style={{textAlign:"center",fontSize:"10px",color:"#6b4226",fontWeight:"600"}}>{m.업무}%</div>
+              <div style={{textAlign:"center",fontSize:"10px",color:"#a0785a",fontWeight:"600"}}>{m.개인}%</div>
+              <div style={{paddingLeft:"2px"}}><MiniBar rate={r} color={rc(r)} /></div>
+              <div style={{textAlign:"center"}}><span style={{fontSize:"12px",fontWeight:"900",color:rc(r)}}>{r}<span style={{fontSize:"9px"}}>%</span></span></div>
+              <div style={{borderLeft:"1px solid #e8d5c0",height:"18px"}} />
+              <div style={{textAlign:"center",fontSize:"11px",fontWeight:"700",color:"#4a7c59"}}>{done}</div>
+              <div style={{textAlign:"center"}}><span style={{fontSize:und>9?"14px":und>0?"12px":"11px",fontWeight:"900",color:undColor}}>{und}</span></div>
+              <div style={{paddingLeft:"2px"}}><MiniBar rate={wr} color={wc} /></div>
+              <div style={{textAlign:"center",fontSize:"9px",color:"#a08060"}}>{lastDate}</div>
+            </div>
+          );
+        })}
         <div style={{display:"grid",gridTemplateColumns:COLS,padding:"0 8px",height:"24px",background:pd.color+"18",borderTop:`1px solid ${pd.color}40`,alignItems:"center"}}>
           <div style={{fontSize:"10px",fontWeight:"700",color:pd.color}}>평균/합계</div>
           {["-","-","-"].map((v,i)=><div key={i} style={{textAlign:"center",fontSize:"8px",color:"#bbb"}}>{v}</div>)}
@@ -622,11 +722,13 @@ function Dashboard({ allData, allWork, onNavigate }) {
       </div>
     );
   };
+
   const totalMembers=partKeys.reduce((s,p)=>s+allData[p].length,0);
   const totalRate=Math.round(partKeys.reduce((s,p)=>s+allData[p].reduce((ss,m)=>ss+calcRate(m.goals),0),0)/totalMembers);
   const totAll=partKeys.reduce((s,p)=>s+allData[p].reduce((ss,m)=>ss+(allWork[m.name]||[]).length,0),0);
   const totDone=partKeys.reduce((s,p)=>s+allData[p].reduce((ss,m)=>ss+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0),0);
   const totUnd=totAll-totDone; const wRate=totAll>0?Math.round((totDone/totAll)*100):0;
+
   return (
     <div style={{width:"100%",height:"100%",overflow:"hidden",display:"flex",flexDirection:"column",background:"#faf6f1",boxSizing:"border-box"}}>
       <div style={{display:"flex",padding:"8px 16px 6px",flexShrink:0,alignItems:"stretch"}}>
@@ -637,7 +739,8 @@ function Dashboard({ allData, allWork, onNavigate }) {
             <div style={{fontSize:"8px",color:"#f5d5b5",marginTop:"1px"}}>총 {totalMembers}명</div>
           </div>
           {partKeys.map(pk=>{ const pd=MEMBERS[pk]; const pm=allData[pk]; const avg=Math.round(pm.reduce((s,m)=>s+calcRate(m.goals),0)/pm.length); const rc2=r=>r>=80?"#4a7c59":r>=50?"#b8860b":"#c0703a";
-            return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"} style={{background:"#fff",border:`1px solid ${pd.color}20`,borderTop:`3px solid ${pd.color}`,borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
+            return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
+              style={{background:"#fff",border:`1px solid ${pd.color}20`,borderTop:`3px solid ${pd.color}`,borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
               <div style={{fontSize:"9px",color:pd.color,fontWeight:"700"}}>{pd.label}</div>
               <div style={{fontSize:"20px",fontWeight:"900",color:rc2(avg),lineHeight:1}}>{avg}<span style={{fontSize:"9px"}}>%</span></div>
               <div style={{height:"3px",background:"#e8d5c0",borderRadius:"2px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(avg,100)}%`,background:pd.color}} /></div>
@@ -651,7 +754,8 @@ function Dashboard({ allData, allWork, onNavigate }) {
             <div style={{fontSize:"8px",color:"#f5d5b5",marginTop:"1px"}}>미완료 {totUnd} · {wRate}%</div>
           </div>
           {partKeys.map(pk=>{ const pd=MEMBERS[pk]; const pm=allData[pk]; const pAll=pm.reduce((s,m)=>s+(allWork[m.name]||[]).length,0); const pDone=pm.reduce((s,m)=>s+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0); const pUnd=pAll-pDone; const pWR=pAll>0?Math.round((pDone/pAll)*100):0; const uc=pUnd===0?"#4a7c59":pUnd<=5?"#b8860b":"#c0703a";
-            return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"} style={{background:"#fff",border:`1px solid ${pd.color}20`,borderTop:`3px solid ${pd.color}`,borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
+            return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
+              style={{background:"#fff",border:`1px solid ${pd.color}20`,borderTop:`3px solid ${pd.color}`,borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
               <div style={{fontSize:"9px",color:pd.color,fontWeight:"700"}}>{pd.label}</div>
               <div style={{display:"flex",alignItems:"flex-end",gap:"4px"}}><span style={{fontSize:"18px",fontWeight:"900",color:uc,lineHeight:1}}>{pUnd}</span><span style={{fontSize:"8px",color:"#a08060",marginBottom:"1px"}}>미완료</span></div>
               <div><div style={{fontSize:"8px",color:"#a08060",marginBottom:"2px"}}>전체 {pAll} · {pWR}%</div><div style={{height:"3px",background:"#e8d5c0",borderRadius:"2px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(pWR,100)}%`,background:uc}} /></div></div>
@@ -678,20 +782,21 @@ function Dashboard({ allData, allWork, onNavigate }) {
   );
 }
 
+// ── Main App ───────────────────────────────────────────────────
 export default function App() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab]   = useState("dashboard");
   const [showNotice, setShowNotice] = useState(false);
-  const [resultModal, setResultModal] = useState(null);
+  const [resultModal, setResultModal] = useState(null); // {cat, initialGroup}
   const [restoreModal, setRestoreModal] = useState(false);
-  const [restoreText, setRestoreText] = useState("");
-  const [activePart, setActivePart] = useState("QC");
+  const [restoreText, setRestoreText]   = useState("");
+  const [activePart, setActivePart]     = useState("QC");
   const [activeMember, setActiveMember] = useState(0);
   const [allData, setAllData] = useState(()=>{ const d={}; Object.entries(MEMBERS).forEach(([p,pd])=>{ d[p]=pd.members.map(m=>({...m,goals:m.goals.map(g=>({...g,실적:0,비고:"",결과:""}))})); }); return d; });
   const [allWork, setAllWork] = useState(()=>{ const d={}; Object.keys(WORK_DATA).forEach(n=>{ d[n]=[...(WORK_DATA[n]||[])]; }); return d; });
-  const [allReq, setAllReq] = useState(()=>({...REQUEST_DATA}));
+  const [allReq, setAllReq]   = useState(()=>({...REQUEST_DATA}));
   const [storageLoaded, setStorageLoaded] = useState(false);
 
-  useEffect(()=>{ const hideUntil=localStorage.getItem('notice_hide_until'); const today=new Date().toISOString().slice(0,10); if(hideUntil!==today) setShowNotice(true); },[]);
+  useEffect(()=>{ const h=localStorage.getItem('notice_hide_until'); if(h!==new Date().toISOString().slice(0,10)) setShowNotice(true); },[]);
 
   useEffect(()=>{
     const load=async()=>{
@@ -723,17 +828,16 @@ export default function App() {
 
   return (
     <div style={{fontFamily:"'Noto Sans KR','Malgun Gothic',sans-serif",background:"#faf6f1",color:"#3b2a1a",display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,right:0,bottom:0,overflow:"hidden",boxSizing:"border-box"}}>
+      {/* 헤더 */}
       <div style={{background:"linear-gradient(90deg,#5c3317,#3b1f0a)",borderBottom:"1px solid #8b5e3c",padding:"12px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
           <div style={{width:"4px",height:"28px",background:"linear-gradient(#c49a6c,#8b5e3c)",borderRadius:"2px"}} />
-          <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-            <div><div style={{fontSize:"10px",letterSpacing:"3px",color:"#c9a880",textTransform:"uppercase"}}>2026 품질팀</div><div style={{fontSize:"16px",fontWeight:"700",color:"#fff"}}>팀원 목표 & 실적 관리</div></div>
-            <span title="App V20 - 구글시트 자동연동 추가" style={{fontSize:"10px",fontWeight:"800",color:"#3b1f0a",background:"#c9a880",padding:"2px 8px",borderRadius:"10px",letterSpacing:"0.5px"}}>V20</span>
-          </div>
+          <div><div style={{fontSize:"10px",letterSpacing:"3px",color:"#c9a880",textTransform:"uppercase"}}>2026 품질팀</div><div style={{fontSize:"16px",fontWeight:"700",color:"#fff"}}>팀원 목표 & 실적 관리</div></div>
         </div>
         <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
-          {["전략","업무","개인"].map(cat=>{ const cnt=Object.values(allData).flat().reduce((s,m)=>s+m.goals.filter(g=>g.cat===cat&&g.배점>0&&(g.결과||"").trim()).length,0);
-            return <button key={cat} onClick={()=>setResultModal(cat)} style={{display:"flex",alignItems:"center",gap:"5px",padding:"5px 14px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:"16px",color:"#f5d5b5",fontSize:"11px",fontWeight:"600",cursor:"pointer"}}>
+          {["전략","업무","개인"].map((cat,ci)=>{ const cnt=Object.values(allData).flat().reduce((s,m)=>s+m.goals.filter(g=>g.cat===cat&&g.배점>0&&(g.결과||"").trim()).length,0);
+            return <button key={cat} onClick={()=>setResultModal({cat,initialGroup:0})}
+              style={{display:"flex",alignItems:"center",gap:"5px",padding:"5px 14px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:"16px",color:"#f5d5b5",fontSize:"11px",fontWeight:"600",cursor:"pointer"}}>
               {cat} 목표{cnt>0&&<span style={{background:"rgba(255,255,255,0.25)",color:"#fff",fontSize:"10px",fontWeight:"800",padding:"1px 6px",borderRadius:"9px"}}>{cnt}</span>}
             </button>; })}
           <div style={{width:"1px",height:"20px",background:"rgba(255,255,255,0.2)"}} />
@@ -743,21 +847,23 @@ export default function App() {
           <button onClick={()=>{ setRestoreText(""); setRestoreModal(true); }} style={{padding:"4px 8px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"10px",color:"#c9a880",fontSize:"13px",cursor:"pointer"}}>RS</button>
         </div>
       </div>
+      {/* 탭 */}
       <div style={{display:"flex",background:"#f0e6d8",borderBottom:"1px solid #c4a882",flexShrink:0}}>
-        <button onClick={()=>setActiveTab("dashboard")} style={{padding:"10px 20px",border:"none",cursor:"pointer",background:activeTab==="dashboard"?"#ffffff":"transparent",color:activeTab==="dashboard"?"#5c3317":"#8b6a4a",fontWeight:activeTab==="dashboard"?"700":"400",fontSize:"13px",borderBottom:`2px solid ${activeTab==="dashboard"?"#5c3317":"transparent"}`}}>📊 대시보드</button>
+        <button onClick={()=>setActiveTab("dashboard")} style={{padding:"10px 20px",border:"none",cursor:"pointer",background:activeTab==="dashboard"?"#fff":"transparent",color:activeTab==="dashboard"?"#5c3317":"#8b6a4a",fontWeight:activeTab==="dashboard"?"700":"400",fontSize:"13px",borderBottom:`2px solid ${activeTab==="dashboard"?"#5c3317":"transparent"}`}}>📊 대시보드</button>
         <div style={{width:"1px",background:"#c4a882",margin:"8px 0"}} />
         {Object.entries(MEMBERS).map(([key,pd])=>{ const pm=allData[key]; const avg=Math.round(pm.reduce((s,m)=>s+calcRate(m.goals),0)/pm.length); const isA=activeTab==="detail"&&activePart===key;
-          return <button key={key} onClick={()=>{ setActiveTab("detail"); setActivePart(key); setActiveMember(0); }} style={{flex:1,padding:"10px 12px",border:"none",cursor:"pointer",background:isA?"#ffffff":"transparent",color:isA?pd.color:"#5c3317",fontWeight:isA?"700":"400",fontSize:"13px",borderBottom:`2px solid ${isA?pd.color:"transparent"}`}}>
+          return <button key={key} onClick={()=>{ setActiveTab("detail"); setActivePart(key); setActiveMember(0); }} style={{flex:1,padding:"10px 12px",border:"none",cursor:"pointer",background:isA?"#fff":"transparent",color:isA?pd.color:"#5c3317",fontWeight:isA?"700":"400",fontSize:"13px",borderBottom:`2px solid ${isA?pd.color:"transparent"}`}}>
             {pd.label}<div style={{fontSize:"10px",color:isA?pd.color:"#6b4226",marginTop:"2px"}}>{pd.members.length}명 · {avg}%</div>
           </button>; })}
       </div>
+      {/* 콘텐츠 */}
       <div style={{flex:1,overflow:"hidden",display:"flex"}}>
         {activeTab==="dashboard"
-          ? <div style={{flex:1,overflow:"hidden",display:"flex"}}><Dashboard allData={allData} allWork={allWork} onNavigate={(p,mi)=>{ setActiveTab("detail"); setActivePart(p); setActiveMember(mi??0); }} /></div>
+          ? <div style={{flex:1,overflow:"hidden",display:"flex"}}><Dashboard allData={allData} allWork={allWork} onNavigate={(p,mi)=>{ setActiveTab("detail"); setActivePart(p); setActiveMember(mi??0); }} onOpenResult={(cat,gi)=>setResultModal({cat,initialGroup:gi})} /></div>
           : <>
               <div style={{width:"160px",minWidth:"160px",background:"#f0e6d8",borderRight:"1px solid #c4a882",overflowY:"auto"}}>
                 {members.map((m,i)=>{ const r=calcRate(m.goals); const isA=activeMember===i;
-                  return <button key={m.name} onClick={()=>setActiveMember(i)} style={{display:"block",width:"100%",padding:"12px 14px",textAlign:"left",border:"none",cursor:"pointer",background:isA?"#ffffff":"transparent",borderLeft:`3px solid ${isA?part.color:"transparent"}`,borderBottom:"1px solid #d4b896"}}>
+                  return <button key={m.name} onClick={()=>setActiveMember(i)} style={{display:"block",width:"100%",padding:"12px 14px",textAlign:"left",border:"none",cursor:"pointer",background:isA?"#fff":"transparent",borderLeft:`3px solid ${isA?part.color:"transparent"}`,borderBottom:"1px solid #d4b896"}}>
                     <div style={{fontSize:"13px",fontWeight:isA?"700":"400",color:isA?"#3b1f0a":"#7a5c40"}}>{m.name}</div>
                     <div style={{fontSize:"10px",color:rateColor(r),marginTop:"3px"}}>달성 {r}%</div>
                     <Bar rate={r} />
@@ -787,7 +893,7 @@ export default function App() {
                     {member.goals.map((g,gi)=>{
                       const pct=g.배점>0?Math.round(((g.실적||0)/g.배점)*100):0;
                       return (
-                        <div key={gi} style={{background:"#ffffff",border:"1px solid #d4b896",borderLeft:`3px solid ${CAT_COLOR[g.cat]}`,borderRadius:"5px",padding:"12px 14px",marginBottom:"8px"}}>
+                        <div key={gi} style={{background:"#fff",border:"1px solid #d4b896",borderLeft:`3px solid ${CAT_COLOR[g.cat]}`,borderRadius:"5px",padding:"12px 14px",marginBottom:"8px"}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"4px"}}>
                             <div style={{flex:1,marginRight:"8px"}}><span style={{fontSize:"9px",background:CAT_BG[g.cat],color:CAT_COLOR[g.cat],padding:"1px 6px",borderRadius:"8px",marginRight:"5px",fontWeight:"700"}}>{g.cat}</span><span style={{fontSize:"12px",fontWeight:"600",color:"#3b1f0a"}}>{g.과제}</span></div>
                             <span style={{fontSize:"10px",color:"#8b6a4a",whiteSpace:"nowrap"}}>{g.배점}점</span>
@@ -795,7 +901,8 @@ export default function App() {
                           <div style={{fontSize:"10px",color:"#7a5c40",lineHeight:"1.5",marginBottom:"7px",whiteSpace:"pre-line"}}>{g.내용}</div>
                           <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"5px"}}>
                             <label style={{fontSize:"10px",color:"#8b6a4a",whiteSpace:"nowrap"}}>실적</label>
-                            <input type="number" min="0" max={g.배점} value={g.실적||0} onChange={e=>update(gi,"실적",Math.min(Math.max(0,Number(e.target.value)),g.배점))} style={{width:"50px",background:"#f5ede4",border:`1px solid ${(g.실적||0)>=g.배점&&g.배점>0?"#4a7c59":CAT_COLOR[g.cat]}`,borderRadius:"3px",color:"#3b1f0a",padding:"3px 6px",fontSize:"12px",fontWeight:"700",textAlign:"center"}} />
+                            <input type="number" min="0" max={g.배점} value={g.실적||0} onChange={e=>update(gi,"실적",Math.min(Math.max(0,Number(e.target.value)),g.배점))}
+                              style={{width:"50px",background:"#f5ede4",border:`1px solid ${(g.실적||0)>=g.배점&&g.배점>0?"#4a7c59":CAT_COLOR[g.cat]}`,borderRadius:"3px",color:"#3b1f0a",padding:"3px 6px",fontSize:"12px",fontWeight:"700",textAlign:"center"}} />
                             <span style={{fontSize:"10px",color:"#8b6a4a"}}>/ {g.배점}점</span>
                             <span style={{fontSize:"10px",fontWeight:"800",color:"#fff",background:rateColor(pct),padding:"2px 8px",borderRadius:"10px",minWidth:"34px",textAlign:"center"}}>{pct}%</span>
                             <span style={{fontSize:"9px",color:"#a08060",fontStyle:"italic"}}>(진행률을 점수로 환산)</span>
@@ -803,7 +910,8 @@ export default function App() {
                           <Bar rate={pct} color={CAT_COLOR[g.cat]} />
                           <div style={{marginTop:"6px"}}>
                             <div style={{fontSize:"9px",color:"#a08060",marginBottom:"2px",fontWeight:"600"}}>현재 진행현황</div>
-                            <textarea value={g.비고||""} onChange={e=>update(gi,"비고",e.target.value)} placeholder="진행 상황 입력" rows={2} style={{width:"100%",background:"#f5ede4",border:"1px solid #d4b896",borderRadius:"3px",color:"#6b4a30",padding:"4px 6px",fontSize:"10px",lineHeight:"1.5",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",outline:"none"}} />
+                            <textarea value={g.비고||""} onChange={e=>update(gi,"비고",e.target.value)} placeholder="진행 상황 입력" rows={2}
+                              style={{width:"100%",background:"#f5ede4",border:"1px solid #d4b896",borderRadius:"3px",color:"#6b4a30",padding:"4px 6px",fontSize:"10px",lineHeight:"1.5",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",outline:"none"}} />
                           </div>
                           <ResultEditor gi={gi} 결과={g.결과||""} update={update} />
                         </div>
@@ -816,6 +924,7 @@ export default function App() {
             </>
         }
       </div>
+      {/* 복원 모달 */}
       {restoreModal&&(
         <div style={{position:"fixed",inset:0,background:"rgba(59,26,10,0.5)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setRestoreModal(false)}>
           <div style={{background:"#faf6f1",borderRadius:"10px",width:"520px",maxWidth:"94vw",boxShadow:"0 8px 32px rgba(91,51,23,0.3)"}} onClick={e=>e.stopPropagation()}>
@@ -825,7 +934,8 @@ export default function App() {
             </div>
             <div style={{padding:"16px 20px"}}>
               <div style={{fontSize:"11px",color:"#8b6a4a",marginBottom:"8px"}}>백업 텍스트를 아래에 붙여넣기 하세요 (Ctrl+V)</div>
-              <textarea value={restoreText} onChange={e=>setRestoreText(e.target.value)} placeholder="백업 텍스트를 여기에 붙여넣기 하세요..." rows={6} style={{width:"100%",padding:"8px 10px",border:"1px solid #c4a882",borderRadius:"5px",fontSize:"11px",color:"#3b1f0a",background:"#fff",resize:"none",boxSizing:"border-box",fontFamily:"inherit",outline:"none"}} />
+              <textarea value={restoreText} onChange={e=>setRestoreText(e.target.value)} placeholder="백업 텍스트를 여기에 붙여넣기 하세요..." rows={6}
+                style={{width:"100%",padding:"8px 10px",border:"1px solid #c4a882",borderRadius:"5px",fontSize:"11px",color:"#3b1f0a",background:"#fff",resize:"none",boxSizing:"border-box",fontFamily:"inherit",outline:"none"}} />
               <div style={{display:"flex",justifyContent:"flex-end",gap:"8px",marginTop:"10px"}}>
                 <button onClick={()=>setRestoreModal(false)} style={{padding:"6px 16px",background:"#e8d5c0",border:"none",borderRadius:"8px",fontSize:"11px",color:"#6b4226",cursor:"pointer",fontWeight:"600"}}>취소</button>
                 <button onClick={async()=>{
@@ -846,7 +956,7 @@ export default function App() {
         </div>
       )}
       {showNotice&&<NoticeModal onClose={()=>setShowNotice(false)} />}
-      {resultModal&&<ResultModal cat={resultModal} allData={allData} onClose={()=>setResultModal(null)} />}
+      {resultModal&&<ResultModal cat={resultModal.cat} initialGroup={resultModal.initialGroup} allData={allData} onClose={()=>setResultModal(null)} />}
     </div>
   );
 }
