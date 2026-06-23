@@ -255,13 +255,24 @@ function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
   const [activeGroup, setActiveGroup] = useState(Math.min(initialGroup, groups.length-1));
   const [viewMode, setViewMode]       = useState("결과물");
   const [memberPopup, setMemberPopup] = useState(null);
-  // 묶기 state: { groupKey: [ {members:[{name,part,partColor,item,과제}], ...} ] }
-  // 각 묶음은 {cards:[cardObj,...]} 형태
   const [mergedGroups, setMergedGroups] = useState({});
-  const [selected, setSelected]         = useState(new Set()); // card id set
+  const [selected, setSelected]         = useState(new Set());
 
   const gi       = activeGroup;
   const groupKey = `${cat}_${gi}`;
+
+  // Firebase에서 묶음 데이터 로드
+  useEffect(()=>{
+    dbGet('merged', cat).then(d=>{
+      if(d) setMergedGroups(d);
+    });
+  },[cat]);
+
+  // Firebase에 묶음 저장
+  const saveMerged = (newMG) => {
+    setMergedGroups(newMG);
+    dbSet('merged', cat, newMG);
+  };
 
   // ── 결과물 카드 빌드 (팀원×결과물항목 단위) ──
   const buildResultCards = (gIdx) => {
@@ -314,7 +325,8 @@ function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
   // 새 묶음 생성
   const doMerge = () => {
     if(selected.size<2) return;
-    setMergedGroups(prev=>({...prev,[groupKey]:[...(prev[groupKey]||[]),{ids:[...selected]}]}));
+    const newMG = {...mergedGroups,[groupKey]:[...(mergedGroups[groupKey]||[]),{ids:[...selected]}]};
+    saveMerged(newMG);
     clearSelect();
   };
 
@@ -322,30 +334,24 @@ function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
   const addToMerged = (mIdx) => {
     const toAdd = [...selected].filter(id=>soloCards.find(c=>c.id===id));
     if(!toAdd.length) return;
-    setMergedGroups(prev=>{
-      const arr=(prev[groupKey]||[]).map((g,i)=>i===mIdx?{ids:[...g.ids,...toAdd]}:g);
-      return {...prev,[groupKey]:arr};
-    });
+    const newMG = {...mergedGroups,[groupKey]:(mergedGroups[groupKey]||[]).map((g,i)=>i===mIdx?{ids:[...g.ids,...toAdd]}:g)};
+    saveMerged(newMG);
     clearSelect();
   };
 
   // 묶음에서 카드 한 개 제거
   const removeFromMerged = (mIdx, cardId) => {
-    setMergedGroups(prev=>{
-      const arr=(prev[groupKey]||[]).map((g,i)=>{
-        if(i!==mIdx) return g;
-        return {ids:g.ids.filter(id=>id!==cardId)};
-      }).filter(g=>g.ids.length>0);
-      return {...prev,[groupKey]:arr};
-    });
+    const newMG = {...mergedGroups,[groupKey]:(mergedGroups[groupKey]||[]).map((g,i)=>{
+      if(i!==mIdx) return g;
+      return {ids:g.ids.filter(id=>id!==cardId)};
+    }).filter(g=>g.ids.length>0)};
+    saveMerged(newMG);
   };
 
   // 묶음 전체 해제
   const unmerge = mIdx => {
-    setMergedGroups(prev=>{
-      const arr=[...(prev[groupKey]||[])]; arr.splice(mIdx,1);
-      return {...prev,[groupKey]:arr};
-    });
+    const arr=[...(mergedGroups[groupKey]||[])]; arr.splice(mIdx,1);
+    saveMerged({...mergedGroups,[groupKey]:arr});
   };
 
   // 탭별 결과물 있는 팀원 수
@@ -495,16 +501,9 @@ function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
                     ))}
                     {/* 독립 카드 */}
                     {soloCards.length>0&&(
-                      <>
-                        {curMerged.length>0&&(
-                          <div style={{fontSize:"10px",color:"#94a3b8",fontWeight:"600",marginBottom:"7px",marginTop:"4px",display:"flex",alignItems:"center",gap:"6px"}}>
-                            <div style={{flex:1,height:"1px",background:"#e2e8f0"}} />
-                            미묶음 결과물 {soloCards.length}건
-                            <div style={{flex:1,height:"1px",background:"#e2e8f0"}} />
-                          </div>
-                        )}
+                      <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                         {soloCards.map((c,ci)=><SoloCard key={ci} card={c} />)}
-                      </>
+                      </div>
                     )}
                     {soloCards.length===0&&curMerged.length>0&&(
                       <div style={{textAlign:"center",color:"#4a7c59",fontSize:"11px",padding:"14px 0",fontWeight:"600"}}>✓ 모든 결과물이 묶음으로 정리되었습니다</div>
@@ -971,51 +970,11 @@ function Dashboard({ allData, allWork, onNavigate }) {
   return (
     <div style={{width:"100%",height:"100%",overflowY:"auto",display:"flex",flexDirection:"column",background:"#faf6f1",boxSizing:"border-box"}}>
 
-      {/* ── 섹션 1: 파트별 목표 달성률 및 업무현황 ── */}
+      {/* ── 섹션 1: 2026년 품질팀 목표 진행현황 ── */}
       <div style={{padding:"8px 16px 4px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px"}}>
-          <div style={{width:"3px",height:"14px",background:"#8b5e3c",borderRadius:"2px"}} />
-          <span style={{fontSize:"11px",fontWeight:"700",color:"#5c3317",letterSpacing:"0.5px"}}>파트별 목표 달성률 및 업무현황</span>
-          <div style={{flex:1,height:"1px",background:"#d4b896"}} />
-        </div>
-        <div style={{display:"flex",gap:"6px",alignItems:"stretch"}}>
-          <div style={{flex:1,display:"flex",gap:"6px",alignItems:"center",paddingRight:"12px"}}>
-            <div style={{background:"linear-gradient(135deg,#5c3317,#8b5e3c)",borderRadius:"8px",padding:"8px 12px",color:"#fff",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:"90px"}}>
-              <div style={{fontSize:"8px",color:"#f5d5b5",marginBottom:"1px"}}>팀 목표달성률</div>
-              <div style={{fontSize:"22px",fontWeight:"900",lineHeight:1}}>{totalRate}<span style={{fontSize:"10px"}}>%</span></div>
-              <div style={{fontSize:"8px",color:"#f5d5b5",marginTop:"1px"}}>총 {totalMembers}명</div>
-            </div>
-            {partKeys.map(pk=>{ const pd=MEMBERS[pk]; const pm=allData[pk]; const avg=Math.round(pm.reduce((s,m)=>s+calcRate(m.goals),0)/pm.length); const rc2=r=>r>=80?"#4a7c59":r>=50?"#b8860b":"#c0703a";
-              return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
-                style={{background:"#fff",border:`1px solid ${pd.color}20`,borderTop:`3px solid ${pd.color}`,borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
-                <div style={{fontSize:"9px",color:pd.color,fontWeight:"700"}}>{pd.label}</div>
-                <div style={{fontSize:"20px",fontWeight:"900",color:rc2(avg),lineHeight:1}}>{avg}<span style={{fontSize:"9px"}}>%</span></div>
-                <div style={{height:"3px",background:"#e8d5c0",borderRadius:"2px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(avg,100)}%`,background:pd.color}} /></div>
-              </div>; })}
-          </div>
-          <div style={{width:"1px",background:"#d4b896",flexShrink:0,margin:"0 4px"}} />
-          <div style={{flex:1,display:"flex",gap:"6px",alignItems:"center"}}>
-            <div style={{background:"linear-gradient(135deg,#1e3a5f,#2563ab)",borderRadius:"8px",padding:"8px 12px",color:"#fff",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:"90px"}}>
-              <div style={{fontSize:"8px",color:"rgba(255,255,255,0.7)",marginBottom:"1px"}}>전체 업무</div>
-              <div style={{fontSize:"22px",fontWeight:"900",lineHeight:1}}>{totAll}</div>
-              <div style={{fontSize:"8px",color:"rgba(255,255,255,0.7)",marginTop:"1px"}}>미완료 {totUnd} · {wRate}%</div>
-            </div>
-            {partKeys.map(pk=>{ const pd=MEMBERS[pk]; const pm=allData[pk]; const pAll=pm.reduce((s,m)=>s+(allWork[m.name]||[]).length,0); const pDone=pm.reduce((s,m)=>s+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0); const pUnd=pAll-pDone; const pWR=pAll>0?Math.round((pDone/pAll)*100):0; const uc=pUnd===0?"#4a7c59":pUnd<=5?"#b8860b":"#c0703a";
-              return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
-                style={{background:"#fff",border:"1px solid #bfdbfe",borderTop:"3px solid #2563ab",borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
-                <div style={{fontSize:"9px",color:"#1e3a5f",fontWeight:"700"}}>{pd.label}</div>
-                <div style={{display:"flex",alignItems:"flex-end",gap:"4px"}}><span style={{fontSize:"18px",fontWeight:"900",color:uc,lineHeight:1}}>{pUnd}</span><span style={{fontSize:"8px",color:"#94a3b8",marginBottom:"1px"}}>미완료</span></div>
-                <div><div style={{fontSize:"8px",color:"#94a3b8",marginBottom:"2px"}}>전체 {pAll} · {pWR}%</div><div style={{height:"3px",background:"#bfdbfe",borderRadius:"2px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(pWR,100)}%`,background:"#2563ab"}} /></div></div>
-              </div>; })}
-          </div>
-        </div>
-      </div>
-
-      {/* ── 섹션 2: 2026년 품질팀 목표 진행현황 ── */}
-      <div style={{padding:"6px 16px 4px",flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px"}}>
           <div style={{width:"3px",height:"14px",background:"#3b82f6",borderRadius:"2px"}} />
-          <span style={{fontSize:"11px",fontWeight:"700",color:"#1d4ed8",letterSpacing:"0.5px"}}>2026년 품질팀 목표 진행현황</span>
+          <span style={{fontSize:"11px",fontWeight:"700",color:"#1e293b",letterSpacing:"0.5px"}}>2026년 품질팀 목표 진행현황</span>
           <div style={{flex:1,height:"1px",background:"#bfdbfe"}} />
         </div>
         <div style={{display:"flex",gap:"8px"}}>
@@ -1036,7 +995,7 @@ function Dashboard({ allData, allWork, onNavigate }) {
         </div>
       </div>
 
-      {/* ── 섹션 3: 팀원별 목표 및 업무진행현황 ── */}
+      {/* ── 섹션 2: 팀원별 목표 및 업무진행현황 ── */}
       <div style={{padding:"6px 16px 4px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px"}}>
           <div style={{width:"3px",height:"14px",background:"#6b4226",borderRadius:"2px"}} />
@@ -1116,9 +1075,14 @@ export default function App() {
       <div style={{background:"linear-gradient(135deg,#0d1117,#161b22,#1c2128)",borderBottom:"2px solid #e36209",padding:"12px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
           <div style={{width:"4px",height:"28px",background:"linear-gradient(#f97316,#fb923c)",borderRadius:"2px",boxShadow:"0 0 8px #f9731680"}} />
-          <div>
+          <div onClick={()=>setActiveTab("dashboard")} style={{cursor:"pointer"}}
+            onMouseEnter={e=>{ e.currentTarget.querySelector('.title-text').style.opacity="0.75"; e.currentTarget.querySelector('.title-hint').style.opacity="1"; }}
+            onMouseLeave={e=>{ e.currentTarget.querySelector('.title-text').style.opacity="1"; e.currentTarget.querySelector('.title-hint').style.opacity="0"; }}>
             <div style={{fontSize:"10px",letterSpacing:"4px",color:"#f97316",textTransform:"uppercase",fontWeight:"600"}}>2026</div>
-            <div style={{fontSize:"16px",fontWeight:"700",color:"#f0f6fc",letterSpacing:"0.3px"}}>품질팀 전략목표 및 업무목표 진행 현황</div>
+            <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+              <div className="title-text" style={{fontSize:"16px",fontWeight:"700",color:"#f0f6fc",letterSpacing:"0.3px",transition:"opacity 0.15s"}}>품질팀 전략목표 및 업무목표 진행 현황</div>
+              <div className="title-hint" style={{fontSize:"10px",color:"rgba(255,255,255,0.5)",opacity:0,transition:"opacity 0.15s",whiteSpace:"nowrap"}}>📊 대시보드로 이동</div>
+            </div>
           </div>
         </div>
         <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
@@ -1140,14 +1104,64 @@ export default function App() {
         </div>
       </div>
 
-      {/* 탭 */}
-      <div style={{display:"flex",background:"#f0e6d8",borderBottom:"1px solid #c4a882",flexShrink:0}}>
-        <button onClick={()=>setActiveTab("dashboard")} style={{padding:"10px 20px",border:"none",cursor:"pointer",background:activeTab==="dashboard"?"#fff":"transparent",color:activeTab==="dashboard"?"#5c3317":"#8b6a4a",fontWeight:activeTab==="dashboard"?"700":"400",fontSize:"13px",borderBottom:`2px solid ${activeTab==="dashboard"?"#5c3317":"transparent"}`}}>📊 대시보드</button>
-        <div style={{width:"1px",background:"#c4a882",margin:"8px 0"}} />
-        {Object.entries(MEMBERS).map(([key,pd])=>{ const pm=allData[key]; const avg=Math.round(pm.reduce((s,m)=>s+calcRate(m.goals),0)/pm.length); const isA=activeTab==="detail"&&activePart===key;
-          return <button key={key} onClick={()=>{ setActiveTab("detail"); setActivePart(key); setActiveMember(0); }} style={{flex:1,padding:"10px 12px",border:"none",cursor:"pointer",background:isA?"#fff":"transparent",color:isA?pd.color:"#5c3317",fontWeight:isA?"700":"400",fontSize:"13px",borderBottom:`2px solid ${isA?pd.color:"transparent"}`}}>
-            {pd.label}<div style={{fontSize:"10px",color:isA?pd.color:"#6b4226",marginTop:"2px"}}>{pd.members.length}명 · {avg}%</div>
-          </button>; })}
+      {/* 탭 - 파트별 요약 카드 */}
+      <div style={{display:"flex",background:"#f0e6d8",borderBottom:"1px solid #c4a882",flexShrink:0,alignItems:"stretch",padding:"6px 12px",gap:"6px"}}>
+        {/* 팀 목표달성률 */}
+        <div onClick={()=>setActiveTab("dashboard")} style={{background:"linear-gradient(135deg,#5c3317,#8b5e3c)",borderRadius:"8px",padding:"6px 12px",color:"#fff",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:"90px",flexShrink:0,cursor:"pointer"}}>
+          <div style={{fontSize:"8px",color:"#f5d5b5",marginBottom:"1px"}}>팀 목표달성률</div>
+          <div style={{fontSize:"20px",fontWeight:"900",lineHeight:1}}>{Object.values(allData).flat().length>0?Math.round(Object.entries(MEMBERS).reduce((s,[p])=>s+allData[p].reduce((ss,m)=>ss+calcRate(m.goals),0),0)/Object.values(MEMBERS).reduce((s,pd)=>s+pd.members.length,0)):0}<span style={{fontSize:"9px"}}>%</span></div>
+          <div style={{fontSize:"8px",color:"#f5d5b5",marginTop:"1px"}}>총 {Object.values(MEMBERS).reduce((s,pd)=>s+pd.members.length,0)}명</div>
+        </div>
+        {/* 파트별 목표 카드 */}
+        {Object.entries(MEMBERS).map(([key,pd])=>{
+          const pm=allData[key];
+          const avg=Math.round(pm.reduce((s,m)=>s+calcRate(m.goals),0)/pm.length);
+          const isA=activeTab==="detail"&&activePart===key;
+          const rc2=r=>r>=80?"#4a7c59":r>=50?"#b8860b":"#c0703a";
+          return (
+            <div key={key} onClick={()=>{ setActiveTab("detail"); setActivePart(key); setActiveMember(0); }}
+              onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`}
+              onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
+              style={{background:"#fff",border:`1px solid ${pd.color}30`,borderTop:`3px solid ${isA?pd.color:pd.color+"80"}`,borderRadius:"8px",padding:"5px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"all 0.15s",boxShadow:isA?`0 2px 8px ${pd.color}40`:"none",opacity:isA?1:0.85}}>
+              <div style={{fontSize:"9px",color:pd.color,fontWeight:"700"}}>{pd.label}</div>
+              <div style={{fontSize:"18px",fontWeight:"900",color:rc2(avg),lineHeight:1}}>{avg}<span style={{fontSize:"8px"}}>%</span></div>
+              <div style={{height:"3px",background:"#e8d5c0",borderRadius:"2px",overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${Math.min(avg,100)}%`,background:pd.color,borderRadius:"2px"}} />
+              </div>
+            </div>
+          );
+        })}
+        <div style={{width:"1px",background:"#c4a882",flexShrink:0,margin:"2px 0"}} />
+        {/* 전체 업무 */}
+        <div onClick={()=>setActiveTab("dashboard")} style={{background:"linear-gradient(135deg,#1e3a5f,#2563ab)",borderRadius:"8px",padding:"6px 12px",color:"#fff",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:"90px",flexShrink:0,cursor:"pointer"}}>
+          <div style={{fontSize:"8px",color:"rgba(255,255,255,0.7)",marginBottom:"1px"}}>전체 업무</div>
+          <div style={{fontSize:"20px",fontWeight:"900",lineHeight:1}}>{Object.entries(MEMBERS).reduce((s,[,pd])=>s+pd.members.reduce((ss,m)=>ss+(allWork[m.name]||[]).length,0),0)}</div>
+          <div style={{fontSize:"8px",color:"rgba(255,255,255,0.7)",marginTop:"1px"}}>
+            미완료 {Object.entries(MEMBERS).reduce((s,[,pd])=>s+pd.members.reduce((ss,m)=>ss+(allWork[m.name]||[]).filter(t=>t.상태!=="완료").length,0),0)}
+          </div>
+        </div>
+        {/* 파트별 업무 카드 */}
+        {Object.entries(MEMBERS).map(([key,pd])=>{
+          const pm=allData[key];
+          const pAll=pm.reduce((s,m)=>s+(allWork[m.name]||[]).length,0);
+          const pDone=pm.reduce((s,m)=>s+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0);
+          const pUnd=pAll-pDone;
+          const pWR=pAll>0?Math.round((pDone/pAll)*100):0;
+          const uc=pUnd===0?"#4a7c59":pUnd<=5?"#b8860b":"#c0703a";
+          return (
+            <div key={key} onClick={()=>{ setActiveTab("detail"); setActivePart(key); setActiveMember(0); }}
+              onMouseEnter={e=>e.currentTarget.style.boxShadow="0 2px 8px #2563ab30"}
+              onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
+              style={{background:"#fff",border:"1px solid #bfdbfe",borderTop:"3px solid #2563ab",borderRadius:"8px",padding:"5px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
+              <div style={{fontSize:"9px",color:"#1e3a5f",fontWeight:"700"}}>{pd.label}</div>
+              <div style={{display:"flex",alignItems:"flex-end",gap:"3px"}}>
+                <span style={{fontSize:"16px",fontWeight:"900",color:uc,lineHeight:1}}>{pUnd}</span>
+                <span style={{fontSize:"8px",color:"#94a3b8",marginBottom:"1px"}}>미완료</span>
+              </div>
+              <div style={{fontSize:"8px",color:"#94a3b8"}}>전체 {pAll} · {pWR}%</div>
+            </div>
+          );
+        })}
       </div>
 
       {/* 콘텐츠 */}
