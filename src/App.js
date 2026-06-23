@@ -1,47 +1,29 @@
 import { useState, useEffect, useRef } from "react";
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
-// Firebase 설정 (기존 hdc-quality-team 프로젝트)
 const firebaseConfig = {
-  apiKey: "AIzaSyExample",  // ← 실제 키로 교체 불필요, 아래 설명 참조
+  apiKey: "AIzaSyB8CS6XJKBAqlSTaOZY1g1Dt3zCVjqMvBE",
   authDomain: "hdc-quality-team.firebaseapp.com",
   projectId: "hdc-quality-team",
-  storageBucket: "hdc-quality-team.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:000000000000000000000000"
+  storageBucket: "hdc-quality-team.firebasestorage.app",
+  messagingSenderId: "730234114654",
+  appId: "1:730234114654:web:1aa11f0f21084254775acf"
 };
 
-// Firebase 초기화 (이미 초기화된 경우 재사용)
-let _app, _db;
-const getDB = () => {
-  if (!_db) {
-    try {
-      _app = initializeApp(firebaseConfig, "hdc-quality");
-    } catch(e) {
-      // 이미 초기화된 경우 무시
-      const { getApps } = require("firebase/app");
-      _app = getApps().find(a => a.name === "hdc-quality") || getApps()[0];
-    }
-    _db = getFirestore(_app);
-  }
-  return _db;
-};
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const db  = getFirestore(app);
 
 const dbGet = async (col, id) => {
   try {
-    const db = getDB();
-    const ref = doc(db, col, id);
-    const snap = await getDoc(ref);
+    const snap = await getDoc(doc(db, col, id));
     return snap.exists() ? snap.data() : null;
   } catch(e) { console.error("dbGet error:", e); return null; }
 };
 
 const dbSet = async (col, id, data) => {
   try {
-    const db = getDB();
-    const ref = doc(db, col, id);
-    await setDoc(ref, data, { merge: true });
+    await setDoc(doc(db, col, id), data, { merge: true });
     return true;
   } catch(e) { console.error("dbSet error:", e); return false; }
 };
