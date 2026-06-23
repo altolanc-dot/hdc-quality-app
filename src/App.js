@@ -1,31 +1,18 @@
 import { useState, useEffect, useRef } from "react";
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyB8CS6XJKBAqlSTaOZY1g1Dt3zCVjqMvBE",
-  authDomain: "hdc-quality-team.firebaseapp.com",
-  projectId: "hdc-quality-team",
-  storageBucket: "hdc-quality-team.firebasestorage.app",
-  messagingSenderId: "730234114654",
-  appId: "1:730234114654:web:1aa11f0f21084254775acf"
-};
-
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const db  = getFirestore(app);
 
 const dbGet = async (col, id) => {
   try {
-    const snap = await getDoc(doc(db, col, id));
-    return snap.exists() ? snap.data() : null;
-  } catch(e) { console.error("dbGet error:", e); return null; }
+    const timeout = new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 3000));
+    const r = await Promise.race([window.storage.get(col+'_'+id, true), timeout]);
+    return r ? JSON.parse(r.value) : null;
+  } catch(e) { return null; }
 };
-
 const dbSet = async (col, id, data) => {
   try {
-    await setDoc(doc(db, col, id), data, { merge: true });
+    const timeout = new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 3000));
+    await Promise.race([window.storage.set(col+'_'+id, JSON.stringify(data), true), timeout]);
     return true;
-  } catch(e) { console.error("dbSet error:", e); return false; }
+  } catch(e) { return false; }
 };
 
 const REQUEST_DATA = {"신성근":"- 현장 점검후 부적합사항 조치관련 현장설명서 개정 및 후속조치\n\n- 욕실장 하자다발 관련 하자발생현장 검수 진행 _ 랩스 협업\n\n- 타겟점검에 대한 신규아이템 발굴 및 체크리스트 반영\n\n- 품질우수현장 인증서 (안전협의)_ 검토\n\n- 품질협의체 진행사항 모니터링 (담당 이정호M)\n\n- 설계 통합 플랫폼(이은주M) _ 천안6단지 파일럿테스트 적극 참여","박정호":"- 통합 품질데이터 구조도 관련 유관파트와 회의일정 수립 및 진행사항 리뷰\n\n- 데이터 적기제공에 대한 계획안 수립 / 보고\n\n- 창떨림 방지 보강여부를 전수조사 확인","박찬우":"아침 8시~9시 트리거 작동확인","배춘호":"- 레미콘 사전점검 종합보고서. 품질관리 맵 관련 목표 일자 관리","이정호":"- 품질협의체 상정안건 LIST 정리\n\n- 복층유리 아르곤가스 측정기 등 신규장비 / 점검방법 검토\n\n- 타겟점검에 대한 신규아이템 발굴 및 체크리스트 반영\n\n- 광주센테니얼_ 가구 래핑 불량사진 첨부해서 업체 공문 발송\n\n- 욕실장 거울변색 / 지하주차장 천장 단열재 탈락에 대한 품질협의체 안건 상정","한진헌":"","류지수":"","이희윤":"- 품질관련 target 점검 1건 1/4분기 실행","장효린":"- 판결보고 (엘포트, 평촌더샵, DMC센트럴) + 소송리스크 저감을 위한 핵심이행사항 보고","박형건":"- 판결보고 (엘포트, 평촌더샵, DMC센트럴) + 소송리스크 저감을 위한 핵심이행사항 보고","임병근":"- 소송핵심관리 검토용역 체크리스트 보고\n\n- 방화문 소송 ISSUE F/U","조성우":"- 부산서면 / 타일 균열들뜸 하자에 대한 하심위 접수 모니터링\n\n- 손끼임 방지재 관련 병점 시공시 _ 관리사무소와 긴밀협의\n\n- 하자관련 협력회사 처리지연에 대한 제재방안 강구\n\n- 조경직원 충원에 대한 협의진행","정경주":"- 고객센터 피드백 강화방안 수립\n\n- 소송핵심관리 검토 용역 _ 1차 보고서 취합 및 브리핑 준비\n\n- 준공현장 골조 균열 저감을 위한 공용부 점검 강화\n\n- 하자관련 협력회사 처리지연에 대한 제재방안 강구","김성진":"- 원인불명 하자 모니터링\n\n- 하자관련 협력회사 처리지연에 대한 제재방안 강구\n\n- 잔공사 편성 시기 및 집행에 대해 변경관리 UNIT과 협의","이규현":"- 원인불명 하자 모니터링\n\n- CS 업무처리 개선안 보고","박성준":"- 원인불명 하자 처리 프로세스 파일럿 시행안 작성\n\n- 춘천아이파크 스카이 라운지 투어 시 비상조치 및 운영계획 철저 수립\n\n- NCSI, SQ 인증 준비사항 및 심사계획 보고"};
@@ -969,57 +956,81 @@ function Dashboard({ allData, allWork, onNavigate }) {
   const totUnd=totAll-totDone; const wRate=totAll>0?Math.round((totDone/totAll)*100):0;
 
   return (
-    <div style={{width:"100%",height:"100%",overflow:"hidden",display:"flex",flexDirection:"column",background:"#faf6f1",boxSizing:"border-box"}}>
-      <div style={{display:"flex",padding:"8px 16px 6px",flexShrink:0,alignItems:"stretch"}}>
-        <div style={{flex:1,display:"flex",gap:"6px",alignItems:"center",paddingRight:"12px"}}>
-          <div style={{background:"linear-gradient(135deg,#5c3317,#8b5e3c)",borderRadius:"8px",padding:"8px 12px",color:"#fff",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:"90px"}}>
-            <div style={{fontSize:"8px",color:"#f5d5b5",marginBottom:"1px"}}>팀 목표달성률</div>
-            <div style={{fontSize:"22px",fontWeight:"900",lineHeight:1}}>{totalRate}<span style={{fontSize:"10px"}}>%</span></div>
-            <div style={{fontSize:"8px",color:"#f5d5b5",marginTop:"1px"}}>총 {totalMembers}명</div>
-          </div>
-          {partKeys.map(pk=>{ const pd=MEMBERS[pk]; const pm=allData[pk]; const avg=Math.round(pm.reduce((s,m)=>s+calcRate(m.goals),0)/pm.length); const rc2=r=>r>=80?"#4a7c59":r>=50?"#b8860b":"#c0703a";
-            return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
-              style={{background:"#fff",border:`1px solid ${pd.color}20`,borderTop:`3px solid ${pd.color}`,borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
-              <div style={{fontSize:"9px",color:pd.color,fontWeight:"700"}}>{pd.label}</div>
-              <div style={{fontSize:"20px",fontWeight:"900",color:rc2(avg),lineHeight:1}}>{avg}<span style={{fontSize:"9px"}}>%</span></div>
-              <div style={{height:"3px",background:"#e8d5c0",borderRadius:"2px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(avg,100)}%`,background:pd.color}} /></div>
-            </div>; })}
+    <div style={{width:"100%",height:"100%",overflowY:"auto",display:"flex",flexDirection:"column",background:"#faf6f1",boxSizing:"border-box"}}>
+
+      {/* ── 섹션 1: 파트별 목표 달성률 및 업무현황 ── */}
+      <div style={{padding:"8px 16px 4px",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px"}}>
+          <div style={{width:"3px",height:"14px",background:"#8b5e3c",borderRadius:"2px"}} />
+          <span style={{fontSize:"11px",fontWeight:"700",color:"#5c3317",letterSpacing:"0.5px"}}>파트별 목표 달성률 및 업무현황</span>
+          <div style={{flex:1,height:"1px",background:"#d4b896"}} />
         </div>
-        <div style={{width:"1px",background:"#d4b896",flexShrink:0,margin:"0 12px"}} />
-        <div style={{flex:1,display:"flex",gap:"6px",alignItems:"center"}}>
-          <div style={{background:"linear-gradient(135deg,#1e3a5f,#2563ab)",borderRadius:"8px",padding:"8px 12px",color:"#fff",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:"90px"}}>
-            <div style={{fontSize:"8px",color:"rgba(255,255,255,0.7)",marginBottom:"1px"}}>전체 업무</div>
-            <div style={{fontSize:"22px",fontWeight:"900",lineHeight:1}}>{totAll}</div>
-            <div style={{fontSize:"8px",color:"rgba(255,255,255,0.7)",marginTop:"1px"}}>미완료 {totUnd} · {wRate}%</div>
+        <div style={{display:"flex",gap:"6px",alignItems:"stretch"}}>
+          <div style={{flex:1,display:"flex",gap:"6px",alignItems:"center",paddingRight:"12px"}}>
+            <div style={{background:"linear-gradient(135deg,#5c3317,#8b5e3c)",borderRadius:"8px",padding:"8px 12px",color:"#fff",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:"90px"}}>
+              <div style={{fontSize:"8px",color:"#f5d5b5",marginBottom:"1px"}}>팀 목표달성률</div>
+              <div style={{fontSize:"22px",fontWeight:"900",lineHeight:1}}>{totalRate}<span style={{fontSize:"10px"}}>%</span></div>
+              <div style={{fontSize:"8px",color:"#f5d5b5",marginTop:"1px"}}>총 {totalMembers}명</div>
+            </div>
+            {partKeys.map(pk=>{ const pd=MEMBERS[pk]; const pm=allData[pk]; const avg=Math.round(pm.reduce((s,m)=>s+calcRate(m.goals),0)/pm.length); const rc2=r=>r>=80?"#4a7c59":r>=50?"#b8860b":"#c0703a";
+              return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
+                style={{background:"#fff",border:`1px solid ${pd.color}20`,borderTop:`3px solid ${pd.color}`,borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
+                <div style={{fontSize:"9px",color:pd.color,fontWeight:"700"}}>{pd.label}</div>
+                <div style={{fontSize:"20px",fontWeight:"900",color:rc2(avg),lineHeight:1}}>{avg}<span style={{fontSize:"9px"}}>%</span></div>
+                <div style={{height:"3px",background:"#e8d5c0",borderRadius:"2px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(avg,100)}%`,background:pd.color}} /></div>
+              </div>; })}
           </div>
-          {partKeys.map(pk=>{ const pd=MEMBERS[pk]; const pm=allData[pk]; const pAll=pm.reduce((s,m)=>s+(allWork[m.name]||[]).length,0); const pDone=pm.reduce((s,m)=>s+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0); const pUnd=pAll-pDone; const pWR=pAll>0?Math.round((pDone/pAll)*100):0; const uc=pUnd===0?"#4a7c59":pUnd<=5?"#b8860b":"#c0703a";
-            return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
-              style={{background:"#fff",border:"1px solid #bfdbfe",borderTop:"3px solid #2563ab",borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
-              <div style={{fontSize:"9px",color:"#1e3a5f",fontWeight:"700"}}>{pd.label}</div>
-              <div style={{display:"flex",alignItems:"flex-end",gap:"4px"}}><span style={{fontSize:"18px",fontWeight:"900",color:uc,lineHeight:1}}>{pUnd}</span><span style={{fontSize:"8px",color:"#94a3b8",marginBottom:"1px"}}>미완료</span></div>
-              <div><div style={{fontSize:"8px",color:"#94a3b8",marginBottom:"2px"}}>전체 {pAll} · {pWR}%</div><div style={{height:"3px",background:"#bfdbfe",borderRadius:"2px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(pWR,100)}%`,background:"#2563ab"}} /></div></div>
-            </div>; })}
+          <div style={{width:"1px",background:"#d4b896",flexShrink:0,margin:"0 4px"}} />
+          <div style={{flex:1,display:"flex",gap:"6px",alignItems:"center"}}>
+            <div style={{background:"linear-gradient(135deg,#1e3a5f,#2563ab)",borderRadius:"8px",padding:"8px 12px",color:"#fff",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:"90px"}}>
+              <div style={{fontSize:"8px",color:"rgba(255,255,255,0.7)",marginBottom:"1px"}}>전체 업무</div>
+              <div style={{fontSize:"22px",fontWeight:"900",lineHeight:1}}>{totAll}</div>
+              <div style={{fontSize:"8px",color:"rgba(255,255,255,0.7)",marginTop:"1px"}}>미완료 {totUnd} · {wRate}%</div>
+            </div>
+            {partKeys.map(pk=>{ const pd=MEMBERS[pk]; const pm=allData[pk]; const pAll=pm.reduce((s,m)=>s+(allWork[m.name]||[]).length,0); const pDone=pm.reduce((s,m)=>s+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0); const pUnd=pAll-pDone; const pWR=pAll>0?Math.round((pDone/pAll)*100):0; const uc=pUnd===0?"#4a7c59":pUnd<=5?"#b8860b":"#c0703a";
+              return <div key={pk} onClick={()=>onNavigate(pk,0)} onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`} onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
+                style={{background:"#fff",border:"1px solid #bfdbfe",borderTop:"3px solid #2563ab",borderRadius:"8px",padding:"6px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
+                <div style={{fontSize:"9px",color:"#1e3a5f",fontWeight:"700"}}>{pd.label}</div>
+                <div style={{display:"flex",alignItems:"flex-end",gap:"4px"}}><span style={{fontSize:"18px",fontWeight:"900",color:uc,lineHeight:1}}>{pUnd}</span><span style={{fontSize:"8px",color:"#94a3b8",marginBottom:"1px"}}>미완료</span></div>
+                <div><div style={{fontSize:"8px",color:"#94a3b8",marginBottom:"2px"}}>전체 {pAll} · {pWR}%</div><div style={{height:"3px",background:"#bfdbfe",borderRadius:"2px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(pWR,100)}%`,background:"#2563ab"}} /></div></div>
+              </div>; })}
+          </div>
         </div>
       </div>
 
-      {/* 전략(파란)/업무(초록) 목표 진행현황 - 색상 명확히 구분 */}
-      <div style={{display:"flex",gap:"8px",padding:"0 16px 6px",flexShrink:0}}>
-        <div style={{flex:1,background:"#fff",border:"1px solid #bfdbfe",borderTop:"3px solid #3b82f6",borderRadius:"7px",padding:"8px 12px"}}>
-          <div style={{fontSize:"9px",fontWeight:"700",color:"#1d4ed8",marginBottom:"6px",display:"flex",alignItems:"center",gap:"5px"}}>
-            <span style={{width:"8px",height:"8px",borderRadius:"2px",background:"#3b82f6",display:"inline-block"}} />
-            전략 목표 진행현황
-          </div>
-          {STRATEGY_ITEMS.map((item,i)=><ItemBar key={i} item={item} cat="전략" idx={i} />)}
+      {/* ── 섹션 2: 2026년 품질팀 목표 진행현황 ── */}
+      <div style={{padding:"6px 16px 4px",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px"}}>
+          <div style={{width:"3px",height:"14px",background:"#3b82f6",borderRadius:"2px"}} />
+          <span style={{fontSize:"11px",fontWeight:"700",color:"#1d4ed8",letterSpacing:"0.5px"}}>2026년 품질팀 목표 진행현황</span>
+          <div style={{flex:1,height:"1px",background:"#bfdbfe"}} />
         </div>
-        <div style={{flex:1,background:"#fff",border:"1px solid #bbf7d0",borderTop:"3px solid #22c55e",borderRadius:"7px",padding:"8px 12px"}}>
-          <div style={{fontSize:"9px",fontWeight:"700",color:"#166534",marginBottom:"6px",display:"flex",alignItems:"center",gap:"5px"}}>
-            <span style={{width:"8px",height:"8px",borderRadius:"2px",background:"#22c55e",display:"inline-block"}} />
-            업무 목표 진행현황
+        <div style={{display:"flex",gap:"8px"}}>
+          <div style={{flex:1,background:"#fff",border:"1px solid #bfdbfe",borderTop:"3px solid #3b82f6",borderRadius:"7px",padding:"8px 12px"}}>
+            <div style={{fontSize:"9px",fontWeight:"700",color:"#1d4ed8",marginBottom:"6px",display:"flex",alignItems:"center",gap:"5px"}}>
+              <span style={{width:"8px",height:"8px",borderRadius:"2px",background:"#3b82f6",display:"inline-block"}} />
+              전략 목표 진행현황
+            </div>
+            {STRATEGY_ITEMS.map((item,i)=><ItemBar key={i} item={item} cat="전략" idx={i} />)}
           </div>
-          {WORK_ITEMS.map((item,i)=><ItemBar key={i} item={item} cat="업무" idx={i} />)}
+          <div style={{flex:1,background:"#fff",border:"1px solid #bbf7d0",borderTop:"3px solid #22c55e",borderRadius:"7px",padding:"8px 12px"}}>
+            <div style={{fontSize:"9px",fontWeight:"700",color:"#166534",marginBottom:"6px",display:"flex",alignItems:"center",gap:"5px"}}>
+              <span style={{width:"8px",height:"8px",borderRadius:"2px",background:"#22c55e",display:"inline-block"}} />
+              업무 목표 진행현황
+            </div>
+            {WORK_ITEMS.map((item,i)=><ItemBar key={i} item={item} cat="업무" idx={i} />)}
+          </div>
         </div>
       </div>
 
+      {/* ── 섹션 3: 팀원별 목표 및 업무진행현황 ── */}
+      <div style={{padding:"6px 16px 4px",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px"}}>
+          <div style={{width:"3px",height:"14px",background:"#6b4226",borderRadius:"2px"}} />
+          <span style={{fontSize:"11px",fontWeight:"700",color:"#3b1f0a",letterSpacing:"0.5px"}}>팀원별 목표 및 업무진행현황</span>
+          <div style={{flex:1,height:"1px",background:"#d4b896"}} />
+        </div>
+      </div>
       <div style={{flexShrink:0,display:"flex",gap:"8px",padding:"0 12px 12px",width:"100%",boxSizing:"border-box",alignItems:"flex-start"}}>
         <div style={{flex:1,display:"flex",flexDirection:"column",gap:"6px",minWidth:0}} ref={leftRef}>
           <PartSection pk="BS" rowH={30} /><PartSection pk="AS" rowH={30} /><PartSection pk="소송" rowH={30} />
@@ -1063,7 +1074,7 @@ export default function App() {
       try {
         const allNames=Object.values(MEMBERS).flatMap(pd=>pd.members.map(m=>m.name));
         const newData={};
-        for(const [pk,pd] of Object.entries(MEMBERS)){ newData[pk]=await Promise.all(pd.members.map(async m=>{ const saved=await dbGet('goals',m.name); return {...m,goals:m.goals.map((g,gi)=>({...g,...(saved?.[String(gi)]||saved?.[gi]||{})}))}; })); }
+        for(const [pk,pd] of Object.entries(MEMBERS)){ newData[pk]=await Promise.all(pd.members.map(async m=>{ const saved=await dbGet('goals',m.name); return {...m,goals:m.goals.map((g,gi)=>({...g,...(saved?.[gi]||{})}))}; })); }
         setAllData(newData);
         const newWork={};
         for(const name of allNames){ const saved=await dbGet('work',name); newWork[name]=saved?.tasks||[...(WORK_DATA[name]||[])]; }
@@ -1089,10 +1100,13 @@ export default function App() {
   return (
     <div style={{fontFamily:"'Noto Sans KR','Malgun Gothic',sans-serif",background:"#faf6f1",color:"#3b2a1a",display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,right:0,bottom:0,overflow:"hidden",boxSizing:"border-box"}}>
       {/* 헤더 */}
-      <div style={{background:"linear-gradient(90deg,#5c3317,#3b1f0a)",borderBottom:"1px solid #8b5e3c",padding:"12px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+      <div style={{background:"linear-gradient(135deg,#0d1117,#161b22,#1c2128)",borderBottom:"2px solid #e36209",padding:"12px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
-          <div style={{width:"4px",height:"28px",background:"linear-gradient(#c49a6c,#8b5e3c)",borderRadius:"2px"}} />
-          <div><div style={{fontSize:"10px",letterSpacing:"3px",color:"#c9a880",textTransform:"uppercase"}}>2026 품질팀</div><div style={{fontSize:"16px",fontWeight:"700",color:"#fff"}}>팀원 목표 & 실적 관리</div></div>
+          <div style={{width:"4px",height:"28px",background:"linear-gradient(#f97316,#fb923c)",borderRadius:"2px",boxShadow:"0 0 8px #f9731680"}} />
+          <div>
+            <div style={{fontSize:"10px",letterSpacing:"4px",color:"#f97316",textTransform:"uppercase",fontWeight:"600"}}>2026</div>
+            <div style={{fontSize:"16px",fontWeight:"700",color:"#f0f6fc",letterSpacing:"0.3px"}}>품질팀 전략목표 및 업무목표 진행 현황</div>
+          </div>
         </div>
         <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
           {/* 전략: 파란 버튼, 업무: 초록 버튼, 개인: 브라운 버튼 */}
