@@ -1,18 +1,31 @@
 import { useState, useEffect, useRef } from "react";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB8CS6XJKBAqlSTaOZY1g1Dt3zCVjqMvBE",
+  authDomain: "hdc-quality-team.firebaseapp.com",
+  projectId: "hdc-quality-team",
+  storageBucket: "hdc-quality-team.firebasestorage.app",
+  messagingSenderId: "730234114654",
+  appId: "1:730234114654:web:1aa11f0f21084254775acf"
+};
+
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const db  = getFirestore(app);
 
 const dbGet = async (col, id) => {
   try {
-    const timeout = new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 3000));
-    const r = await Promise.race([window.storage.get(col+'_'+id, true), timeout]);
-    return r ? JSON.parse(r.value) : null;
-  } catch(e) { return null; }
+    const snap = await getDoc(doc(db, col, id));
+    return snap.exists() ? snap.data() : null;
+  } catch(e) { console.error("dbGet error:", e); return null; }
 };
+
 const dbSet = async (col, id, data) => {
   try {
-    const timeout = new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 3000));
-    await Promise.race([window.storage.set(col+'_'+id, JSON.stringify(data), true), timeout]);
+    await setDoc(doc(db, col, id), data, { merge: true });
     return true;
-  } catch(e) { return false; }
+  } catch(e) { console.error("dbSet error:", e); return false; }
 };
 
 const REQUEST_DATA = {"신성근":"- 현장 점검후 부적합사항 조치관련 현장설명서 개정 및 후속조치\n\n- 욕실장 하자다발 관련 하자발생현장 검수 진행 _ 랩스 협업\n\n- 타겟점검에 대한 신규아이템 발굴 및 체크리스트 반영\n\n- 품질우수현장 인증서 (안전협의)_ 검토\n\n- 품질협의체 진행사항 모니터링 (담당 이정호M)\n\n- 설계 통합 플랫폼(이은주M) _ 천안6단지 파일럿테스트 적극 참여","박정호":"- 통합 품질데이터 구조도 관련 유관파트와 회의일정 수립 및 진행사항 리뷰\n\n- 데이터 적기제공에 대한 계획안 수립 / 보고\n\n- 창떨림 방지 보강여부를 전수조사 확인","박찬우":"아침 8시~9시 트리거 작동확인","배춘호":"- 레미콘 사전점검 종합보고서. 품질관리 맵 관련 목표 일자 관리","이정호":"- 품질협의체 상정안건 LIST 정리\n\n- 복층유리 아르곤가스 측정기 등 신규장비 / 점검방법 검토\n\n- 타겟점검에 대한 신규아이템 발굴 및 체크리스트 반영\n\n- 광주센테니얼_ 가구 래핑 불량사진 첨부해서 업체 공문 발송\n\n- 욕실장 거울변색 / 지하주차장 천장 단열재 탈락에 대한 품질협의체 안건 상정","한진헌":"","류지수":"","이희윤":"- 품질관련 target 점검 1건 1/4분기 실행","장효린":"- 판결보고 (엘포트, 평촌더샵, DMC센트럴) + 소송리스크 저감을 위한 핵심이행사항 보고","박형건":"- 판결보고 (엘포트, 평촌더샵, DMC센트럴) + 소송리스크 저감을 위한 핵심이행사항 보고","임병근":"- 소송핵심관리 검토용역 체크리스트 보고\n\n- 방화문 소송 ISSUE F/U","조성우":"- 부산서면 / 타일 균열들뜸 하자에 대한 하심위 접수 모니터링\n\n- 손끼임 방지재 관련 병점 시공시 _ 관리사무소와 긴밀협의\n\n- 하자관련 협력회사 처리지연에 대한 제재방안 강구\n\n- 조경직원 충원에 대한 협의진행","정경주":"- 고객센터 피드백 강화방안 수립\n\n- 소송핵심관리 검토 용역 _ 1차 보고서 취합 및 브리핑 준비\n\n- 준공현장 골조 균열 저감을 위한 공용부 점검 강화\n\n- 하자관련 협력회사 처리지연에 대한 제재방안 강구","김성진":"- 원인불명 하자 모니터링\n\n- 하자관련 협력회사 처리지연에 대한 제재방안 강구\n\n- 잔공사 편성 시기 및 집행에 대해 변경관리 UNIT과 협의","이규현":"- 원인불명 하자 모니터링\n\n- CS 업무처리 개선안 보고","박성준":"- 원인불명 하자 처리 프로세스 파일럿 시행안 작성\n\n- 춘천아이파크 스카이 라운지 투어 시 비상조치 및 운영계획 철저 수립\n\n- NCSI, SQ 인증 준비사항 및 심사계획 보고"};
@@ -1074,7 +1087,7 @@ export default function App() {
       try {
         const allNames=Object.values(MEMBERS).flatMap(pd=>pd.members.map(m=>m.name));
         const newData={};
-        for(const [pk,pd] of Object.entries(MEMBERS)){ newData[pk]=await Promise.all(pd.members.map(async m=>{ const saved=await dbGet('goals',m.name); return {...m,goals:m.goals.map((g,gi)=>({...g,...(saved?.[gi]||{})}))}; })); }
+        for(const [pk,pd] of Object.entries(MEMBERS)){ newData[pk]=await Promise.all(pd.members.map(async m=>{ const saved=await dbGet('goals',m.name); return {...m,goals:m.goals.map((g,gi)=>({...g,...(saved?.[String(gi)]||saved?.[gi]||{})}))}; })); }
         setAllData(newData);
         const newWork={};
         for(const name of allNames){ const saved=await dbGet('work',name); newWork[name]=saved?.tasks||[...(WORK_DATA[name]||[])]; }
