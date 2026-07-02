@@ -1,31 +1,18 @@
 import { useState, useEffect, useRef } from "react";
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyB8CS6XJKBAqlSTaOZY1g1Dt3zCVjqMvBE",
-  authDomain: "hdc-quality-team.firebaseapp.com",
-  projectId: "hdc-quality-team",
-  storageBucket: "hdc-quality-team.firebasestorage.app",
-  messagingSenderId: "730234114654",
-  appId: "1:730234114654:web:1aa11f0f21084254775acf"
-};
-
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const db  = getFirestore(app);
 
 const dbGet = async (col, id) => {
   try {
-    const snap = await getDoc(doc(db, col, id));
-    return snap.exists() ? snap.data() : null;
-  } catch(e) { console.error("dbGet error:", e); return null; }
+    const timeout = new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 3000));
+    const r = await Promise.race([window.storage.get(col+'_'+id, true), timeout]);
+    return r ? JSON.parse(r.value) : null;
+  } catch(e) { return null; }
 };
-
 const dbSet = async (col, id, data) => {
   try {
-    await setDoc(doc(db, col, id), data, { merge: true });
+    const timeout = new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 3000));
+    await Promise.race([window.storage.set(col+'_'+id, JSON.stringify(data), true), timeout]);
     return true;
-  } catch(e) { console.error("dbSet error:", e); return false; }
+  } catch(e) { return false; }
 };
 
 const REQUEST_DATA = {"신성근":"- 현장 점검후 부적합사항 조치관련 현장설명서 개정 및 후속조치\n\n- 욕실장 하자다발 관련 하자발생현장 검수 진행 _ 랩스 협업\n\n- 타겟점검에 대한 신규아이템 발굴 및 체크리스트 반영\n\n- 품질우수현장 인증서 (안전협의)_ 검토\n\n- 품질협의체 진행사항 모니터링 (담당 이정호M)\n\n- 설계 통합 플랫폼(이은주M) _ 천안6단지 파일럿테스트 적극 참여","박정호":"- 통합 품질데이터 구조도 관련 유관파트와 회의일정 수립 및 진행사항 리뷰\n\n- 데이터 적기제공에 대한 계획안 수립 / 보고\n\n- 창떨림 방지 보강여부를 전수조사 확인","박찬우":"아침 8시~9시 트리거 작동확인","배춘호":"- 레미콘 사전점검 종합보고서. 품질관리 맵 관련 목표 일자 관리","이정호":"- 품질협의체 상정안건 LIST 정리\n\n- 복층유리 아르곤가스 측정기 등 신규장비 / 점검방법 검토\n\n- 타겟점검에 대한 신규아이템 발굴 및 체크리스트 반영\n\n- 광주센테니얼_ 가구 래핑 불량사진 첨부해서 업체 공문 발송\n\n- 욕실장 거울변색 / 지하주차장 천장 단열재 탈락에 대한 품질협의체 안건 상정","한진헌":"","류지수":"","이희윤":"- 품질관련 target 점검 1건 1/4분기 실행","장효린":"- 판결보고 (엘포트, 평촌더샵, DMC센트럴) + 소송리스크 저감을 위한 핵심이행사항 보고","박형건":"- 판결보고 (엘포트, 평촌더샵, DMC센트럴) + 소송리스크 저감을 위한 핵심이행사항 보고","임병근":"- 소송핵심관리 검토용역 체크리스트 보고\n\n- 방화문 소송 ISSUE F/U","조성우":"- 부산서면 / 타일 균열들뜸 하자에 대한 하심위 접수 모니터링\n\n- 손끼임 방지재 관련 병점 시공시 _ 관리사무소와 긴밀협의\n\n- 하자관련 협력회사 처리지연에 대한 제재방안 강구\n\n- 조경직원 충원에 대한 협의진행","정경주":"- 고객센터 피드백 강화방안 수립\n\n- 소송핵심관리 검토 용역 _ 1차 보고서 취합 및 브리핑 준비\n\n- 준공현장 골조 균열 저감을 위한 공용부 점검 강화\n\n- 하자관련 협력회사 처리지연에 대한 제재방안 강구","김성진":"- 원인불명 하자 모니터링\n\n- 하자관련 협력회사 처리지연에 대한 제재방안 강구\n\n- 잔공사 편성 시기 및 집행에 대해 변경관리 UNIT과 협의","이규현":"- 원인불명 하자 모니터링\n\n- CS 업무처리 개선안 보고","박성준":"- 원인불명 하자 처리 프로세스 파일럿 시행안 작성\n\n- 춘천아이파크 스카이 라운지 투어 시 비상조치 및 운영계획 철저 수립\n\n- NCSI, SQ 인증 준비사항 및 심사계획 보고"};
@@ -146,16 +133,16 @@ const EMPTY_FORM = {업무:"",요청부서:"",접수일:"",목표일:"",완료�
 // 전략/업무 목표 그룹 정의
 const RESULT_GROUPS = {
   전략:[
-    {label:"예측기반 타겟점검", match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
-    {label:"건설 DX",           match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
-    {label:"소송핵심관리",      match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
+    {label:"예측기반 타겟점검", score:20, desc:"예측기반 타겟점검 운영안 수립 및 타겟점검 시행 100%",         match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
+    {label:"건설 DX",           score:15, desc:"AI 품질관리 시스템 구축 및 통합품질데이터 적기제공",           match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
+    {label:"소송핵심관리",      score:10, desc:"소송핵심관리 개선안 수립 및 단지별 검증 / 평가",               match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
   ],
   업무:[
-    {label:"하자비용 저감",   match:t=>t.includes("골조")||t.includes("타일")},
-    {label:"BS 하자 개선",    match:t=>t.includes("BS하자")},
-    {label:"고객불만율 관리", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
+    {label:"하자비용 저감",   score:20, desc:"골조/타일 하자보수비 저감 (표준단가대비 10% 절감)",                                match:t=>t.includes("골조")||t.includes("타일")},
+    {label:"BS 하자 개선",    score:15, desc:"입주초기 R&R 개선, 원인불명 하자 처리 프로세스 구축 (전년대비 30% 저감)",               match:t=>t.includes("BS하자")},
+    {label:"고객불만율 관리", score:20, desc:"고객이 체감할 수 있는 서비스 및 장기미처리 개선 (VOC 3% 이하)", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
   ],
-  개인:[{label:"개인 목표", match:()=>true}],
+  개인:[{label:"개인 목표", score:null, desc:"", match:()=>true}],
 };
 
 // ── 팀원 목표 팝업 (이름 클릭 시, 해당 그룹 목표만) ───────────
@@ -246,7 +233,7 @@ function MemberGoalPopup({ memberName, cat, groupLabel, groupMatch, allData, onC
   );
 }
 
-// ── ResultModal (묶음 리스트 스타일) ──────────────────────────
+// ── ResultModal (그룹 리스트 스타일) ──────────────────────────
 function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
   const color  = cat==="전략"?"#2563ab":cat==="업무"?"#166534":"#8b5e3c";
   const bgTop  = cat==="전략"?"#1e40af":cat==="업무"?"#14532d":"#5c3317";
@@ -261,14 +248,14 @@ function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
   const gi       = activeGroup;
   const groupKey = `${cat}_${gi}`;
 
-  // Firebase에서 묶음 데이터 로드
+  // Firebase에서 그룹 데이터 로드
   useEffect(()=>{
     dbGet('merged', cat).then(d=>{
       if(d) setMergedGroups(d);
     });
   },[cat]);
 
-  // Firebase에 묶음 저장
+  // Firebase에 그룹 저장
   const saveMerged = (newMG) => {
     setMergedGroups(newMG);
     dbSet('merged', cat, newMG);
@@ -322,35 +309,56 @@ function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
   const toggleSelect = id => setSelected(prev=>{ const n=new Set(prev); n.has(id)?n.delete(id):n.add(id); return n; });
   const clearSelect  = () => setSelected(new Set());
 
-  // 새 묶음 생성
+  // 새 그룹 생성
   const doMerge = () => {
     if(selected.size<2) return;
-    const newMG = {...mergedGroups,[groupKey]:[...(mergedGroups[groupKey]||[]),{ids:[...selected]}]};
+    const newMG = {...mergedGroups,[groupKey]:[...(mergedGroups[groupKey]||[]),{ids:[...selected],title:""}]};
     saveMerged(newMG);
     clearSelect();
   };
 
-  // 묶음에 카드 추가
+  // 그룹에 카드 추가 (선택된 카드)
   const addToMerged = (mIdx) => {
     const toAdd = [...selected].filter(id=>soloCards.find(c=>c.id===id));
     if(!toAdd.length) return;
-    const newMG = {...mergedGroups,[groupKey]:(mergedGroups[groupKey]||[]).map((g,i)=>i===mIdx?{ids:[...g.ids,...toAdd]}:g)};
+    const newMG = {...mergedGroups,[groupKey]:(mergedGroups[groupKey]||[]).map((g,i)=>i===mIdx?{...g,ids:[...g.ids,...toAdd]}:g)};
     saveMerged(newMG);
     clearSelect();
   };
 
-  // 묶음에서 카드 한 개 제거
+  // 미그룹 카드 개별 추가 (선택 없이 직접)
+  const addCardToMerged = (mIdx, cardId) => {
+    const newMG = {...mergedGroups,[groupKey]:(mergedGroups[groupKey]||[]).map((g,i)=>i===mIdx?{...g,ids:[...g.ids,cardId]}:g)};
+    saveMerged(newMG);
+  };
+
+  // 그룹에서 카드 한 개 제거
   const removeFromMerged = (mIdx, cardId) => {
     const newMG = {...mergedGroups,[groupKey]:(mergedGroups[groupKey]||[]).map((g,i)=>{
       if(i!==mIdx) return g;
-      return {ids:g.ids.filter(id=>id!==cardId)};
+      return {...g,ids:g.ids.filter(id=>id!==cardId)};
     }).filter(g=>g.ids.length>0)};
     saveMerged(newMG);
   };
 
-  // 묶음 전체 해제
+  // 그룹 전체 해제
   const unmerge = mIdx => {
     const arr=[...(mergedGroups[groupKey]||[])]; arr.splice(mIdx,1);
+    saveMerged({...mergedGroups,[groupKey]:arr});
+  };
+
+  // 그룹 제목 변경
+  const updateTitle = (mIdx, title) => {
+    const newMG = {...mergedGroups,[groupKey]:(mergedGroups[groupKey]||[]).map((g,i)=>i===mIdx?{...g,title}:g)};
+    saveMerged(newMG);
+  };
+
+  // 그룹 순서 이동
+  const moveGroup = (mIdx, dir) => {
+    const arr=[...(mergedGroups[groupKey]||[])];
+    const newIdx = mIdx+dir;
+    if(newIdx<0||newIdx>=arr.length) return;
+    [arr[mIdx],arr[newIdx]]=[arr[newIdx],arr[mIdx]];
     saveMerged({...mergedGroups,[groupKey]:arr});
   };
 
@@ -367,30 +375,53 @@ function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
     </>
   );
 
-  // ── 묶음 박스 (이미지 스타일) ──
-  const MergedBox = ({mIdx, ids}) => {
+  // ── 그룹 박스 ──
+  const MergedBox = ({mIdx, ids, title=""}) => {
     const cards = ids.map(id=>resultCards.find(c=>c.id===id)).filter(Boolean);
     if(!cards.length) return null;
     const uniqueMembers = [...new Map(cards.map(c=>[c.name,c])).values()];
+    const [editingTitle, setEditingTitle] = useState(false);
+    const [titleDraft, setTitleDraft]     = useState(title||"");
+    const totalGroups = (mergedGroups[groupKey]||[]).length;
+
     return (
       <div style={{background:"#fdf8f2",border:`1.5px solid #c4a882`,borderLeft:`4px solid ${color}`,borderRadius:"10px",padding:"11px 14px",marginBottom:"10px"}}>
         {/* 헤더 행 */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px",flexWrap:"wrap",gap:"5px"}}>
-          <div style={{display:"flex",alignItems:"center",gap:"5px",flexWrap:"wrap"}}>
-            <span style={{fontSize:"9px",fontWeight:"700",color:"#fff",background:color,padding:"2px 9px",borderRadius:"10px"}}>{cards.length}명 묶음</span>
+          <div style={{display:"flex",alignItems:"center",gap:"5px",flexWrap:"wrap",flex:1,minWidth:0}}>
+            {/* 순서 이동 버튼 */}
+            <div style={{display:"flex",flexDirection:"column",gap:"1px",flexShrink:0}}>
+              <button onClick={e=>{e.stopPropagation();moveGroup(mIdx,-1);}} disabled={mIdx===0}
+                style={{background:mIdx===0?"#f1f5f9":"#e2e8f0",border:"none",borderRadius:"3px",cursor:mIdx===0?"default":"pointer",color:mIdx===0?"#cbd5e1":"#64748b",fontSize:"9px",padding:"1px 4px",lineHeight:1}}>▲</button>
+              <button onClick={e=>{e.stopPropagation();moveGroup(mIdx,1);}} disabled={mIdx===totalGroups-1}
+                style={{background:mIdx===totalGroups-1?"#f1f5f9":"#e2e8f0",border:"none",borderRadius:"3px",cursor:mIdx===totalGroups-1?"default":"pointer",color:mIdx===totalGroups-1?"#cbd5e1":"#64748b",fontSize:"9px",padding:"1px 4px",lineHeight:1}}>▼</button>
+            </div>
+            {/* 제목 (편집 가능) */}
+            {editingTitle
+              ? <input autoFocus value={titleDraft} onChange={e=>setTitleDraft(e.target.value)}
+                  onBlur={()=>{ updateTitle(mIdx,titleDraft); setEditingTitle(false); }}
+                  onKeyDown={e=>{ if(e.key==="Enter"){ updateTitle(mIdx,titleDraft); setEditingTitle(false); } if(e.key==="Escape") setEditingTitle(false); }}
+                  onClick={e=>e.stopPropagation()}
+                  style={{fontSize:"12px",fontWeight:"700",color:"#1e293b",border:`1.5px solid ${color}`,borderRadius:"6px",padding:"2px 8px",outline:"none",minWidth:"160px",background:"#fff"}} />
+              : <button onClick={e=>{e.stopPropagation();setTitleDraft(title||"");setEditingTitle(true);}}
+                  style={{fontSize:"12px",fontWeight:"700",color:title?"#1e293b":"#94a3b8",background:"none",border:"none",cursor:"pointer",padding:"2px 6px",borderRadius:"6px",textAlign:"left"}}>
+                  {title||`그룹 ${mIdx+1} (클릭하여 그룹명 입력)`}
+                </button>
+            }
+            {/* 팀원 태그 */}
             {uniqueMembers.map((c,i)=>(
               <span key={i} style={{display:"inline-flex",alignItems:"center",gap:"3px"}}>
                 <MemberTag name={c.name} part={c.part} partColor={c.partColor} />
               </span>
             ))}
           </div>
-          <div style={{display:"flex",gap:"5px"}}>
+          <div style={{display:"flex",gap:"5px",flexShrink:0}}>
             {selected.size>0&&[...selected].some(id=>soloCards.find(c=>c.id===id))&&(
               <button onClick={e=>{e.stopPropagation();addToMerged(mIdx);}}
-                style={{padding:"2px 9px",background:"#eff6ff",border:`1px solid ${color}`,borderRadius:"6px",fontSize:"9px",color:color,cursor:"pointer",fontWeight:"600"}}>+ 추가</button>
+                style={{padding:"2px 9px",background:"#eff6ff",border:`1px solid ${color}`,borderRadius:"6px",fontSize:"9px",color:color,cursor:"pointer",fontWeight:"600"}}>+ 선택 추가</button>
             )}
             <button onClick={e=>{e.stopPropagation();unmerge(mIdx);}}
-              style={{padding:"2px 9px",background:"#fee2e2",border:"none",borderRadius:"6px",fontSize:"9px",color:"#dc2626",cursor:"pointer",fontWeight:"600"}}>묶기 해제</button>
+              style={{padding:"2px 9px",background:"#fee2e2",border:"none",borderRadius:"6px",fontSize:"9px",color:"#dc2626",cursor:"pointer",fontWeight:"600"}}>그룹 해제</button>
           </div>
         </div>
         {/* 결과물 번호 리스트 */}
@@ -414,22 +445,44 @@ function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
   // ── 독립 카드 ──
   const SoloCard = ({card}) => {
     const isSel = selected.has(card.id);
+    const [showAdd, setShowAdd] = useState(false);
     return (
-      <div onClick={e=>{e.stopPropagation();toggleSelect(card.id);}}
-        style={{background:isSel?"#eff6ff":"#fff",border:`1.5px solid ${isSel?color:"#e2e8f0"}`,borderLeft:`4px solid ${isSel?color:card.partColor}`,borderRadius:"8px",padding:"9px 12px",cursor:"pointer",marginBottom:"6px",transition:"all 0.12s"}}>
+      <div style={{background:isSel?"#eff6ff":"#fff",border:`1.5px solid ${isSel?color:"#e2e8f0"}`,borderLeft:`4px solid ${isSel?color:card.partColor}`,borderRadius:"8px",padding:"9px 12px",marginBottom:"6px",transition:"all 0.12s"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px"}}>
-          <div style={{display:"flex",alignItems:"center",gap:"5px"}}>
+          <div onClick={e=>{e.stopPropagation();toggleSelect(card.id);}} style={{display:"flex",alignItems:"center",gap:"5px",cursor:"pointer",flex:1}}>
             <MemberTag name={card.name} part={card.part} partColor={card.partColor} />
             <span style={{fontSize:"9px",color:"#94a3b8",marginLeft:"2px"}}>{card.과제}</span>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
             <span style={{fontSize:"9px",fontWeight:"700",color:rateColor(card.pct),background:rateColor(card.pct)+"15",padding:"1px 6px",borderRadius:"5px"}}>{card.pct}%</span>
-            <span style={{width:"15px",height:"15px",border:`2px solid ${isSel?color:"#cbd5e1"}`,borderRadius:"3px",background:isSel?color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            {/* 그룹에 추가 버튼 */}
+            {curMerged.length>0&&(
+              <div style={{position:"relative"}}>
+                <button onClick={e=>{e.stopPropagation();setShowAdd(v=>!v);}}
+                  style={{padding:"1px 7px",background:"#f0f9ff",border:`1px solid ${color}`,borderRadius:"6px",fontSize:"9px",color:color,cursor:"pointer",fontWeight:"600"}}>+ 그룹추가</button>
+                {showAdd&&(
+                  <div onClick={e=>e.stopPropagation()} style={{position:"absolute",right:0,top:"22px",background:"#fff",border:"1px solid #e2e8f0",borderRadius:"8px",boxShadow:"0 4px 12px rgba(0,0,0,0.15)",zIndex:100,minWidth:"150px",padding:"4px"}}>
+                    {curMerged.map((g,mIdx)=>{
+                      const t=g.title||`그룹 ${mIdx+1}`;
+                      return (
+                        <button key={mIdx} onClick={e=>{e.stopPropagation();addCardToMerged(mIdx,card.id);setShowAdd(false);}}
+                          style={{display:"block",width:"100%",padding:"5px 10px",background:"none",border:"none",cursor:"pointer",fontSize:"11px",color:"#334155",textAlign:"left",borderRadius:"5px",fontWeight:"500"}}
+                          onMouseEnter={e=>e.currentTarget.style.background="#f0f9ff"}
+                          onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                          {t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            <span onClick={e=>{e.stopPropagation();toggleSelect(card.id);}} style={{width:"15px",height:"15px",border:`2px solid ${isSel?color:"#cbd5e1"}`,borderRadius:"3px",background:isSel?color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}}>
               {isSel&&<span style={{color:"#fff",fontSize:"9px",lineHeight:1}}>✓</span>}
             </span>
           </div>
         </div>
-        <div style={{fontSize:"12px",color:"#1e293b",lineHeight:"1.6",paddingLeft:"2px"}}>{card.item}</div>
+        <div onClick={e=>{e.stopPropagation();toggleSelect(card.id);}} style={{fontSize:"12px",color:"#1e293b",lineHeight:"1.6",paddingLeft:"2px",cursor:"pointer"}}>{card.item}</div>
       </div>
     );
   };
@@ -465,7 +518,15 @@ function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
           })}
         </div>
 
-        {/* 서브 탭 + 묶기 컨트롤 */}
+        {/* 목표 설명 바 */}
+        {groups[gi]?.desc&&(
+          <div style={{padding:"7px 20px",background:`${color}08`,borderBottom:"1px solid #e2e8f0",display:"flex",alignItems:"center",gap:"8px"}}>
+            {groups[gi]?.score&&<span style={{fontSize:"10px",fontWeight:"800",color:"#fff",background:color,padding:"2px 8px",borderRadius:"6px",flexShrink:0}}>{groups[gi].score}점</span>}
+            <span style={{fontSize:"11px",color:"#334155",fontWeight:"500"}}>{groups[gi].desc}</span>
+          </div>
+        )}
+
+        {/* 서브 탭 + 그룹 컨트롤 */}
         <div style={{padding:"8px 20px",background:"#fff",borderBottom:"1px solid #e2e8f0",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px"}}>
           <div style={{display:"flex",gap:"3px",background:"#f1f5f9",borderRadius:"8px",padding:"3px"}}>
             {[{key:"결과물",icon:"✅",cnt:resultCards.length},{key:"진행현황",icon:"📋",cnt:progressList.length}].map(({key,icon,cnt})=>(
@@ -479,8 +540,8 @@ function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
             <div style={{display:"flex",alignItems:"center",gap:"7px"}}>
               {selected.size>=2
                 ? <button onClick={e=>{e.stopPropagation();doMerge();}}
-                    style={{padding:"4px 14px",background:color,border:"none",borderRadius:"8px",fontSize:"11px",color:"#fff",cursor:"pointer",fontWeight:"700"}}>✂ {selected.size}개 묶기</button>
-                : <span style={{fontSize:"10px",color:"#94a3b8"}}>{selected.size===1?"하나 더 선택하면 묶기 가능":"카드 클릭 → 선택 → 묶기"}</span>
+                    style={{padding:"4px 14px",background:color,border:"none",borderRadius:"8px",fontSize:"11px",color:"#fff",cursor:"pointer",fontWeight:"700"}}>✂ {selected.size}개 그룹</button>
+                : <span style={{fontSize:"10px",color:"#94a3b8"}}>{selected.size===1?"하나 더 선택하면 그룹 가능":"카드 클릭 → 선택 → 그룹"}</span>
               }
               {selected.size>0&&<button onClick={clearSelect} style={{padding:"3px 9px",background:"#f1f5f9",border:"none",borderRadius:"6px",fontSize:"10px",color:"#64748b",cursor:"pointer"}}>선택 해제</button>}
             </div>
@@ -495,9 +556,9 @@ function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
               {resultCards.length===0
                 ? <div style={{textAlign:"center",color:"#94a3b8",fontSize:"12px",padding:"40px 0"}}>결과물(승인본)이 등록된 팀원이 없습니다</div>
                 : <>
-                    {/* 묶음 박스들 */}
+                    {/* 그룹 박스들 */}
                     {curMerged.map((g,mIdx)=>(
-                      <MergedBox key={mIdx} mIdx={mIdx} ids={g.ids} />
+                      <MergedBox key={mIdx} mIdx={mIdx} ids={g.ids} title={g.title||""} />
                     ))}
                     {/* 독립 카드 */}
                     {soloCards.length>0&&(
@@ -506,7 +567,7 @@ function ResultModal({ cat, allData, onClose, initialGroup=0 }) {
                       </div>
                     )}
                     {soloCards.length===0&&curMerged.length>0&&(
-                      <div style={{textAlign:"center",color:"#4a7c59",fontSize:"11px",padding:"14px 0",fontWeight:"600"}}>✓ 모든 결과물이 묶음으로 정리되었습니다</div>
+                      <div style={{textAlign:"center",color:"#4a7c59",fontSize:"11px",padding:"14px 0",fontWeight:"600"}}>✓ 모든 결과물이 그룹으로 정리되었습니다</div>
                     )}
                   </>
               }
@@ -830,14 +891,14 @@ function Dashboard({ allData, allWork, onNavigate }) {
   },[allData]);
 
   const STRATEGY_ITEMS = [
-    {label:"예측기반 타겟점검", match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
-    {label:"건설 DX",           match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
-    {label:"소송핵심관리",      match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
+    {label:"예측기반 타겟점검", score:20, desc:"예측기반 타겟점검 운영안 수립 및 타겟점검 시행 100%", match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
+    {label:"건설 DX",           score:15, desc:"AI 품질관리 시스템 구축 및 통합품질데이터 적기제공",   match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
+    {label:"소송핵심관리",      score:10, desc:"소송핵심관리 개선안 수립 및 단지별 검증 / 평가",       match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
   ];
   const WORK_ITEMS = [
-    {label:"하자비용 저감",   match:t=>t.includes("골조")||t.includes("타일")},
-    {label:"BS 하자 개선",    match:t=>t.includes("BS하자")},
-    {label:"고객불만율 관리", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
+    {label:"하자비용 저감",   score:20, desc:"골조/타일 하자보수비 저감 (표준단가대비 10% 절감)",                                  match:t=>t.includes("골조")||t.includes("타일")},
+    {label:"BS 하자 개선",    score:15, desc:"입주초기 R&R 개선 및 귀책불분명·원인불명 하자 처리 프로세스 구축",                   match:t=>t.includes("BS하자")},
+    {label:"고객불만율 관리", score:20, desc:"고객이 체감할 수 있는 서비스 및 장기미처리 개선 (VOC 3% 이하)", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
   ];
 
   const getMemberRates = (item, cat) => {
@@ -861,10 +922,12 @@ function Dashboard({ allData, allWork, onNavigate }) {
       <div style={{marginBottom:idx<2?"6px":"0"}}>
         <div onClick={()=>setOpenItem(isOpen?null:key)} style={{cursor:"pointer"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"3px"}}>
-            <span style={{fontSize:"10px",color:textColor,fontWeight:"600",display:"flex",alignItems:"center",gap:"4px"}}>
+            <span style={{fontSize:"10px",color:textColor,fontWeight:"600",display:"flex",alignItems:"center",gap:"4px",flex:1,minWidth:0}}>
               <span style={{width:"6px",height:"6px",borderRadius:"50%",background:barColor,flexShrink:0,display:"inline-block"}} />
-              {item.label}
-              <span style={{fontSize:"8px",color:barColor,background:bgColor,padding:"1px 5px",borderRadius:"6px",border:`1px solid ${barColor}30`}}>{members.length}명 {isOpen?"▲":"▼"}</span>
+              <span style={{fontWeight:"700",flexShrink:0}}>{item.label}</span>
+              {item.score&&<span style={{fontSize:"8px",color:"#fff",background:barColor,padding:"1px 5px",borderRadius:"4px",fontWeight:"700",flexShrink:0}}>({item.score}점)</span>}
+              {item.desc&&<span style={{fontSize:"9px",color:"#64748b",fontWeight:"400",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.desc}</span>}
+              <span style={{fontSize:"8px",color:barColor,background:bgColor,padding:"1px 5px",borderRadius:"6px",border:`1px solid ${barColor}30`,flexShrink:0}}>{members.length}명 {isOpen?"▲":"▼"}</span>
             </span>
             <span style={{fontSize:"11px",fontWeight:"900",color:rateC(rate),minWidth:"34px",textAlign:"right"}}>{rate}%</span>
           </div>
@@ -1046,7 +1109,7 @@ export default function App() {
       try {
         const allNames=Object.values(MEMBERS).flatMap(pd=>pd.members.map(m=>m.name));
         const newData={};
-        for(const [pk,pd] of Object.entries(MEMBERS)){ newData[pk]=await Promise.all(pd.members.map(async m=>{ const saved=await dbGet('goals',m.name); return {...m,goals:m.goals.map((g,gi)=>({...g,...(saved?.[String(gi)]||saved?.[gi]||{})}))}; })); }
+        for(const [pk,pd] of Object.entries(MEMBERS)){ newData[pk]=await Promise.all(pd.members.map(async m=>{ const saved=await dbGet('goals',m.name); return {...m,goals:m.goals.map((g,gi)=>({...g,...(saved?.[gi]||{})}))}; })); }
         setAllData(newData);
         const newWork={};
         for(const name of allNames){ const saved=await dbGet('work',name); newWork[name]=saved?.tasks||[...(WORK_DATA[name]||[])]; }
