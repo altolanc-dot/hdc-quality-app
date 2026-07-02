@@ -921,47 +921,56 @@ function Dashboard({ allData, allWork, onNavigate }) {
   };
 
   // 전략: 파란색 계열, 업무: 초록색 계열로 구분
-  const ItemBar = ({ item, cat, idx }) => {
+  const ItemBar = ({ item, cat, idx, isLast }) => {
     const key=`${cat}_${idx}`; const isOpen=openItem===key;
     const members=getMemberRates(item,cat);
     const ts=members.reduce((s,m)=>s+m.totalScore,0); const td=members.reduce((s,m)=>s+m.totalDone,0);
     const rate=ts>0?Math.round((td/ts)*100):0;
-    // 전략: 파란계열, 업무: 초록계열
     const barColor = cat==="전략"?"#3b82f6":"#22c55e";
     const textColor = cat==="전략"?"#1d4ed8":"#166534";
     const bgColor   = cat==="전략"?"#eff6ff":"#f0fdf4";
     const rateC = r=>r>=80?"#4a7c59":r>=50?"#b8860b":"#c0703a";
+    const done80 = members.filter(m=>m.rate>=80).length;
+    const done50 = members.filter(m=>m.rate>=50&&m.rate<80).length;
+    const notYet = members.filter(m=>m.rate<50).length;
     return (
-      <div style={{marginBottom:idx<2?"6px":"0"}}>
+      <div style={{marginBottom:isLast?"0":"10px",paddingBottom:isLast?"0":"10px",borderBottom:isLast?"none":`1px dashed ${barColor}20`}}>
         <div onClick={()=>setOpenItem(isOpen?null:key)} style={{cursor:"pointer"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"3px"}}>
-            <span style={{fontSize:"10px",color:textColor,fontWeight:"600",display:"flex",alignItems:"center",gap:"4px",flex:1,minWidth:0}}>
-              <span style={{width:"6px",height:"6px",borderRadius:"50%",background:barColor,flexShrink:0,display:"inline-block"}} />
-              <span style={{fontWeight:"700",flexShrink:0}}>{item.label}</span>
-              {item.score&&<span style={{fontSize:"8px",color:"#fff",background:barColor,padding:"1px 5px",borderRadius:"4px",fontWeight:"700",flexShrink:0}}>({item.score}점)</span>}
-              {item.desc&&<span style={{fontSize:"9px",color:"#64748b",fontWeight:"400",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.desc}</span>}
-              <span style={{fontSize:"8px",color:barColor,background:bgColor,padding:"1px 5px",borderRadius:"6px",border:`1px solid ${barColor}30`,flexShrink:0}}>{members.length}명 {isOpen?"▲":"▼"}</span>
-            </span>
-            <span style={{fontSize:"11px",fontWeight:"900",color:rateC(rate),minWidth:"34px",textAlign:"right"}}>{rate}%</span>
+          {/* 제목 행 */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"5px"}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"2px",flexWrap:"wrap"}}>
+                <span style={{width:"7px",height:"7px",borderRadius:"50%",background:barColor,flexShrink:0,display:"inline-block"}} />
+                <span style={{fontWeight:"700",fontSize:"11px",color:textColor,flexShrink:0}}>{item.label}</span>
+                {item.score&&<span style={{fontSize:"9px",color:"#fff",background:barColor,padding:"1px 6px",borderRadius:"4px",fontWeight:"700",flexShrink:0}}>{item.score}점</span>}
+                <span style={{fontSize:"8px",color:barColor,background:bgColor,padding:"1px 5px",borderRadius:"6px",border:`1px solid ${barColor}30`,flexShrink:0}}>{members.length}명 {isOpen?"▲":"▼"}</span>
+              </div>
+              {item.desc&&<div style={{fontSize:"9px",color:"#64748b",paddingLeft:"12px",lineHeight:"1.4"}}>{item.desc}</div>}
+            </div>
+            <div style={{textAlign:"right",flexShrink:0,marginLeft:"10px"}}>
+              <div style={{fontSize:"16px",fontWeight:"900",color:rateC(rate),lineHeight:1}}>{rate}%</div>
+              <div style={{fontSize:"8px",color:"#94a3b8",marginTop:"1px"}}>{td}/{ts}점</div>
+            </div>
           </div>
-          <div style={{height:"5px",background:"#e8e8e8",borderRadius:"3px",overflow:"hidden"}}>
+          {/* 진행률 바 */}
+          <div style={{height:"6px",background:"#e8e8e8",borderRadius:"3px",overflow:"hidden",marginBottom:"5px"}}>
             <div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:barColor,borderRadius:"3px",transition:"width 0.5s"}} />
           </div>
         </div>
         {isOpen&&(
-          <div style={{marginTop:"6px",background:bgColor,border:`1px solid ${barColor}30`,borderRadius:"6px",padding:"8px 10px"}}>
+          <div style={{marginTop:"8px",background:bgColor,border:`1px solid ${barColor}30`,borderRadius:"6px",padding:"8px 10px"}}>
             {members.map((m,mi)=>(
-              <div key={mi} style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:mi<members.length-1?"5px":"0"}}>
+              <div key={mi} style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:mi<members.length-1?"6px":"0"}}>
                 <span style={{fontSize:"9px",fontWeight:"700",color:m.partColor,background:m.partColor+"18",padding:"1px 5px",borderRadius:"4px",flexShrink:0,minWidth:"22px",textAlign:"center"}}>{m.part}</span>
-                <button
-                  onClick={e=>{ e.stopPropagation(); setDashPopup({name:m.name,cat,groupLabel:item.label,groupMatch:item.match}); }}
-                  style={{fontSize:"10px",fontWeight:"600",color:"#1e293b",minWidth:"36px",flexShrink:0,background:"none",border:"none",cursor:"pointer",padding:"1px 4px",borderRadius:"4px",textDecoration:"underline",textDecorationColor:"#94a3b8"}}
-                  title="클릭하면 목표 상세 팝업">
+                <button onClick={e=>{ e.stopPropagation(); setDashPopup({name:m.name,cat,groupLabel:item.label,groupMatch:item.match}); }}
+                  style={{fontSize:"11px",fontWeight:"600",color:"#1e293b",minWidth:"36px",flexShrink:0,background:"none",border:"none",cursor:"pointer",padding:"1px 4px",borderRadius:"4px",textDecoration:"underline",textDecorationColor:"#94a3b8"}}>
                   {m.name}
                 </button>
-                <div style={{flex:1,height:"5px",background:"#e2e8f0",borderRadius:"3px",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(m.rate,100)}%`,background:barColor,borderRadius:"3px"}} /></div>
-                <span style={{fontSize:"10px",fontWeight:"800",color:rateC(m.rate),minWidth:"30px",textAlign:"right"}}>{m.rate}%</span>
-                <span style={{fontSize:"9px",color:"#94a3b8",minWidth:"40px",textAlign:"right"}}>{m.totalDone}/{m.totalScore}점</span>
+                <div style={{flex:1,height:"5px",background:"#e2e8f0",borderRadius:"3px",overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${Math.min(m.rate,100)}%`,background:rateC(m.rate),borderRadius:"3px"}} />
+                </div>
+                <span style={{fontSize:"11px",fontWeight:"800",color:rateC(m.rate),minWidth:"34px",textAlign:"right"}}>{m.rate}%</span>
+                <span style={{fontSize:"9px",color:"#94a3b8",minWidth:"44px",textAlign:"right"}}>{m.totalDone}/{m.totalScore}점</span>
               </div>
             ))}
           </div>
@@ -1006,7 +1015,22 @@ function Dashboard({ allData, allWork, onNavigate }) {
           const total=tasks.length; const done=tasks.filter(t=>t.상태==="완료").length;
           const und=total-done; const wr=total>0?Math.round((done/total)*100):0;
           const wc=rc(wr); const undColor=und===0?"#4a7c59":und<=3?"#b8860b":"#c0703a";
-          const lastDate=(()=>{ const t=tasks.filter(x=>x.완료일||x.접수일).sort((a,b)=>(b.완료일||b.접수일||"").localeCompare(a.완료일||a.접수일||""))[0]; return t?(t.완료일||t.접수일||"").slice(5):"-"; })();
+          const formatDate = (str) => {
+            if(!str) return "-";
+            // 2026-03-18 또는 2026-03-18 09:30 형식
+            const m = str.match(/(\d{4}[-./])?(\d{1,2})[-./\s](\d{1,2})/);
+            if(m) return `${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+            return str.slice(0,5);
+          };
+          const lastDate=(()=>{
+            const allLogs = tasks.flatMap(t=>t.이력||[]);
+            if(allLogs.length>0){
+              const latest = allLogs.map(l=>l.시각||"").filter(Boolean).sort().reverse()[0];
+              return latest ? formatDate(latest) : "-";
+            }
+            const registered = tasks.filter(x=>x.접수일).sort((a,b)=>b.접수일.localeCompare(a.접수일))[0];
+            return registered ? formatDate(registered.접수일) : "-";
+          })();
           return (
             <div key={m.name} onClick={()=>onNavigate(pk,mi)} onMouseEnter={e=>e.currentTarget.style.background="#f5ede4"} onMouseLeave={e=>e.currentTarget.style.background=mi%2===0?"#fff":"#fdf8f4"}
               style={{display:"grid",gridTemplateColumns:COLS,padding:"0 8px",height:`${rowH}px`,borderTop:"1px solid #f0e8e0",background:mi%2===0?"#fff":"#fdf8f4",alignItems:"center",cursor:"pointer"}}>
@@ -1059,14 +1083,14 @@ function Dashboard({ allData, allWork, onNavigate }) {
               <span style={{width:"8px",height:"8px",borderRadius:"2px",background:"#3b82f6",display:"inline-block"}} />
               전략 목표 진행현황
             </div>
-            {STRATEGY_ITEMS.map((item,i)=><ItemBar key={i} item={item} cat="전략" idx={i} />)}
+            {STRATEGY_ITEMS.map((item,i)=><ItemBar key={i} item={item} cat="전략" idx={i} isLast={i===STRATEGY_ITEMS.length-1} />)}
           </div>
           <div style={{flex:1,background:"#fff",border:"1px solid #bbf7d0",borderTop:"3px solid #22c55e",borderRadius:"7px",padding:"8px 12px"}}>
             <div style={{fontSize:"9px",fontWeight:"700",color:"#166534",marginBottom:"6px",display:"flex",alignItems:"center",gap:"5px"}}>
               <span style={{width:"8px",height:"8px",borderRadius:"2px",background:"#22c55e",display:"inline-block"}} />
               업무 목표 진행현황
             </div>
-            {WORK_ITEMS.map((item,i)=><ItemBar key={i} item={item} cat="업무" idx={i} />)}
+            {WORK_ITEMS.map((item,i)=><ItemBar key={i} item={item} cat="업무" idx={i} isLast={i===WORK_ITEMS.length-1} />)}
           </div>
         </div>
       </div>
