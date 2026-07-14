@@ -1159,43 +1159,52 @@ function SummaryModal({ allData, onClose }) {
   };
 
   const [cards, setCards]     = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loadingMap, setLoadingMap] = useState({});
 
   useEffect(()=>{
     const totalGoals = Object.values(allData).flat().reduce((s,m)=>s+m.goals.length,0);
     if(totalGoals===0) return;
 
-    const result = {};
-    for(const item of ITEMS){
-      const raw = getRaw(item);
-      const rows = [];
-      raw.forEach(r=>{
-        // 결과물 우선
-        if(r.결과.length>0){
-          r.결과.forEach(t=>rows.push({type:"결과",text:t,name:r.name,pct:r.pct}));
-        } else if(r.비고){
-          // 진행현황: 첫 의미있는 줄만
-          const firstLine=r.비고.split("\n").find(l=>l.trim().replace(/^[-·•\-]\s*/,""));
-          if(firstLine) rows.push({type:"진행",text:firstLine.trim().replace(/^[-·•\-]\s*/,""),name:r.name,pct:r.pct});
+    const run = async () => {
+      for(const item of ITEMS){
+        setLoadingMap(p=>({...p,[item.num]:true}));
+        const raw = getRaw(item);
+        if(!raw.length){
+          setCards(p=>({...p,[item.num]:[]}));
+          setLoadingMap(p=>({...p,[item.num]:false}));
+          continue;
         }
-      });
-      // 중복 제거, 최대 5개
-      result[item.num]=[...new Map(rows.map(r=>[r.text,r])).values()].slice(0,5);
-    }
-    setCards(result);
-    setLoading(false);
+        const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
+        const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내, 설명 1~2문장.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
+        try {
+          const res = await fetch("/api/summarize",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({prompt})
+          });
+          const data = await res.json();
+          const text = (data.content?.[0]?.text||"[]").replace(/```json|```/g,"").trim();
+          setCards(p=>({...p,[item.num]:JSON.parse(text)}));
+        } catch(e){
+          setCards(p=>({...p,[item.num]:[{title:"오류",desc:"잠시 후 다시 시도해 주세요."}]}));
+        }
+        setLoadingMap(p=>({...p,[item.num]:false}));
+      }
+    };
+    run();
   },[JSON.stringify(Object.values(allData).flat().map(m=>m.name))]);
 
   const rateColor = r=>r>=80?"#1a5c35":r>=50?"#7c5c0a":"#9b2c2c";
   const rateBg    = r=>r>=80?"#d1fae5":r>=50?"#fef3c7":"#fee2e2";
 
   const Card = ({item})=>{
-    const rate    = getRate(item);
-    const bullets = cards[item.num]||[];
-    const isLoading = loading;
+    const rate      = getRate(item);
+    const bullets   = cards[item.num]||[];
+    const isLoading = loadingMap[item.num]!==false;
     return (
-      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"4px",padding:"16px",display:"flex",flexDirection:"column",minHeight:"195px"}}>
-        <div style={{display:"flex",alignItems:"flex-start",gap:"10px",paddingBottom:"10px",marginBottom:"10px",borderBottom:"1px solid #e0d8cc"}}>
+      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"4px",padding:"16px",display:"flex",flexDirection:"column",height:"220px"}}>
+        {/* 헤더 */}
+        <div style={{display:"flex",alignItems:"flex-start",gap:"10px",paddingBottom:"10px",marginBottom:"10px",borderBottom:"1px solid #e0d8cc",flexShrink:0}}>
           <span style={{fontSize:"26px",fontWeight:"900",color:"#d4b896",lineHeight:1,flexShrink:0}}>{item.num}</span>
           <div style={{flex:1}}>
             <div style={{fontSize:"12px",fontWeight:"800",color:"#2d2416"}}>{item.label}</div>
@@ -1203,47 +1212,28 @@ function SummaryModal({ allData, onClose }) {
               <span style={{fontSize:"8px",color:item.cat==="전략"?"#1d4ed8":"#166534",fontWeight:"600"}}>{item.cat}목표 · {item.score}점</span>
               <span style={{fontSize:"8px",color:"#fff",background:item.cat==="전략"?"#3b82f6":"#22c55e",padding:"1px 6px",borderRadius:"8px",fontWeight:"700"}}>{getRaw(item).length}명</span>
             </div>
-            {item.desc&&<div style={{fontSize:"9px",color:"#7a6a54",marginTop:"3px",lineHeight:"1.4"}}>{item.desc}</div>}
+            {item.desc&&<div style={{fontSize:"9px",color:"#7a6a54",marginTop:"3px",lineHeight:"1.3"}}>{item.desc}</div>}
           </div>
           <span style={{fontSize:"15px",fontWeight:"900",color:rateColor(rate),background:rateBg(rate),padding:"2px 9px",borderRadius:"4px",flexShrink:0}}>{rate}%</span>
         </div>
-        <div style={{flex:1}}>
+        {/* 내용 */}
+        <div style={{flex:1,overflow:"hidden"}}>
           {isLoading
-            ? <div style={{fontSize:"10px",color:"#9a8a74",padding:"8px 0"}}>불러오는 중...</div>
+            ? <div style={{display:"flex",alignItems:"center",gap:"8px",color:"#9a8a74",fontSize:"10px",padding:"10px 0"}}>
+                <div style={{width:"12px",height:"12px",border:"2px solid #d4b896",borderTop:"2px solid #c0703a",borderRadius:"50%",animation:"spin 0.8s linear infinite",flexShrink:0}} />
+                AI 요약 중...
+              </div>
             : bullets.length===0
-              ? <div style={{fontSize:"10px",color:"#b0a090",fontStyle:"italic",padding:"8px 0"}}>등록된 실적이 없습니다</div>
-              : <>
-                  {/* 결과물(승인본) */}
-                  {bullets.filter(b=>b.type==="결과").length>0&&(
-                    <div style={{marginBottom:"8px"}}>
-                      <div style={{fontSize:"8px",fontWeight:"700",color:"#c0703a",marginBottom:"5px",letterSpacing:"0.5px"}}>✅ 주요 결과물</div>
-                      {bullets.filter(b=>b.type==="결과").map((b,bi)=>(
-                        <div key={bi} style={{display:"flex",gap:"7px",alignItems:"flex-start",marginBottom:"5px"}}>
-                          <span style={{width:"5px",height:"5px",borderRadius:"50%",background:"#c0703a",flexShrink:0,marginTop:"4px"}} />
-                          <div>
-                            <div style={{fontSize:"10px",fontWeight:"600",color:"#1a1208",lineHeight:"1.5"}}>{b.text}</div>
-                            <div style={{fontSize:"8px",color:"#9a8a74"}}>{b.name} · {b.pct}%</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* 진행현황 */}
-                  {bullets.filter(b=>b.type==="진행").length>0&&(
+              ? <div style={{fontSize:"10px",color:"#b0a090",fontStyle:"italic"}}>등록된 실적이 없습니다</div>
+              : bullets.map((b,bi)=>(
+                  <div key={bi} style={{display:"flex",gap:"7px",alignItems:"flex-start",marginBottom:"8px"}}>
+                    <span style={{width:"5px",height:"5px",borderRadius:"50%",background:"#c0703a",flexShrink:0,marginTop:"4px"}} />
                     <div>
-                      <div style={{fontSize:"8px",fontWeight:"700",color:"#7a6a54",marginBottom:"5px",letterSpacing:"0.5px"}}>📋 진행현황</div>
-                      {bullets.filter(b=>b.type==="진행").map((b,bi)=>(
-                        <div key={bi} style={{display:"flex",gap:"7px",alignItems:"flex-start",marginBottom:"5px"}}>
-                          <span style={{fontSize:"9px",color:"#b0a080",flexShrink:0}}>–</span>
-                          <div>
-                            <div style={{fontSize:"10px",color:"#4a3c2c",lineHeight:"1.5"}}>{b.text}</div>
-                            <div style={{fontSize:"8px",color:"#9a8a74"}}>{b.name} · {b.pct}%</div>
-                          </div>
-                        </div>
-                      ))}
+                      <div style={{fontSize:"10px",fontWeight:"800",color:"#1a1208",marginBottom:"1px"}}>{b.title}</div>
+                      <div style={{fontSize:"9px",color:"#5a4a38",lineHeight:"1.5"}}>{b.desc}</div>
                     </div>
-                  )}
-                </>
+                  </div>
+                ))
           }
         </div>
       </div>
@@ -1255,40 +1245,15 @@ function SummaryModal({ allData, onClose }) {
       <style>{`
         @keyframes spin{to{transform:rotate(360deg)}}
         @media print{
-          *{margin:0;padding:0;box-sizing:border-box}
-          body>*{display:none!important}
-          #sum-wrap{
-            display:block!important;
-            position:fixed!important;
-            top:0;left:0;
-            width:297mm;height:210mm;
-            overflow:hidden;
-            z-index:99999;
-            background:#fff;
-          }
-          .no-print{display:none!important}
-          #sum-wrap *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-          #sum-wrap .card-grid{
-            display:grid!important;
-            grid-template-columns:repeat(3,1fr)!important;
-            gap:6px!important;
-            padding:8px 16px!important;
-          }
-          #sum-wrap .summary-card{
-            min-height:auto!important;
-            padding:10px!important;
-            font-size:90%!important;
-          }
-          #sum-wrap .summary-header{
-            padding:10px 16px 8px!important;
-          }
-          #sum-wrap .summary-footer{
-            padding:6px 16px!important;
-          }
+          body { margin:0; padding:0; }
+          body > *:not(#sum-wrap-outer){ display:none!important; }
+          #sum-wrap-outer{ display:block!important; position:fixed!important; top:0; left:0; width:100%; height:100%; z-index:99999; }
+          .no-print{ display:none!important; }
+          #sum-wrap *{ -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
         }
-        @page{size:A4 landscape;margin:0}
+        @page{ size:A4 landscape; margin:5mm; }
       `}</style>
-      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:6000,display:"flex",alignItems:"flex-start",justifyContent:"center",overflowY:"auto",padding:"20px 0"}} onClick={onClose}>
+      <div id="sum-wrap-outer" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:6000,display:"flex",alignItems:"flex-start",justifyContent:"center",overflowY:"auto",padding:"20px 0"}} onClick={onClose}>
         <div className="no-print" style={{position:"fixed",top:"16px",right:"24px",display:"flex",gap:"8px",zIndex:6001}}>
           <button onClick={()=>window.print()} style={{padding:"8px 20px",background:"#c0703a",border:"none",borderRadius:"8px",color:"#fff",fontSize:"13px",fontWeight:"700",cursor:"pointer"}}>🖨️ PDF 출력</button>
           <button onClick={onClose} style={{padding:"8px 16px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:"8px",color:"#fff",fontSize:"13px",cursor:"pointer"}}>✕ 닫기</button>
