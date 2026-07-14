@@ -1125,10 +1125,189 @@ function Dashboard({ allData, allWork, onNavigate }) {
   );
 }
 
-// ── Main App ───────────────────────────────────────────────────
+// ── SummaryModal ──────────────────────────────────────────────
+function SummaryModal({ allData, onClose }) {
+  const today = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});
+
+  const ITEMS = [
+    {num:1,cat:"전략",label:"예측기반 타겟점검",score:20,desc:"예측기반 타겟점검 운영안 수립 및 타겟점검 시행 100%",match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
+    {num:2,cat:"전략",label:"건설 DX",          score:15,desc:"AI 품질관리 시스템 구축 및 통합품질데이터 적기제공",  match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
+    {num:3,cat:"전략",label:"소송핵심관리",      score:10,desc:"소송핵심관리 개선안 수립 및 단지별 검증 / 평가",      match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
+    {num:4,cat:"업무",label:"하자비용 저감",     score:20,desc:"골조/타일 하자보수비 저감 (표준단가대비 10% 절감)",  match:t=>t.includes("골조")||t.includes("타일")},
+    {num:5,cat:"업무",label:"BS 하자 개선",      score:15,desc:"입주초기 R&R 개선, 원인불명 하자 처리 프로세스 구축 (전년대비 30% 저감)", match:t=>t.includes("BS하자")},
+    {num:6,cat:"업무",label:"고객불만율 관리",   score:20,desc:"고객이 체감할 수 있는 서비스 및 장기미처리 개선 (VOC 3% 이하)", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
+  ];
+
+  const getRate = (item) => {
+    let ts=0,td=0;
+    Object.values(allData).flat().forEach(m=>{
+      m.goals.filter(g=>item.match(g.과제)&&g.배점>0).forEach(g=>{ ts+=g.배점; td+=(g.실적||0); });
+    });
+    return ts>0?Math.round((td/ts)*100):0;
+  };
+
+  const getRaw = (item) => {
+    const rows=[];
+    Object.values(allData).flat().forEach(m=>{
+      m.goals.filter(g=>item.match(g.과제)&&g.배점>0).forEach(g=>{
+        const 결과=(g.결과||"").split("||").filter(s=>s.trim());
+        const 비고=(g.비고||"").trim();
+        if(결과.length||비고) rows.push({name:m.name, pct:g.배점>0?Math.round(((g.실적||0)/g.배점)*100):0, 결과, 비고});
+      });
+    });
+    return rows;
+  };
+
+  const [cards, setCards]     = useState({});
+  const [loadingMap, setLoadingMap] = useState({});
+
+  useEffect(()=>{
+    // allData가 실제로 로드된 후에만 실행
+    const totalGoals = Object.values(allData).flat().reduce((s,m)=>s+m.goals.length,0);
+    if(totalGoals===0) return;
+
+    const run = async () => {
+      for(const item of ITEMS){
+        setLoadingMap(p=>({...p,[item.num]:true}));
+        const raw = getRaw(item);
+        if(!raw.length){
+          setCards(p=>({...p,[item.num]:[]}));
+          setLoadingMap(p=>({...p,[item.num]:false}));
+          continue;
+        }
+        const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
+        const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내, 설명 1~2문장, 구체적 수치 포함.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
+        try {
+          const res = await fetch("https://api.anthropic.com/v1/messages",{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:800,messages:[{role:"user",content:prompt}]})
+          });
+          const data = await res.json();
+          const text = (data.content?.[0]?.text||"[]").replace(/```json|```/g,"").trim();
+          setCards(p=>({...p,[item.num]:JSON.parse(text)}));
+        } catch(e){
+          setCards(p=>({...p,[item.num]:[{title:"요약 오류",desc:"데이터를 불러오는 중 오류가 발생했습니다."}]}));
+        }
+        setLoadingMap(p=>({...p,[item.num]:false}));
+      }
+    };
+    run();
+  },[JSON.stringify(Object.values(allData).flat().map(m=>m.name))]);
+
+  const rateColor = r=>r>=80?"#1a5c35":r>=50?"#7c5c0a":"#9b2c2c";
+  const rateBg    = r=>r>=80?"#d1fae5":r>=50?"#fef3c7":"#fee2e2";
+
+  const Card = ({item})=>{
+    const rate    = getRate(item);
+    const bullets = cards[item.num]||[];
+    const isLoading = loadingMap[item.num]===true || (loadingMap[item.num]===undefined && Object.keys(cards).length===0);
+    return (
+      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"4px",padding:"16px",display:"flex",flexDirection:"column",minHeight:"195px"}}>
+        <div style={{display:"flex",alignItems:"flex-start",gap:"10px",paddingBottom:"10px",marginBottom:"10px",borderBottom:"1px solid #e0d8cc"}}>
+          <span style={{fontSize:"26px",fontWeight:"900",color:"#d4b896",lineHeight:1,flexShrink:0}}>{item.num}</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:"12px",fontWeight:"800",color:"#2d2416"}}>{item.label}</div>
+            <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"2px"}}>
+              <span style={{fontSize:"8px",color:item.cat==="전략"?"#1d4ed8":"#166534",fontWeight:"600"}}>{item.cat}목표 · {item.score}점</span>
+              <span style={{fontSize:"8px",color:"#fff",background:item.cat==="전략"?"#3b82f6":"#22c55e",padding:"1px 6px",borderRadius:"8px",fontWeight:"700"}}>{getRaw(item).length}명</span>
+            </div>
+            {item.desc&&<div style={{fontSize:"9px",color:"#7a6a54",marginTop:"3px",lineHeight:"1.4"}}>{item.desc}</div>}
+          </div>
+          <span style={{fontSize:"15px",fontWeight:"900",color:rateColor(rate),background:rateBg(rate),padding:"2px 9px",borderRadius:"4px",flexShrink:0}}>{rate}%</span>
+        </div>
+        <div style={{flex:1}}>
+          {isLoading
+            ? <div style={{display:"flex",alignItems:"center",gap:"8px",color:"#9a8a74",fontSize:"10px",padding:"16px 0"}}>
+                <div style={{width:"12px",height:"12px",border:"2px solid #d4b896",borderTop:"2px solid #c0703a",borderRadius:"50%",animation:"spin 0.8s linear infinite",flexShrink:0}} />
+                AI가 핵심 성과를 요약하는 중...
+              </div>
+            : bullets.length===0
+              ? <div style={{fontSize:"10px",color:"#b0a090",fontStyle:"italic",padding:"8px 0"}}>등록된 실적이 없습니다</div>
+              : bullets.map((b,bi)=>(
+                  <div key={bi} style={{display:"flex",gap:"8px",alignItems:"flex-start",marginBottom:"10px"}}>
+                    <span style={{width:"6px",height:"6px",borderRadius:"50%",background:"#c0703a",flexShrink:0,marginTop:"4px"}} />
+                    <div>
+                      <div style={{fontSize:"11px",fontWeight:"800",color:"#1a1208",marginBottom:"2px"}}>{b.title}</div>
+                      <div style={{fontSize:"10px",color:"#5a4a38",lineHeight:"1.55"}}>{b.desc}</div>
+                    </div>
+                  </div>
+                ))
+          }
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <style>{`
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @media print{
+          *{margin:0;padding:0;box-sizing:border-box}
+          body>*{display:none!important}
+          #sum-wrap{
+            display:block!important;
+            position:fixed!important;
+            top:0;left:0;
+            width:297mm;height:210mm;
+            overflow:hidden;
+            z-index:99999;
+            background:#fff;
+          }
+          .no-print{display:none!important}
+          #sum-wrap *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+          #sum-wrap .card-grid{
+            display:grid!important;
+            grid-template-columns:repeat(3,1fr)!important;
+            gap:6px!important;
+            padding:8px 16px!important;
+          }
+          #sum-wrap .summary-card{
+            min-height:auto!important;
+            padding:10px!important;
+            font-size:90%!important;
+          }
+          #sum-wrap .summary-header{
+            padding:10px 16px 8px!important;
+          }
+          #sum-wrap .summary-footer{
+            padding:6px 16px!important;
+          }
+        }
+        @page{size:A4 landscape;margin:0}
+      `}</style>
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:6000,display:"flex",alignItems:"flex-start",justifyContent:"center",overflowY:"auto",padding:"20px 0"}} onClick={onClose}>
+        <div className="no-print" style={{position:"fixed",top:"16px",right:"24px",display:"flex",gap:"8px",zIndex:6001}}>
+          <button onClick={()=>window.print()} style={{padding:"8px 20px",background:"#c0703a",border:"none",borderRadius:"8px",color:"#fff",fontSize:"13px",fontWeight:"700",cursor:"pointer"}}>🖨️ PDF 출력</button>
+          <button onClick={onClose} style={{padding:"8px 16px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:"8px",color:"#fff",fontSize:"13px",cursor:"pointer"}}>✕ 닫기</button>
+        </div>
+        <div id="sum-wrap" onClick={e=>e.stopPropagation()}
+          style={{background:"#fff",width:"1050px",maxWidth:"97vw",borderRadius:"4px",boxShadow:"0 8px 40px rgba(0,0,0,0.3)",fontFamily:"'Noto Sans KR','Malgun Gothic',sans-serif",overflow:"hidden"}}>
+          <div className="summary-header" style={{background:"#fff",padding:"22px 32px 14px",borderBottom:"2px solid #2d2416"}}>
+            <div style={{fontSize:"10px",color:"#c0703a",letterSpacing:"2px",fontWeight:"700",marginBottom:"5px",fontStyle:"italic"}}>Key Performance · 2026 주요목표 실적</div>
+            <div style={{fontSize:"24px",fontWeight:"900",color:"#2d2416",letterSpacing:"-0.5px"}}>
+              CSO 품질팀 <span style={{color:"#c0703a",textDecoration:"underline",textUnderlineOffset:"4px"}}>주요업무 실적 요약</span>
+            </div>
+          </div>
+          <div className="card-grid" style={{padding:"16px 28px",background:"#fff"}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px"}}>
+              {ITEMS.map((item,i)=><Card key={i} item={item} />)}
+            </div>
+          </div>
+          <div className="summary-footer" style={{background:"#2d2416",padding:"10px 32px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:"10px",color:"#c8b89a",letterSpacing:"1px"}}>HDC현대산업개발 · 품질팀 · 내부 배포용</span>
+            <span style={{fontSize:"10px",color:"#c8b89a"}}>{today}</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function App() {
   const [activeTab, setActiveTab]   = useState("dashboard");
   const [showNotice, setShowNotice] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
   const [resultModal, setResultModal] = useState(null);
   const [restoreModal, setRestoreModal] = useState(false);
   const [restoreText, setRestoreText]   = useState("");
@@ -1198,6 +1377,7 @@ export default function App() {
             </button>; })}
           <div style={{width:"1px",height:"20px",background:"rgba(255,255,255,0.2)"}} />
           <button onClick={()=>setShowNotice(true)} style={{padding:"4px 10px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:"10px",color:"#f5d5b5",fontSize:"12px",cursor:"pointer"}}>📢 공지</button>
+          <button onClick={()=>setShowSummary(true)} style={{padding:"4px 12px",background:"rgba(249,115,22,0.2)",border:"1px solid rgba(249,115,22,0.5)",borderRadius:"10px",color:"#fdba74",fontSize:"11px",fontWeight:"700",cursor:"pointer"}}>📋 실적요약</button>
           <div style={{width:"1px",height:"20px",background:"rgba(255,255,255,0.2)"}} />
           <button onClick={()=>{ const bk={allData,allWork,allReq,savedAt:new Date().toISOString()}; navigator.clipboard.writeText(JSON.stringify(bk)).then(()=>alert("✅ 백업 완료!")).catch(()=>alert("클립보드 복사 실패")); }} style={{padding:"4px 8px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"10px",color:"#c9a880",fontSize:"13px",cursor:"pointer"}}>BK</button>
           <button onClick={()=>{ setRestoreText(""); setRestoreModal(true); }} style={{padding:"4px 8px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"10px",color:"#c9a880",fontSize:"13px",cursor:"pointer"}}>RS</button>
@@ -1380,6 +1560,7 @@ export default function App() {
         </div>
       )}
       {showNotice&&<NoticeModal onClose={()=>setShowNotice(false)} />}
+      {showSummary&&<SummaryModal allData={allData} onClose={()=>setShowSummary(false)} />}
       {resultModal&&<ResultModal cat={resultModal.cat} initialGroup={resultModal.initialGroup} allData={allData} onClose={()=>setResultModal(null)} />}
     </div>
   );
