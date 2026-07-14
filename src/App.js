@@ -1179,7 +1179,12 @@ function SummaryModal({ allData, onClose }) {
         const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내, 설명 1~2문장, 구체적 수치 포함.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
         try {
           const res = await fetch("https://api.anthropic.com/v1/messages",{
-            method:"POST",headers:{"Content-Type":"application/json"},
+            method:"POST",
+            headers:{
+              "Content-Type":"application/json",
+              "anthropic-version":"2023-06-01",
+              "anthropic-dangerous-direct-browser-access":"true"
+            },
             body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:800,messages:[{role:"user",content:prompt}]})
           });
           const data = await res.json();
