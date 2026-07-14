@@ -1214,8 +1214,8 @@ function SummaryModal({ allData, onClose }) {
 
   const Card = ({item})=>{
     const rate      = getRate(item);
-    const bullets   = cards[item.num]||[];
-    const isLoading = loadingMap[item.num]!==false;
+    const bullets   = cards[item.num];
+    const isLoading = bullets === undefined && isRefreshing;
     return (
       <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"4px",padding:"16px",display:"flex",flexDirection:"column",height:"220px"}}>
         {/* 헤더 */}
@@ -1238,6 +1238,11 @@ function SummaryModal({ allData, onClose }) {
                 <div style={{width:"12px",height:"12px",border:"2px solid #d4b896",borderTop:"2px solid #c0703a",borderRadius:"50%",animation:"spin 0.8s linear infinite",flexShrink:0}} />
                 AI 요약 중...
               </div>
+            : bullets===undefined
+              ? <div style={{fontSize:"10px",color:"#9a8a74",padding:"8px 0",lineHeight:"1.6"}}>
+                  요약 내용이 없습니다.<br/>
+                  <span style={{color:"#c0703a",fontWeight:"700"}}>SDU</span> 버튼을 눌러 요약을 생성해 주세요.
+                </div>
             : bullets.length===0
               ? <div style={{fontSize:"10px",color:"#b0a090",fontStyle:"italic"}}>등록된 실적이 없습니다</div>
               : bullets.map((b,bi)=>(
