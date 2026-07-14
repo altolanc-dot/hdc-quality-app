@@ -1234,7 +1234,7 @@ function SummaryModal({ allData, onClose }) {
     const bullets   = cards[item.num];
     const isLoading = bullets === undefined && isRefreshing;
     return (
-      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"4px",padding:"16px",display:"flex",flexDirection:"column",height:"220px"}}>
+      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"6px",padding:"14px 16px",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
         {/* 헤더 */}
         <div style={{display:"flex",alignItems:"flex-start",gap:"10px",paddingBottom:"10px",marginBottom:"10px",borderBottom:"1px solid #e0d8cc",flexShrink:0}}>
           <span style={{fontSize:"26px",fontWeight:"900",color:"#d4b896",lineHeight:1,flexShrink:0}}>{item.num}</span>
@@ -1278,7 +1278,6 @@ function SummaryModal({ allData, onClose }) {
   };
 
   const handlePrint = () => {
-    // 현재 카드 데이터와 달성률 수집
     const cardData = ITEMS.map(item=>({
       item,
       rate: getRate(item),
@@ -1288,26 +1287,29 @@ function SummaryModal({ allData, onClose }) {
     const rateBg    = r=>r>=80?"#d1fae5":r>=50?"#fef3c7":"#fee2e2";
     const today = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});
 
-    const cardsHTML = cardData.map((cd,i)=>`
-      <div style="background:#faf8f5;border:1px solid #e0d8cc;border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;height:100%;box-sizing:border-box;">
-        <div style="display:flex;align-items:flex-start;gap:8px;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid #e0d8cc;flex-shrink:0;">
-          <span style="font-size:22px;font-weight:900;color:#d4b896;line-height:1;flex-shrink:0;">${cd.item.num}</span>
+    const cardsHTML = cardData.map((cd)=>`
+      <div style="background:#faf8f5;border:1px solid #e0d8cc;border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;box-sizing:border-box;">
+        <div style="display:flex;align-items:flex-start;gap:10px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #e0d8cc;flex-shrink:0;">
+          <span style="font-size:28px;font-weight:900;color:#d4b896;line-height:1;flex-shrink:0;">${cd.item.num}</span>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:11px;font-weight:800;color:#2d2416;">${cd.item.label}</div>
-            <div style="font-size:7px;color:${cd.item.cat==="전략"?"#1d4ed8":"#166534"};font-weight:600;margin-top:1px;">${cd.item.cat}목표 · ${cd.item.score}점 · ${getRaw(cd.item).length}명</div>
-            ${cd.item.desc?`<div style="font-size:7px;color:#7a6a54;margin-top:2px;line-height:1.3;">${cd.item.desc}</div>`:""}
+            <div style="font-size:14px;font-weight:800;color:#2d2416;">${cd.item.label}</div>
+            <div style="display:flex;align-items:center;gap:5px;margin-top:3px;">
+              <span style="font-size:9px;color:${cd.item.cat==="전략"?"#1d4ed8":"#166534"};font-weight:700;">${cd.item.cat}목표 · ${cd.item.score}점</span>
+              <span style="font-size:9px;color:#fff;background:${cd.item.cat==="전략"?"#3b82f6":"#22c55e"};padding:1px 7px;border-radius:8px;font-weight:700;">${getRaw(cd.item).length}명</span>
+            </div>
+            ${cd.item.desc?`<div style="font-size:9px;color:#7a6a54;margin-top:3px;line-height:1.4;">${cd.item.desc}</div>`:""}
           </div>
-          <span style="font-size:13px;font-weight:900;color:${rateColor(cd.rate)};background:${rateBg(cd.rate)};padding:2px 8px;border-radius:4px;flex-shrink:0;">${cd.rate}%</span>
+          <span style="font-size:16px;font-weight:900;color:${rateColor(cd.rate)};background:${rateBg(cd.rate)};padding:3px 10px;border-radius:5px;flex-shrink:0;">${cd.rate}%</span>
         </div>
         <div style="flex:1;">
           ${cd.bullets.length===0
-            ? `<div style="font-size:9px;color:#b0a090;font-style:italic;">등록된 실적이 없습니다</div>`
+            ? `<div style="font-size:11px;color:#b0a090;font-style:italic;">등록된 실적이 없습니다</div>`
             : cd.bullets.map(b=>`
-                <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:7px;">
-                  <span style="width:4px;height:4px;border-radius:50%;background:#c0703a;flex-shrink:0;margin-top:4px;"></span>
+                <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;">
+                  <span style="width:6px;height:6px;border-radius:50%;background:#c0703a;flex-shrink:0;margin-top:4px;"></span>
                   <div>
-                    <div style="font-size:9px;font-weight:800;color:#1a1208;margin-bottom:1px;">${b.title}</div>
-                    <div style="font-size:8px;color:#5a4a38;line-height:1.5;">${b.desc}</div>
+                    <div style="font-size:11px;font-weight:800;color:#1a1208;margin-bottom:2px;">${b.title}</div>
+                    <div style="font-size:10px;color:#5a4a38;line-height:1.6;">${b.desc}</div>
                   </div>
                 </div>`).join("")
           }
@@ -1315,7 +1317,7 @@ function SummaryModal({ allData, onClose }) {
       </div>
     `).join("");
 
-    const win = window.open("","_blank","width=1300,height=900");
+    const win = window.open("","_blank","width=1400,height=1000");
     win.document.write(`<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
@@ -1323,18 +1325,38 @@ function SummaryModal({ allData, onClose }) {
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{width:297mm;height:210mm;overflow:hidden;}
-  body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:#fff;display:flex;flex-direction:column;}
-  .header{padding:12px 24px 10px;border-bottom:2px solid #2d2416;flex-shrink:0;}
-  .kp{font-size:8px;color:#c0703a;letter-spacing:2px;font-weight:700;font-style:italic;margin-bottom:3px;}
-  .title{font-size:20px;font-weight:900;color:#2d2416;letter-spacing:-0.5px;}
-  .title span{color:#c0703a;text-decoration:underline;text-underline-offset:3px;}
-  .grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:8px;padding:10px 24px 10px;}
-  .footer{background:#2d2416;padding:7px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
-  .footer span{font-size:8px;color:#c8b89a;letter-spacing:1px;}
+  html,body{
+    width:297mm;
+    min-height:210mm;
+    background:#fff;
+    font-family:'Noto Sans KR','Malgun Gothic',sans-serif;
+  }
+  body{display:flex;flex-direction:column;}
+  .header{padding:16px 28px 12px;border-bottom:2.5px solid #2d2416;flex-shrink:0;}
+  .kp{font-size:10px;color:#c0703a;letter-spacing:2px;font-weight:700;font-style:italic;margin-bottom:4px;}
+  .title{font-size:26px;font-weight:900;color:#2d2416;letter-spacing:-0.5px;}
+  .title span{color:#c0703a;text-decoration:underline;text-underline-offset:4px;}
+  .grid{
+    flex:1;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(2,1fr);
+    gap:10px;
+    padding:12px 28px;
+  }
+  .footer{
+    background:#2d2416;
+    padding:9px 28px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-shrink:0;
+  }
+  .footer span{font-size:10px;color:#c8b89a;letter-spacing:1px;}
   @media print{
-    html,body{width:297mm;height:210mm;}
+    html,body{width:297mm;height:210mm;overflow:hidden;}
     body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .grid{height:calc(210mm - 80px - 36px);}
   }
   @page{size:A4 landscape;margin:0;}
 </style>
@@ -1348,7 +1370,7 @@ function SummaryModal({ allData, onClose }) {
   <span>HDC현대산업개발 · 품질팀 · 내부 배포용</span>
   <span>${today}</span>
 </div>
-<script>window.onload=function(){setTimeout(function(){window.print();},600);};</script>
+<script>window.onload=function(){setTimeout(function(){window.print();},700);};</script>
 </body></html>`);
     win.document.close();
   };
@@ -1367,19 +1389,22 @@ function SummaryModal({ allData, onClose }) {
           <button onClick={e=>{e.stopPropagation();onClose();}} style={{padding:"7px 14px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:"8px",color:"#fff",fontSize:"12px",cursor:"pointer",whiteSpace:"nowrap"}}>✕ 닫기</button>
         </div>
         <div id="sum-wrap" onClick={e=>e.stopPropagation()}
-          style={{background:"#fff",width:"1050px",maxWidth:"97vw",borderRadius:"4px",boxShadow:"0 8px 40px rgba(0,0,0,0.3)",fontFamily:"'Noto Sans KR','Malgun Gothic',sans-serif",overflow:"hidden"}}>
-          <div className="summary-header" style={{background:"#fff",padding:"22px 32px 14px",borderBottom:"2px solid #2d2416"}}>
-            <div style={{fontSize:"10px",color:"#c0703a",letterSpacing:"2px",fontWeight:"700",marginBottom:"5px",fontStyle:"italic"}}>Key Performance · 2026 주요목표 실적</div>
+          style={{background:"#fff",width:"min(1120px,97vw)",borderRadius:"4px",boxShadow:"0 8px 40px rgba(0,0,0,0.3)",fontFamily:"'Noto Sans KR','Malgun Gothic',sans-serif",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+          {/* 헤더 */}
+          <div style={{background:"#fff",padding:"16px 28px 12px",borderBottom:"2.5px solid #2d2416",flexShrink:0}}>
+            <div style={{fontSize:"10px",color:"#c0703a",letterSpacing:"2px",fontWeight:"700",marginBottom:"4px",fontStyle:"italic"}}>Key Performance · 2026 주요목표 실적</div>
             <div style={{fontSize:"24px",fontWeight:"900",color:"#2d2416",letterSpacing:"-0.5px"}}>
               CSO 품질팀 <span style={{color:"#c0703a",textDecoration:"underline",textUnderlineOffset:"4px"}}>주요업무 실적 요약</span>
             </div>
           </div>
-          <div className="card-grid" style={{padding:"16px 28px",background:"#fff"}}>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px"}}>
+          {/* 카드 그리드 - A4 비율에 맞게 행 높이 고정 */}
+          <div style={{padding:"12px 24px",background:"#fff",flexShrink:0}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gridTemplateRows:"repeat(2,240px)",gap:"10px"}}>
               {ITEMS.map((item,i)=><Card key={i} item={item} />)}
             </div>
           </div>
-          <div className="summary-footer" style={{background:"#2d2416",padding:"10px 32px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          {/* 푸터 */}
+          <div style={{background:"#2d2416",padding:"9px 28px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
             <span style={{fontSize:"10px",color:"#c8b89a",letterSpacing:"1px"}}>HDC현대산업개발 · 품질팀 · 내부 배포용</span>
             <span style={{fontSize:"10px",color:"#c8b89a"}}>{today}</span>
           </div>
