@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
@@ -1391,14 +1392,14 @@ function SummaryModal({ allData, onClose }) {
     return ()=>window.removeEventListener("resize", calc);
   },[]);
 
-  return (
+  return createPortal(
     <>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <div id="sum-wrap-outer"
-        style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:6000,display:"flex",alignItems:"center",justifyContent:"center"}}
+        style={{position:"fixed",top:0,left:0,right:0,bottom:0,width:"100vw",height:"100vh",background:"rgba(0,0,0,0.85)",zIndex:999999,display:"flex",alignItems:"center",justifyContent:"center"}}
         onClick={onClose}>
         {/* 버튼 - 팝업 바깥 상단 */}
-        <div className="no-print" style={{position:"fixed",top:"8px",right:"12px",display:"flex",gap:"6px",alignItems:"center",zIndex:6001,background:"rgba(0,0,0,0.6)",padding:"5px 10px",borderRadius:"10px"}}>
+        <div className="no-print" style={{position:"fixed",top:"8px",right:"12px",display:"flex",gap:"6px",alignItems:"center",zIndex:1000000,background:"rgba(0,0,0,0.6)",padding:"5px 10px",borderRadius:"10px"}}>
           {updatedAt&&<span style={{fontSize:"10px",color:"rgba(255,255,255,0.75)"}}>최종: {new Date(updatedAt).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>}
           <button onClick={e=>{e.stopPropagation();doSDU();}} disabled={isRefreshing}
             style={{padding:"5px 10px",background:isRefreshing?"rgba(255,255,255,0.1)":"rgba(255,193,7,0.3)",border:"1px solid rgba(255,193,7,0.6)",borderRadius:"6px",color:"#ffc107",fontSize:"11px",fontWeight:"700",cursor:isRefreshing?"default":"pointer"}}>
@@ -1445,7 +1446,8 @@ function SummaryModal({ allData, onClose }) {
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
 
@@ -1522,7 +1524,7 @@ export default function App() {
             </button>; })}
           <div style={{width:"1px",height:"20px",background:"rgba(255,255,255,0.2)"}} />
           <button onClick={()=>setShowNotice(true)} style={{padding:"4px 10px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:"10px",color:"#f5d5b5",fontSize:"12px",cursor:"pointer"}}>📢 공지</button>
-          <button onClick={()=>setShowSummary(true)} style={{padding:"4px 12px",background:"rgba(249,115,22,0.2)",border:"1px solid rgba(249,115,22,0.5)",borderRadius:"10px",color:"#fdba74",fontSize:"11px",fontWeight:"700",cursor:"pointer"}}>📋 실적요약</button>
+          <button onClick={()=>setShowSummary(true)} style={{padding:"4px 12px",background:"rgba(249,115,22,0.2)",border:"1px solid rgba(249,115,22,0.5)",borderRadius:"10px",color:"#fdba74",fontSize:"11px",fontWeight:"700",cursor:"pointer"}}>📋 Summary</button>
           <div style={{width:"1px",height:"20px",background:"rgba(255,255,255,0.2)"}} />
           <button onClick={()=>{ const bk={allData,allWork,allReq,savedAt:new Date().toISOString()}; navigator.clipboard.writeText(JSON.stringify(bk)).then(()=>alert("✅ 백업 완료!")).catch(()=>alert("클립보드 복사 실패")); }} style={{padding:"4px 8px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"10px",color:"#c9a880",fontSize:"13px",cursor:"pointer"}}>BK</button>
           <button onClick={()=>{ setRestoreText(""); setRestoreModal(true); }} style={{padding:"4px 8px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"10px",color:"#c9a880",fontSize:"13px",cursor:"pointer"}}>RS</button>
