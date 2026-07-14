@@ -1234,7 +1234,7 @@ function SummaryModal({ allData, onClose }) {
     const bullets   = cards[item.num];
     const isLoading = bullets === undefined && isRefreshing;
     return (
-      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"6px",padding:"14px 16px",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"6px",padding:"14px 16px",display:"flex",flexDirection:"column",height:"240px",overflow:"hidden"}}>
         {/* 헤더 */}
         <div style={{display:"flex",alignItems:"flex-start",gap:"10px",paddingBottom:"10px",marginBottom:"10px",borderBottom:"1px solid #e0d8cc",flexShrink:0}}>
           <span style={{fontSize:"26px",fontWeight:"900",color:"#d4b896",lineHeight:1,flexShrink:0}}>{item.num}</span>
@@ -1244,7 +1244,7 @@ function SummaryModal({ allData, onClose }) {
               <span style={{fontSize:"8px",color:item.cat==="전략"?"#1d4ed8":"#166534",fontWeight:"600"}}>{item.cat}목표 · {item.score}점</span>
               <span style={{fontSize:"8px",color:"#fff",background:item.cat==="전략"?"#3b82f6":"#22c55e",padding:"1px 6px",borderRadius:"8px",fontWeight:"700"}}>{getRaw(item).length}명</span>
             </div>
-            {item.desc&&<div style={{fontSize:"9px",color:"#7a6a54",marginTop:"3px",lineHeight:"1.3"}}>{item.desc}</div>}
+            {item.desc&&<div style={{fontSize:"9px",color:"#7a6a54",marginTop:"3px",lineHeight:"1.3",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.desc}</div>}
           </div>
           <span style={{fontSize:"15px",fontWeight:"900",color:rateColor(rate),background:rateBg(rate),padding:"2px 9px",borderRadius:"4px",flexShrink:0}}>{rate}%</span>
         </div>
@@ -1399,7 +1399,7 @@ function SummaryModal({ allData, onClose }) {
               CSO 품질팀 <span style={{color:"#c0703a",textDecoration:"underline",textUnderlineOffset:"4px"}}>주요업무 실적 요약</span>
             </div>
           </div>
-          {/* 카드 그리드 - A4 비율에 맞게 행 높이 고정 */}
+          {/* 카드 그리드 */}
           <div style={{padding:"12px 24px",background:"#fff",flexShrink:0}}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gridTemplateRows:"repeat(2,240px)",gap:"10px"}}>
               {ITEMS.map((item,i)=><Card key={i} item={item} />)}
