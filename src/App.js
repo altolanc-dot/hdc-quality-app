@@ -1234,7 +1234,7 @@ function SummaryModal({ allData, onClose }) {
     const bullets   = cards[item.num];
     const isLoading = bullets === undefined && isRefreshing;
     return (
-      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"6px",padding:"clamp(8px,1vw,14px) clamp(10px,1.2vw,16px)",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"5px",padding:"11px 13px",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
         {/* 헤더 */}
         <div style={{display:"flex",alignItems:"flex-start",gap:"10px",paddingBottom:"10px",marginBottom:"10px",borderBottom:"1px solid #e0d8cc",flexShrink:0}}>
           <span style={{fontSize:"26px",fontWeight:"900",color:"#d4b896",lineHeight:1,flexShrink:0}}>{item.num}</span>
@@ -1377,51 +1377,70 @@ function SummaryModal({ allData, onClose }) {
     win.document.close();
   };
 
+  // A4 가로 실제 px: 297mm @ 96dpi = 1122px, 210mm = 794px
+  const A4W = 1122, A4H = 794;
+
   return (
     <>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div id="sum-wrap-outer" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.82)",zIndex:6000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
+      <style>{`
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .a4-wrap {
+          width:${A4W}px;
+          height:${A4H}px;
+          transform-origin: top left;
+          background:#fff;
+          display:flex;
+          flex-direction:column;
+          font-family:'Noto Sans KR','Malgun Gothic',sans-serif;
+          overflow:hidden;
+          border-radius:4px;
+          box-shadow:0 8px 40px rgba(0,0,0,0.5);
+        }
+      `}</style>
+      <div id="sum-wrap-outer"
+        style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.82)",zIndex:6000,display:"flex",alignItems:"center",justifyContent:"center"}}
+        onClick={onClose}>
         {/* 버튼 */}
         <div className="no-print" style={{position:"fixed",top:"12px",right:"16px",display:"flex",gap:"8px",alignItems:"center",zIndex:6001}}>
           {updatedAt&&<span style={{fontSize:"10px",color:"rgba(255,255,255,0.7)"}}>최종: {new Date(updatedAt).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>}
           <button onClick={e=>{e.stopPropagation();doSDU();}} disabled={isRefreshing}
-            style={{padding:"6px 12px",background:isRefreshing?"rgba(255,255,255,0.1)":"rgba(255,193,7,0.25)",border:"1px solid rgba(255,193,7,0.5)",borderRadius:"8px",color:"#ffc107",fontSize:"12px",fontWeight:"700",cursor:isRefreshing?"default":"pointer",whiteSpace:"nowrap"}}>
+            style={{padding:"6px 12px",background:isRefreshing?"rgba(255,255,255,0.1)":"rgba(255,193,7,0.25)",border:"1px solid rgba(255,193,7,0.5)",borderRadius:"8px",color:"#ffc107",fontSize:"12px",fontWeight:"700",cursor:isRefreshing?"default":"pointer"}}>
             {isRefreshing?"⏳...":"UD"}
           </button>
           <button onClick={e=>{e.stopPropagation();handlePrint();}} style={{padding:"6px 12px",background:"#c0703a",border:"none",borderRadius:"8px",color:"#fff",fontSize:"12px",fontWeight:"700",cursor:"pointer"}}>PDF</button>
           <button onClick={e=>{e.stopPropagation();onClose();}} style={{padding:"6px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:"8px",color:"#fff",fontSize:"12px",cursor:"pointer"}}>✕</button>
         </div>
-        {/* A4 가로 비율 고정 팝업: 너비 96vw, 높이 = 너비/1.414 */}
-        <div id="sum-wrap" onClick={e=>e.stopPropagation()}
-          style={{
-            width:"96vw",
-            height:"calc(96vw / 1.414)",
-            maxHeight:"96vh",
-            background:"#fff",
-            borderRadius:"4px",
-            boxShadow:"0 8px 40px rgba(0,0,0,0.5)",
-            fontFamily:"'Noto Sans KR','Malgun Gothic',sans-serif",
-            overflow:"hidden",
-            display:"flex",
-            flexDirection:"column"
-          }}>
-          {/* 헤더 */}
-          <div style={{background:"#fff",padding:"clamp(8px,1.2vw,16px) clamp(12px,2vw,28px) clamp(6px,1vw,12px)",borderBottom:"2px solid #2d2416",flexShrink:0}}>
-            <div style={{fontSize:"clamp(8px,0.9vw,11px)",color:"#c0703a",letterSpacing:"2px",fontWeight:"700",marginBottom:"3px",fontStyle:"italic"}}>Key Performance · 2026 주요목표 실적</div>
-            <div style={{fontSize:"clamp(16px,2vw,26px)",fontWeight:"900",color:"#2d2416",letterSpacing:"-0.5px"}}>
-              CSO 품질팀 <span style={{color:"#c0703a",textDecoration:"underline",textUnderlineOffset:"3px"}}>주요업무 실적 요약</span>
+
+        {/* scale 컨테이너: A4 고정 크기를 화면에 맞게 축소 */}
+        <div style={{
+          width:`min(calc(96vh * ${A4W}/${A4H}), 96vw)`,
+          height:`min(96vh, calc(96vw * ${A4H}/${A4W}))`,
+          position:"relative"
+        }}>
+          <div id="sum-wrap" onClick={e=>e.stopPropagation()} className="a4-wrap"
+            style={{
+              position:"absolute", top:0, left:0,
+              transform:`scale(min(calc(96vh/${A4H}), calc(96vw/${A4W})))`,
+              transformOrigin:"top left"
+            }}>
+            {/* 헤더 */}
+            <div style={{background:"#fff",padding:"14px 26px 10px",borderBottom:"2.5px solid #2d2416",flexShrink:0}}>
+              <div style={{fontSize:"10px",color:"#c0703a",letterSpacing:"2px",fontWeight:"700",marginBottom:"4px",fontStyle:"italic"}}>Key Performance · 2026 주요목표 실적</div>
+              <div style={{fontSize:"24px",fontWeight:"900",color:"#2d2416",letterSpacing:"-0.5px"}}>
+                CSO 품질팀 <span style={{color:"#c0703a",textDecoration:"underline",textUnderlineOffset:"3px"}}>주요업무 실적 요약</span>
+              </div>
             </div>
-          </div>
-          {/* 카드 그리드 - flex:1 로 나머지 공간 채움 */}
-          <div style={{padding:"clamp(6px,0.8vw,12px) clamp(10px,1.5vw,24px)",background:"#fff",flex:1,overflow:"hidden"}}>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gridTemplateRows:"repeat(2,1fr)",gap:"clamp(6px,0.7vw,10px)",height:"100%"}}>
-              {ITEMS.map((item,i)=><Card key={i} item={item} />)}
+            {/* 카드 그리드 */}
+            <div style={{padding:"10px 22px",background:"#fff",flex:1,overflow:"hidden"}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gridTemplateRows:"repeat(2,1fr)",gap:"8px",height:"100%"}}>
+                {ITEMS.map((item,i)=><Card key={i} item={item} />)}
+              </div>
             </div>
-          </div>
-          {/* 푸터 */}
-          <div style={{background:"#2d2416",padding:"clamp(5px,0.7vw,9px) clamp(12px,2vw,28px)",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-            <span style={{fontSize:"clamp(8px,0.8vw,11px)",color:"#c8b89a",letterSpacing:"1px"}}>IPARK현대산업개발 · 품질팀 · 내부 배포용</span>
-            <span style={{fontSize:"clamp(8px,0.8vw,11px)",color:"#c8b89a"}}>{updatedAt?`최종 요약: ${new Date(updatedAt).toLocaleString("ko-KR",{year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"})}`:today}</span>
+            {/* 푸터 */}
+            <div style={{background:"#2d2416",padding:"7px 26px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+              <span style={{fontSize:"9px",color:"#c8b89a",letterSpacing:"1px"}}>IPARK현대산업개발 · 품질팀 · 내부 배포용</span>
+              <span style={{fontSize:"9px",color:"#c8b89a"}}>{updatedAt?`최종 요약: ${new Date(updatedAt).toLocaleString("ko-KR",{year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"})}`:today}</span>
+            </div>
           </div>
         </div>
       </div>
