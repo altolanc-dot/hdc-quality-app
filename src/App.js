@@ -1285,7 +1285,9 @@ function SummaryModal({ allData, onClose }) {
     }));
     const rateColor = r=>r>=80?"#1a5c35":r>=50?"#7c5c0a":"#9b2c2c";
     const rateBg    = r=>r>=80?"#d1fae5":r>=50?"#fef3c7":"#fee2e2";
-    const today = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});
+    const footerDate = updatedAt
+      ? `최종 요약: ${new Date(updatedAt).toLocaleString("ko-KR",{year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"})}`
+      : today;
 
     const cardsHTML = cardData.map((cd)=>`
       <div style="background:#faf8f5;border:1px solid #e0d8cc;border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;box-sizing:border-box;">
@@ -1367,8 +1369,8 @@ function SummaryModal({ allData, onClose }) {
 </div>
 <div class="grid">${cardsHTML}</div>
 <div class="footer">
-  <span>HDC현대산업개발 · 품질팀 · 내부 배포용</span>
-  <span>${today}</span>
+  <span>IPARK현대산업개발 · 품질팀 · 내부 배포용</span>
+  <span>${footerDate}</span>
 </div>
 <script>window.onload=function(){setTimeout(function(){window.print();},700);};</script>
 </body></html>`);
@@ -1405,8 +1407,8 @@ function SummaryModal({ allData, onClose }) {
           </div>
           {/* 푸터 */}
           <div style={{background:"#2d2416",padding:"9px 28px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-            <span style={{fontSize:"10px",color:"#c8b89a",letterSpacing:"1px"}}>HDC현대산업개발 · 품질팀 · 내부 배포용</span>
-            <span style={{fontSize:"10px",color:"#c8b89a"}}>{today}</span>
+            <span style={{fontSize:"10px",color:"#c8b89a",letterSpacing:"1px"}}>IPARK현대산업개발 · 품질팀 · 내부 배포용</span>
+            <span style={{fontSize:"10px",color:"#c8b89a"}}>{updatedAt ? `최종 요약: ${new Date(updatedAt).toLocaleString("ko-KR",{year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"})}` : today}</span>
           </div>
         </div>
       </div>
