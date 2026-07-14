@@ -1239,7 +1239,7 @@ function SummaryModal({ allData, onClose }) {
         {/* 헤더 */}
         <div style={{display:"flex",alignItems:"flex-start",gap:"10px",paddingBottom:"10px",marginBottom:"10px",borderBottom:"1px solid #e0d8cc",flexShrink:0}}>
           <span style={{fontSize:"26px",fontWeight:"900",color:"#d4b896",lineHeight:1,flexShrink:0}}>{item.num}</span>
-          <div style={{flex:1}}>
+          <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:"12px",fontWeight:"800",color:"#2d2416"}}>{item.label}</div>
             <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"2px"}}>
               <span style={{fontSize:"8px",color:item.cat==="전략"?"#1d4ed8":"#166534",fontWeight:"600"}}>{item.cat}목표 · {item.score}점</span>
@@ -1397,7 +1397,7 @@ function SummaryModal({ allData, onClose }) {
     <>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <div id="sum-wrap-outer"
-        style={{position:"fixed",top:0,left:0,right:0,bottom:0,width:"100vw",height:"100vh",background:"rgba(0,0,0,0.85)",zIndex:999999,display:"flex",alignItems:"center",justifyContent:"center"}}
+        style={{position:"fixed",top:0,left:0,right:0,bottom:0,width:"100vw",height:"100vh",background:"#161310",zIndex:999999,display:"flex",alignItems:"center",justifyContent:"center"}}
         onClick={onClose}>
         {/* 버튼 - 팝업 바깥 상단 */}
         <div className="no-print" style={{position:"fixed",top:"8px",right:"12px",display:"flex",gap:"6px",alignItems:"center",zIndex:1000000,background:"rgba(0,0,0,0.6)",padding:"5px 10px",borderRadius:"10px"}}>
