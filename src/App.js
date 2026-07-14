@@ -1235,7 +1235,7 @@ function SummaryModal({ allData, onClose }) {
     const bullets   = cards[item.num];
     const isLoading = bullets === undefined && isRefreshing;
     return (
-      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"5px",padding:"11px 13px",display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"5px",padding:"11px 13px",display:"flex",flexDirection:"column",height:"100%",minHeight:0,minWidth:0,overflow:"hidden"}}>
         {/* 헤더 */}
         <div style={{display:"flex",alignItems:"flex-start",gap:"10px",paddingBottom:"10px",marginBottom:"10px",borderBottom:"1px solid #e0d8cc",flexShrink:0}}>
           <span style={{fontSize:"26px",fontWeight:"900",color:"#d4b896",lineHeight:1,flexShrink:0}}>{item.num}</span>
@@ -1250,7 +1250,7 @@ function SummaryModal({ allData, onClose }) {
           <span style={{fontSize:"15px",fontWeight:"900",color:rateColor(rate),background:rateBg(rate),padding:"2px 9px",borderRadius:"4px",flexShrink:0}}>{rate}%</span>
         </div>
         {/* 내용 */}
-        <div style={{flex:1,overflow:"hidden"}}>
+        <div style={{flex:1,minHeight:0,overflow:"hidden"}}>
           {isLoading
             ? <div style={{display:"flex",alignItems:"center",gap:"8px",color:"#9a8a74",fontSize:"10px",padding:"10px 0"}}>
                 <div style={{width:"12px",height:"12px",border:"2px solid #d4b896",borderTop:"2px solid #c0703a",borderRadius:"50%",animation:"spin 0.8s linear infinite",flexShrink:0}} />
@@ -1291,7 +1291,7 @@ function SummaryModal({ allData, onClose }) {
       : today;
 
     const cardsHTML = cardData.map((cd)=>`
-      <div style="background:#faf8f5;border:1px solid #e0d8cc;border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;box-sizing:border-box;">
+      <div style="background:#faf8f5;border:1px solid #e0d8cc;border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;box-sizing:border-box;min-height:0;overflow:hidden;">
         <div style="display:flex;align-items:flex-start;gap:10px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #e0d8cc;flex-shrink:0;">
           <span style="font-size:28px;font-weight:900;color:#d4b896;line-height:1;flex-shrink:0;">${cd.item.num}</span>
           <div style="flex:1;min-width:0;">
@@ -1304,7 +1304,7 @@ function SummaryModal({ allData, onClose }) {
           </div>
           <span style="font-size:16px;font-weight:900;color:${rateColor(cd.rate)};background:${rateBg(cd.rate)};padding:3px 10px;border-radius:5px;flex-shrink:0;">${cd.rate}%</span>
         </div>
-        <div style="flex:1;">
+        <div style="flex:1;min-height:0;overflow:hidden;">
           ${cd.bullets.length===0
             ? `<div style="font-size:11px;color:#b0a090;font-style:italic;">등록된 실적이 없습니다</div>`
             : cd.bullets.map(b=>`
@@ -1341,9 +1341,10 @@ function SummaryModal({ allData, onClose }) {
   .title span{color:#c0703a;text-decoration:underline;text-underline-offset:4px;}
   .grid{
     flex:1;
+    min-height:0;
     display:grid;
-    grid-template-columns:repeat(3,1fr);
-    grid-template-rows:repeat(2,1fr);
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-rows:repeat(2,minmax(0,1fr));
     gap:10px;
     padding:12px 28px;
   }
@@ -1433,8 +1434,8 @@ function SummaryModal({ allData, onClose }) {
               </div>
             </div>
             {/* 카드 그리드 */}
-            <div style={{padding:"10px 22px",background:"#fff",flex:1,overflow:"hidden"}}>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gridTemplateRows:"repeat(2,1fr)",gap:"8px",height:"100%"}}>
+            <div style={{padding:"10px 22px",background:"#fff",flex:1,minHeight:0,overflow:"hidden"}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gridTemplateRows:"repeat(2,minmax(0,1fr))",gap:"8px",height:"100%",minHeight:0}}>
                 {ITEMS.map((item,i)=><Card key={i} item={item} />)}
               </div>
             </div>
