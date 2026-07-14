@@ -1235,7 +1235,7 @@ function SummaryModal({ allData, onClose }) {
     const bullets   = cards[item.num];
     const isLoading = bullets === undefined && isRefreshing;
     return (
-      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"5px",padding:"11px 13px",display:"flex",flexDirection:"column",height:"100%",minHeight:0,minWidth:0,overflow:"hidden"}}>
+      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"5px",padding:"11px 13px",display:"flex",flexDirection:"column",maxHeight:"100%",minHeight:0,minWidth:0,overflow:"hidden"}}>
         {/* 헤더 */}
         <div style={{display:"flex",alignItems:"flex-start",gap:"10px",paddingBottom:"10px",marginBottom:"10px",borderBottom:"1px solid #e0d8cc",flexShrink:0}}>
           <span style={{fontSize:"26px",fontWeight:"900",color:"#d4b896",lineHeight:1,flexShrink:0}}>{item.num}</span>
@@ -1291,7 +1291,7 @@ function SummaryModal({ allData, onClose }) {
       : today;
 
     const cardsHTML = cardData.map((cd)=>`
-      <div style="background:#faf8f5;border:1px solid #e0d8cc;border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;box-sizing:border-box;min-height:0;overflow:hidden;">
+      <div style="background:#faf8f5;border:1px solid #e0d8cc;border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;box-sizing:border-box;max-height:100%;min-height:0;overflow:hidden;">
         <div style="display:flex;align-items:flex-start;gap:10px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #e0d8cc;flex-shrink:0;">
           <span style="font-size:28px;font-weight:900;color:#d4b896;line-height:1;flex-shrink:0;">${cd.item.num}</span>
           <div style="flex:1;min-width:0;">
@@ -1345,6 +1345,7 @@ function SummaryModal({ allData, onClose }) {
     display:grid;
     grid-template-columns:repeat(3,minmax(0,1fr));
     grid-template-rows:repeat(2,minmax(0,1fr));
+    align-items:start;
     gap:10px;
     padding:12px 28px;
   }
@@ -1435,7 +1436,7 @@ function SummaryModal({ allData, onClose }) {
             </div>
             {/* 카드 그리드 */}
             <div style={{padding:"10px 22px",background:"#fff",flex:1,minHeight:0,overflow:"hidden"}}>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gridTemplateRows:"repeat(2,minmax(0,1fr))",gap:"8px",height:"100%",minHeight:0}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gridTemplateRows:"repeat(2,minmax(0,1fr))",gap:"8px",height:"100%",minHeight:0,alignItems:"start"}}>
                 {ITEMS.map((item,i)=><Card key={i} item={item} />)}
               </div>
             </div>
