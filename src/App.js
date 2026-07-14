@@ -1377,28 +1377,25 @@ function SummaryModal({ allData, onClose }) {
     win.document.close();
   };
 
-  // A4 가로 실제 px: 297mm @ 96dpi = 1122px, 210mm = 794px
   const A4W = 1122, A4H = 794;
+  const [scale, setScale] = useState(1);
+
+  useEffect(()=>{
+    const calc = () => {
+      const sw = window.innerWidth  * 0.96;
+      const sh = window.innerHeight * 0.96;
+      setScale(Math.min(sw/A4W, sh/A4H));
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return ()=>window.removeEventListener("resize", calc);
+  },[]);
 
   return (
     <>
-      <style>{`
-        @keyframes spin{to{transform:rotate(360deg)}}
-        .a4-wrap {
-          width:${A4W}px;
-          height:${A4H}px;
-          transform-origin: top left;
-          background:#fff;
-          display:flex;
-          flex-direction:column;
-          font-family:'Noto Sans KR','Malgun Gothic',sans-serif;
-          overflow:hidden;
-          border-radius:4px;
-          box-shadow:0 8px 40px rgba(0,0,0,0.5);
-        }
-      `}</style>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <div id="sum-wrap-outer"
-        style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.82)",zIndex:6000,display:"flex",alignItems:"center",justifyContent:"center"}}
+        style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:6000,display:"flex",alignItems:"center",justifyContent:"center"}}
         onClick={onClose}>
         {/* 버튼 */}
         <div className="no-print" style={{position:"fixed",top:"12px",right:"16px",display:"flex",gap:"8px",alignItems:"center",zIndex:6001}}>
@@ -1411,17 +1408,21 @@ function SummaryModal({ allData, onClose }) {
           <button onClick={e=>{e.stopPropagation();onClose();}} style={{padding:"6px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:"8px",color:"#fff",fontSize:"12px",cursor:"pointer"}}>✕</button>
         </div>
 
-        {/* scale 컨테이너: A4 고정 크기를 화면에 맞게 축소 */}
-        <div style={{
-          width:`min(calc(96vh * ${A4W}/${A4H}), 96vw)`,
-          height:`min(96vh, calc(96vw * ${A4H}/${A4W}))`,
-          position:"relative"
-        }}>
-          <div id="sum-wrap" onClick={e=>e.stopPropagation()} className="a4-wrap"
+        {/* A4 고정 크기 + JS scale */}
+        <div style={{width:A4W*scale, height:A4H*scale, position:"relative", flexShrink:0}}>
+          <div id="sum-wrap" onClick={e=>e.stopPropagation()}
             style={{
               position:"absolute", top:0, left:0,
-              transform:`scale(min(calc(96vh/${A4H}), calc(96vw/${A4W})))`,
-              transformOrigin:"top left"
+              width:A4W, height:A4H,
+              transform:`scale(${scale})`,
+              transformOrigin:"top left",
+              background:"#fff",
+              borderRadius:"4px",
+              boxShadow:"0 8px 40px rgba(0,0,0,0.5)",
+              fontFamily:"'Noto Sans KR','Malgun Gothic',sans-serif",
+              overflow:"hidden",
+              display:"flex",
+              flexDirection:"column"
             }}>
             {/* 헤더 */}
             <div style={{background:"#fff",padding:"14px 26px 10px",borderBottom:"2.5px solid #2d2416",flexShrink:0}}>
