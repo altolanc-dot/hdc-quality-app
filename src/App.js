@@ -1158,41 +1158,56 @@ function SummaryModal({ allData, onClose }) {
     return rows;
   };
 
-  const [cards, setCards]     = useState({});
+  const [cards, setCards]           = useState({});
   const [loadingMap, setLoadingMap] = useState({});
+  const [updatedAt, setUpdatedAt]   = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // 팝업 열릴 때 Firebase에서 저장된 요약 불러오기
   useEffect(()=>{
+    const loadSaved = async () => {
+      const saved = await dbGet("summary","latest");
+      if(saved?.data){ setCards(saved.data); setUpdatedAt(saved.updatedAt); }
+    };
+    loadSaved();
+  },[]);
+
+  // SDU 수동 업데이트
+  const doSDU = async () => {
     const totalGoals = Object.values(allData).flat().reduce((s,m)=>s+m.goals.length,0);
     if(totalGoals===0) return;
-
-    const run = async () => {
-      for(const item of ITEMS){
-        setLoadingMap(p=>({...p,[item.num]:true}));
-        const raw = getRaw(item);
-        if(!raw.length){
-          setCards(p=>({...p,[item.num]:[]}));
-          setLoadingMap(p=>({...p,[item.num]:false}));
-          continue;
-        }
-        const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
-        const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내, 설명 1~2문장.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
-        try {
-          const res = await fetch("/api/summarize",{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({prompt})
-          });
-          const data = await res.json();
-          const text = (data.content?.[0]?.text||"[]").replace(/```json|```/g,"").trim();
-          setCards(p=>({...p,[item.num]:JSON.parse(text)}));
-        } catch(e){
-          setCards(p=>({...p,[item.num]:[{title:"오류",desc:"잠시 후 다시 시도해 주세요."}]}));
-        }
+    setIsRefreshing(true);
+    const newCards = {};
+    for(const item of ITEMS){
+      setLoadingMap(p=>({...p,[item.num]:true}));
+      const raw = getRaw(item);
+      if(!raw.length){
+        newCards[item.num]=[];
+        setCards(p=>({...p,[item.num]:[]}));
         setLoadingMap(p=>({...p,[item.num]:false}));
+        continue;
       }
-    };
-    run();
-  },[JSON.stringify(Object.values(allData).flat().map(m=>m.name))]);
+      const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
+      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내, 설명 1~2문장.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
+      try {
+        const res = await fetch("/api/summarize",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});
+        const data = await res.json();
+        const text = (data.content?.[0]?.text||"[]").replace(/```json|```/g,"").trim();
+        const parsed = JSON.parse(text);
+        newCards[item.num] = parsed;
+        setCards(p=>({...p,[item.num]:parsed}));
+      } catch(e){
+        newCards[item.num] = [{title:"오류",desc:"잠시 후 다시 시도해 주세요."}];
+        setCards(p=>({...p,[item.num]:newCards[item.num]}));
+      }
+      setLoadingMap(p=>({...p,[item.num]:false}));
+    }
+    // Firebase에 최종 저장
+    const now = new Date().toISOString();
+    await dbSet("summary","latest",{data:newCards, updatedAt:now});
+    setUpdatedAt(now);
+    setIsRefreshing(false);
+  };
 
   const rateColor = r=>r>=80?"#1a5c35":r>=50?"#7c5c0a":"#9b2c2c";
   const rateBg    = r=>r>=80?"#d1fae5":r>=50?"#fef3c7":"#fee2e2";
@@ -1240,22 +1255,43 @@ function SummaryModal({ allData, onClose }) {
     );
   };
 
+  const handlePrint = () => {
+    const printContent = document.getElementById("sum-wrap").innerHTML;
+    const win = window.open("","_blank","width=1200,height=900");
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>CSO 품질팀 주요업무 실적 요약</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap');
+          * { margin:0; padding:0; box-sizing:border-box; }
+          body { font-family:'Noto Sans KR','Malgun Gothic',sans-serif; background:#fff; }
+          @media print {
+            body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+          }
+          @page { size:A4 landscape; margin:6mm; }
+        </style>
+      </head>
+      <body>${printContent}</body>
+      </html>
+    `);
+    win.document.close();
+    setTimeout(()=>{ win.focus(); win.print(); }, 800);
+  };
+
   return (
     <>
-      <style>{`
-        @keyframes spin{to{transform:rotate(360deg)}}
-        @media print{
-          body { margin:0; padding:0; }
-          body > *:not(#sum-wrap-outer){ display:none!important; }
-          #sum-wrap-outer{ display:block!important; position:fixed!important; top:0; left:0; width:100%; height:100%; z-index:99999; }
-          .no-print{ display:none!important; }
-          #sum-wrap *{ -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
-        }
-        @page{ size:A4 landscape; margin:5mm; }
-      `}</style>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <div id="sum-wrap-outer" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:6000,display:"flex",alignItems:"flex-start",justifyContent:"center",overflowY:"auto",padding:"20px 0"}} onClick={onClose}>
-        <div className="no-print" style={{position:"fixed",top:"16px",right:"24px",display:"flex",gap:"8px",zIndex:6001}}>
-          <button onClick={()=>window.print()} style={{padding:"8px 20px",background:"#c0703a",border:"none",borderRadius:"8px",color:"#fff",fontSize:"13px",fontWeight:"700",cursor:"pointer"}}>🖨️ PDF 출력</button>
+        <div className="no-print" style={{position:"fixed",top:"16px",right:"24px",display:"flex",gap:"8px",alignItems:"center",zIndex:6001}}>
+          {updatedAt&&<span style={{fontSize:"10px",color:"rgba(255,255,255,0.6)"}}>최종 요약: {new Date(updatedAt).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>}
+          <button onClick={doSDU} disabled={isRefreshing}
+            style={{padding:"8px 14px",background:isRefreshing?"rgba(255,255,255,0.1)":"rgba(255,193,7,0.25)",border:"1px solid rgba(255,193,7,0.5)",borderRadius:"8px",color:"#ffc107",fontSize:"12px",fontWeight:"700",cursor:isRefreshing?"default":"pointer",letterSpacing:"1px"}}>
+            {isRefreshing?"⏳ 요약 중...":"SDU"}
+          </button>
+          <button onClick={handlePrint} style={{padding:"8px 20px",background:"#c0703a",border:"none",borderRadius:"8px",color:"#fff",fontSize:"13px",fontWeight:"700",cursor:"pointer"}}>🖨️ PDF 출력</button>
           <button onClick={onClose} style={{padding:"8px 16px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:"8px",color:"#fff",fontSize:"13px",cursor:"pointer"}}>✕ 닫기</button>
         </div>
         <div id="sum-wrap" onClick={e=>e.stopPropagation()}
