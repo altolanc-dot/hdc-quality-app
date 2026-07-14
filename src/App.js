@@ -1159,44 +1159,31 @@ function SummaryModal({ allData, onClose }) {
   };
 
   const [cards, setCards]     = useState({});
-  const [loadingMap, setLoadingMap] = useState({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(()=>{
-    // allData가 실제로 로드된 후에만 실행
     const totalGoals = Object.values(allData).flat().reduce((s,m)=>s+m.goals.length,0);
     if(totalGoals===0) return;
 
-    const run = async () => {
-      for(const item of ITEMS){
-        setLoadingMap(p=>({...p,[item.num]:true}));
-        const raw = getRaw(item);
-        if(!raw.length){
-          setCards(p=>({...p,[item.num]:[]}));
-          setLoadingMap(p=>({...p,[item.num]:false}));
-          continue;
+    const result = {};
+    for(const item of ITEMS){
+      const raw = getRaw(item);
+      const rows = [];
+      raw.forEach(r=>{
+        // 결과물 우선
+        if(r.결과.length>0){
+          r.결과.forEach(t=>rows.push({type:"결과",text:t,name:r.name,pct:r.pct}));
+        } else if(r.비고){
+          // 진행현황: 첫 의미있는 줄만
+          const firstLine=r.비고.split("\n").find(l=>l.trim().replace(/^[-·•\-]\s*/,""));
+          if(firstLine) rows.push({type:"진행",text:firstLine.trim().replace(/^[-·•\-]\s*/,""),name:r.name,pct:r.pct});
         }
-        const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
-        const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내, 설명 1~2문장, 구체적 수치 포함.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
-        try {
-          const res = await fetch("https://api.anthropic.com/v1/messages",{
-            method:"POST",
-            headers:{
-              "Content-Type":"application/json",
-              "anthropic-version":"2023-06-01",
-              "anthropic-dangerous-direct-browser-access":"true"
-            },
-            body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:800,messages:[{role:"user",content:prompt}]})
-          });
-          const data = await res.json();
-          const text = (data.content?.[0]?.text||"[]").replace(/```json|```/g,"").trim();
-          setCards(p=>({...p,[item.num]:JSON.parse(text)}));
-        } catch(e){
-          setCards(p=>({...p,[item.num]:[{title:"요약 오류",desc:"데이터를 불러오는 중 오류가 발생했습니다."}]}));
-        }
-        setLoadingMap(p=>({...p,[item.num]:false}));
-      }
-    };
-    run();
+      });
+      // 중복 제거, 최대 5개
+      result[item.num]=[...new Map(rows.map(r=>[r.text,r])).values()].slice(0,5);
+    }
+    setCards(result);
+    setLoading(false);
   },[JSON.stringify(Object.values(allData).flat().map(m=>m.name))]);
 
   const rateColor = r=>r>=80?"#1a5c35":r>=50?"#7c5c0a":"#9b2c2c";
@@ -1205,7 +1192,7 @@ function SummaryModal({ allData, onClose }) {
   const Card = ({item})=>{
     const rate    = getRate(item);
     const bullets = cards[item.num]||[];
-    const isLoading = loadingMap[item.num]===true || (loadingMap[item.num]===undefined && Object.keys(cards).length===0);
+    const isLoading = loading;
     return (
       <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"4px",padding:"16px",display:"flex",flexDirection:"column",minHeight:"195px"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:"10px",paddingBottom:"10px",marginBottom:"10px",borderBottom:"1px solid #e0d8cc"}}>
@@ -1222,21 +1209,41 @@ function SummaryModal({ allData, onClose }) {
         </div>
         <div style={{flex:1}}>
           {isLoading
-            ? <div style={{display:"flex",alignItems:"center",gap:"8px",color:"#9a8a74",fontSize:"10px",padding:"16px 0"}}>
-                <div style={{width:"12px",height:"12px",border:"2px solid #d4b896",borderTop:"2px solid #c0703a",borderRadius:"50%",animation:"spin 0.8s linear infinite",flexShrink:0}} />
-                AI가 핵심 성과를 요약하는 중...
-              </div>
+            ? <div style={{fontSize:"10px",color:"#9a8a74",padding:"8px 0"}}>불러오는 중...</div>
             : bullets.length===0
               ? <div style={{fontSize:"10px",color:"#b0a090",fontStyle:"italic",padding:"8px 0"}}>등록된 실적이 없습니다</div>
-              : bullets.map((b,bi)=>(
-                  <div key={bi} style={{display:"flex",gap:"8px",alignItems:"flex-start",marginBottom:"10px"}}>
-                    <span style={{width:"6px",height:"6px",borderRadius:"50%",background:"#c0703a",flexShrink:0,marginTop:"4px"}} />
-                    <div>
-                      <div style={{fontSize:"11px",fontWeight:"800",color:"#1a1208",marginBottom:"2px"}}>{b.title}</div>
-                      <div style={{fontSize:"10px",color:"#5a4a38",lineHeight:"1.55"}}>{b.desc}</div>
+              : <>
+                  {/* 결과물(승인본) */}
+                  {bullets.filter(b=>b.type==="결과").length>0&&(
+                    <div style={{marginBottom:"8px"}}>
+                      <div style={{fontSize:"8px",fontWeight:"700",color:"#c0703a",marginBottom:"5px",letterSpacing:"0.5px"}}>✅ 주요 결과물</div>
+                      {bullets.filter(b=>b.type==="결과").map((b,bi)=>(
+                        <div key={bi} style={{display:"flex",gap:"7px",alignItems:"flex-start",marginBottom:"5px"}}>
+                          <span style={{width:"5px",height:"5px",borderRadius:"50%",background:"#c0703a",flexShrink:0,marginTop:"4px"}} />
+                          <div>
+                            <div style={{fontSize:"10px",fontWeight:"600",color:"#1a1208",lineHeight:"1.5"}}>{b.text}</div>
+                            <div style={{fontSize:"8px",color:"#9a8a74"}}>{b.name} · {b.pct}%</div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))
+                  )}
+                  {/* 진행현황 */}
+                  {bullets.filter(b=>b.type==="진행").length>0&&(
+                    <div>
+                      <div style={{fontSize:"8px",fontWeight:"700",color:"#7a6a54",marginBottom:"5px",letterSpacing:"0.5px"}}>📋 진행현황</div>
+                      {bullets.filter(b=>b.type==="진행").map((b,bi)=>(
+                        <div key={bi} style={{display:"flex",gap:"7px",alignItems:"flex-start",marginBottom:"5px"}}>
+                          <span style={{fontSize:"9px",color:"#b0a080",flexShrink:0}}>–</span>
+                          <div>
+                            <div style={{fontSize:"10px",color:"#4a3c2c",lineHeight:"1.5"}}>{b.text}</div>
+                            <div style={{fontSize:"8px",color:"#9a8a74"}}>{b.name} · {b.pct}%</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
           }
         </div>
       </div>
