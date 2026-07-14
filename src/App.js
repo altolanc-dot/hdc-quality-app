@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
@@ -1207,7 +1207,7 @@ function SummaryModal({ allData, onClose }) {
         continue;
       }
       const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
-      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내, 설명 1~2문장.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
+      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내, 설명 1~2문장. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~수립" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일을 갖도록 통일.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
       try {
         const data = await callAPI(prompt);
         const text = (data.content?.[0]?.text||"[]").replace(/```json|```/g,"").trim();
@@ -1230,62 +1230,13 @@ function SummaryModal({ allData, onClose }) {
   const rateColor = r=>r>=80?"#1a5c35":r>=50?"#7c5c0a":"#9b2c2c";
   const rateBg    = r=>r>=80?"#d1fae5":r>=50?"#fef3c7":"#fee2e2";
 
-  const Card = ({item})=>{
-    const rate      = getRate(item);
-    const bullets   = cards[item.num];
-    const isLoading = bullets === undefined && isRefreshing;
-    return (
-      <div className="summary-card" style={{background:"#faf8f5",border:"1px solid #e0d8cc",borderRadius:"5px",padding:"11px 13px",display:"flex",flexDirection:"column",height:"100%",minHeight:0,minWidth:0,overflow:"hidden",boxShadow:"0 1px 2px rgba(45,36,22,0.06)"}}>
-        {/* 헤더 */}
-        <div style={{display:"flex",alignItems:"flex-start",gap:"10px",paddingBottom:"10px",marginBottom:"10px",borderBottom:"1px solid #e0d8cc",flexShrink:0}}>
-          <span style={{fontSize:"26px",fontWeight:"900",color:"#d4b896",lineHeight:1,flexShrink:0}}>{item.num}</span>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:"12px",fontWeight:"800",color:"#2d2416"}}>{item.label}</div>
-            <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"2px"}}>
-              <span style={{fontSize:"8px",color:item.cat==="전략"?"#1d4ed8":"#166534",fontWeight:"600"}}>{item.cat}목표 · {item.score}점</span>
-              <span style={{fontSize:"8px",color:"#fff",background:item.cat==="전략"?"#3b82f6":"#22c55e",padding:"1px 6px",borderRadius:"8px",fontWeight:"700"}}>{getRaw(item).length}명</span>
-            </div>
-            {item.desc&&<div style={{fontSize:"9px",color:"#7a6a54",marginTop:"3px",lineHeight:"1.3",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.desc}</div>}
-          </div>
-          <span style={{fontSize:"15px",fontWeight:"900",color:rateColor(rate),background:rateBg(rate),padding:"2px 9px",borderRadius:"4px",flexShrink:0}}>{rate}%</span>
-        </div>
-        {/* 내용 */}
-        <div style={{flex:1,minHeight:0,overflow:"hidden"}}>
-          {isLoading
-            ? <div style={{display:"flex",alignItems:"center",gap:"8px",color:"#9a8a74",fontSize:"10px",padding:"10px 0"}}>
-                <div style={{width:"12px",height:"12px",border:"2px solid #d4b896",borderTop:"2px solid #c0703a",borderRadius:"50%",animation:"spin 0.8s linear infinite",flexShrink:0}} />
-                AI 요약 중...
-              </div>
-            : bullets===undefined
-              ? <div style={{fontSize:"10px",color:"#9a8a74",padding:"8px 0",lineHeight:"1.6"}}>
-                  요약 내용이 없습니다.<br/>
-                  <span style={{color:"#c0703a",fontWeight:"700"}}>SDU</span> 버튼을 눌러 요약을 생성해 주세요.
-                </div>
-            : bullets.length===0
-              ? <div style={{fontSize:"10px",color:"#b0a090",fontStyle:"italic"}}>등록된 실적이 없습니다</div>
-              : bullets.map((b,bi)=>(
-                  <div key={bi} style={{display:"flex",gap:"7px",alignItems:"flex-start",marginBottom:"8px"}}>
-                    <span style={{width:"5px",height:"5px",borderRadius:"50%",background:"#c0703a",flexShrink:0,marginTop:"4px"}} />
-                    <div>
-                      <div style={{fontSize:"10px",fontWeight:"800",color:"#1a1208",marginBottom:"1px"}}>{b.title}</div>
-                      <div style={{fontSize:"9px",color:"#5a4a38",lineHeight:"1.5"}}>{b.desc}</div>
-                    </div>
-                  </div>
-                ))
-          }
-        </div>
-      </div>
-    );
-  };
-
-  const handlePrint = () => {
+  // 화면(iframe)과 PDF 출력이 100% 동일하도록, 카드/그리드 HTML을 한 곳에서만 생성
+  const buildSummaryHtml = (autoPrint) => {
     const cardData = ITEMS.map(item=>({
       item,
       rate: getRate(item),
       bullets: cards[item.num]||[]
     }));
-    const rateColor = r=>r>=80?"#1a5c35":r>=50?"#7c5c0a":"#9b2c2c";
-    const rateBg    = r=>r>=80?"#d1fae5":r>=50?"#fef3c7":"#fee2e2";
     const footerDate = updatedAt
       ? `최종 요약: ${new Date(updatedAt).toLocaleString("ko-KR",{year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"})}`
       : today;
@@ -1320,8 +1271,7 @@ function SummaryModal({ allData, onClose }) {
       </div>
     `).join("");
 
-    const win = window.open("","_blank","width=1400,height=1000");
-    win.document.write(`<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
 <title>CSO 품질팀 주요업무 실적 요약</title>
@@ -1330,9 +1280,10 @@ function SummaryModal({ allData, onClose }) {
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{
     width:297mm;
-    min-height:210mm;
+    height:210mm;
     background:#fff;
     font-family:'Noto Sans KR','Malgun Gothic',sans-serif;
+    overflow:hidden;
   }
   body{display:flex;flex-direction:column;}
   .header{padding:16px 28px 12px;border-bottom:2.5px solid #2d2416;flex-shrink:0;}
@@ -1360,7 +1311,6 @@ function SummaryModal({ allData, onClose }) {
   @media print{
     html,body{width:297mm;height:210mm;overflow:hidden;}
     body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .grid{height:calc(210mm - 80px - 36px);}
   }
   @page{size:A4 landscape;margin:0;}
 </style>
@@ -1374,8 +1324,13 @@ function SummaryModal({ allData, onClose }) {
   <span>IPARK현대산업개발 · 품질팀 · 내부 배포용</span>
   <span>${footerDate}</span>
 </div>
-<script>window.onload=function(){setTimeout(function(){window.print();},700);};</script>
-</body></html>`);
+${autoPrint?'<script>window.onload=function(){setTimeout(function(){window.print();},700);};</script>':""}
+</body></html>`;
+  };
+
+  const handlePrint = () => {
+    const win = window.open("","_blank","width=1400,height=1000");
+    win.document.write(buildSummaryHtml(true));
     win.document.close();
   };
 
@@ -1392,6 +1347,9 @@ function SummaryModal({ allData, onClose }) {
     window.addEventListener("resize", calc);
     return ()=>window.removeEventListener("resize", calc);
   },[]);
+
+  // 화면에 보이는 iframe 내용 = PDF로 출력되는 내용과 완전히 동일한 HTML
+  const iframeHtml = useMemo(()=>buildSummaryHtml(false), [cards, updatedAt, allData, isRefreshing]);
 
   return createPortal(
     <>
@@ -1410,7 +1368,7 @@ function SummaryModal({ allData, onClose }) {
           <button onClick={e=>{e.stopPropagation();onClose();}} style={{padding:"5px 10px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:"6px",color:"#fff",fontSize:"11px",cursor:"pointer"}}>✕</button>
         </div>
 
-        {/* A4 고정 크기 + JS scale */}
+        {/* A4 고정 크기 + JS scale, 내용은 PDF와 동일한 HTML을 iframe으로 렌더 */}
         <div style={{width:A4W*scale, height:A4H*scale, position:"relative", flexShrink:0}}>
           <div id="sum-wrap" onClick={e=>e.stopPropagation()}
             style={{
@@ -1421,29 +1379,13 @@ function SummaryModal({ allData, onClose }) {
               background:"#fff",
               borderRadius:"4px",
               boxShadow:"0 8px 40px rgba(0,0,0,0.5)",
-              fontFamily:"'Noto Sans KR','Malgun Gothic',sans-serif",
-              overflow:"hidden",
-              display:"flex",
-              flexDirection:"column"
+              overflow:"hidden"
             }}>
-            {/* 헤더 */}
-            <div style={{background:"#fff",padding:"14px 26px 10px",borderBottom:"2.5px solid #2d2416",flexShrink:0}}>
-              <div style={{fontSize:"10px",color:"#c0703a",letterSpacing:"2px",fontWeight:"700",marginBottom:"4px",fontStyle:"italic"}}>Key Performance · 2026 주요목표 실적</div>
-              <div style={{fontSize:"24px",fontWeight:"900",color:"#2d2416",letterSpacing:"-0.5px"}}>
-                CSO 품질팀 <span style={{color:"#c0703a",textDecoration:"underline",textUnderlineOffset:"3px"}}>주요업무 실적 요약</span>
-              </div>
-            </div>
-            {/* 카드 그리드 */}
-            <div style={{padding:"10px 22px",background:"#fff",flex:1,minHeight:0,overflow:"hidden"}}>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gridTemplateRows:"repeat(2,minmax(0,1fr))",gap:"16px",height:"100%",minHeight:0}}>
-                {ITEMS.map((item,i)=><Card key={i} item={item} />)}
-              </div>
-            </div>
-            {/* 푸터 */}
-            <div style={{background:"#2d2416",padding:"7px 26px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-              <span style={{fontSize:"9px",color:"#c8b89a",letterSpacing:"1px"}}>IPARK현대산업개발 · 품질팀 · 내부 배포용</span>
-              <span style={{fontSize:"9px",color:"#c8b89a"}}>{updatedAt?`최종 요약: ${new Date(updatedAt).toLocaleString("ko-KR",{year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"})}`:today}</span>
-            </div>
+            <iframe
+              title="summary-preview"
+              srcDoc={iframeHtml}
+              style={{width:A4W, height:A4H, border:"none", display:"block"}}
+            />
           </div>
         </div>
       </div>
