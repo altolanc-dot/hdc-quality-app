@@ -1382,8 +1382,8 @@ function SummaryModal({ allData, onClose }) {
 
   useEffect(()=>{
     const calc = () => {
-      const sw = window.innerWidth  * 0.96;
-      const sh = window.innerHeight * 0.96;
+      const sw = window.innerWidth  * 0.94;
+      const sh = (window.innerHeight - 60) * 0.96; // 버튼 영역 60px 제외
       setScale(Math.min(sw/A4W, sh/A4H));
     };
     calc();
@@ -1397,15 +1397,15 @@ function SummaryModal({ allData, onClose }) {
       <div id="sum-wrap-outer"
         style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:6000,display:"flex",alignItems:"center",justifyContent:"center"}}
         onClick={onClose}>
-        {/* 버튼 */}
-        <div className="no-print" style={{position:"fixed",top:"12px",right:"16px",display:"flex",gap:"8px",alignItems:"center",zIndex:6001}}>
-          {updatedAt&&<span style={{fontSize:"10px",color:"rgba(255,255,255,0.7)"}}>최종: {new Date(updatedAt).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>}
+        {/* 버튼 - 팝업 바깥 상단 */}
+        <div className="no-print" style={{position:"fixed",top:"8px",right:"12px",display:"flex",gap:"6px",alignItems:"center",zIndex:6001,background:"rgba(0,0,0,0.6)",padding:"5px 10px",borderRadius:"10px"}}>
+          {updatedAt&&<span style={{fontSize:"10px",color:"rgba(255,255,255,0.75)"}}>최종: {new Date(updatedAt).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>}
           <button onClick={e=>{e.stopPropagation();doSDU();}} disabled={isRefreshing}
-            style={{padding:"6px 12px",background:isRefreshing?"rgba(255,255,255,0.1)":"rgba(255,193,7,0.25)",border:"1px solid rgba(255,193,7,0.5)",borderRadius:"8px",color:"#ffc107",fontSize:"12px",fontWeight:"700",cursor:isRefreshing?"default":"pointer"}}>
-            {isRefreshing?"⏳...":"UD"}
+            style={{padding:"5px 10px",background:isRefreshing?"rgba(255,255,255,0.1)":"rgba(255,193,7,0.3)",border:"1px solid rgba(255,193,7,0.6)",borderRadius:"6px",color:"#ffc107",fontSize:"11px",fontWeight:"700",cursor:isRefreshing?"default":"pointer"}}>
+            {isRefreshing?"⏳":"UD"}
           </button>
-          <button onClick={e=>{e.stopPropagation();handlePrint();}} style={{padding:"6px 12px",background:"#c0703a",border:"none",borderRadius:"8px",color:"#fff",fontSize:"12px",fontWeight:"700",cursor:"pointer"}}>PDF</button>
-          <button onClick={e=>{e.stopPropagation();onClose();}} style={{padding:"6px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:"8px",color:"#fff",fontSize:"12px",cursor:"pointer"}}>✕</button>
+          <button onClick={e=>{e.stopPropagation();handlePrint();}} style={{padding:"5px 10px",background:"#c0703a",border:"none",borderRadius:"6px",color:"#fff",fontSize:"11px",fontWeight:"700",cursor:"pointer"}}>PDF</button>
+          <button onClick={e=>{e.stopPropagation();onClose();}} style={{padding:"5px 10px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:"6px",color:"#fff",fontSize:"11px",cursor:"pointer"}}>✕</button>
         </div>
 
         {/* A4 고정 크기 + JS scale */}
