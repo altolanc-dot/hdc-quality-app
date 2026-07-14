@@ -1278,29 +1278,79 @@ function SummaryModal({ allData, onClose }) {
   };
 
   const handlePrint = () => {
-    const printContent = document.getElementById("sum-wrap").innerHTML;
-    const win = window.open("","_blank","width=1200,height=900");
-    win.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>CSO 품질팀 주요업무 실적 요약</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap');
-          * { margin:0; padding:0; box-sizing:border-box; }
-          body { font-family:'Noto Sans KR','Malgun Gothic',sans-serif; background:#fff; }
-          @media print {
-            body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    // 현재 카드 데이터와 달성률 수집
+    const cardData = ITEMS.map(item=>({
+      item,
+      rate: getRate(item),
+      bullets: cards[item.num]||[]
+    }));
+    const rateColor = r=>r>=80?"#1a5c35":r>=50?"#7c5c0a":"#9b2c2c";
+    const rateBg    = r=>r>=80?"#d1fae5":r>=50?"#fef3c7":"#fee2e2";
+    const today = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});
+
+    const cardsHTML = cardData.map((cd,i)=>`
+      <div style="background:#faf8f5;border:1px solid #e0d8cc;border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;height:100%;box-sizing:border-box;">
+        <div style="display:flex;align-items:flex-start;gap:8px;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid #e0d8cc;flex-shrink:0;">
+          <span style="font-size:22px;font-weight:900;color:#d4b896;line-height:1;flex-shrink:0;">${cd.item.num}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;font-weight:800;color:#2d2416;">${cd.item.label}</div>
+            <div style="font-size:7px;color:${cd.item.cat==="전략"?"#1d4ed8":"#166534"};font-weight:600;margin-top:1px;">${cd.item.cat}목표 · ${cd.item.score}점 · ${getRaw(cd.item).length}명</div>
+            ${cd.item.desc?`<div style="font-size:7px;color:#7a6a54;margin-top:2px;line-height:1.3;">${cd.item.desc}</div>`:""}
+          </div>
+          <span style="font-size:13px;font-weight:900;color:${rateColor(cd.rate)};background:${rateBg(cd.rate)};padding:2px 8px;border-radius:4px;flex-shrink:0;">${cd.rate}%</span>
+        </div>
+        <div style="flex:1;">
+          ${cd.bullets.length===0
+            ? `<div style="font-size:9px;color:#b0a090;font-style:italic;">등록된 실적이 없습니다</div>`
+            : cd.bullets.map(b=>`
+                <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:7px;">
+                  <span style="width:4px;height:4px;border-radius:50%;background:#c0703a;flex-shrink:0;margin-top:4px;"></span>
+                  <div>
+                    <div style="font-size:9px;font-weight:800;color:#1a1208;margin-bottom:1px;">${b.title}</div>
+                    <div style="font-size:8px;color:#5a4a38;line-height:1.5;">${b.desc}</div>
+                  </div>
+                </div>`).join("")
           }
-          @page { size:A4 landscape; margin:6mm; }
-        </style>
-      </head>
-      <body>${printContent}</body>
-      </html>
-    `);
+        </div>
+      </div>
+    `).join("");
+
+    const win = window.open("","_blank","width=1300,height=900");
+    win.document.write(`<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>CSO 품질팀 주요업무 실적 요약</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:297mm;height:210mm;overflow:hidden;}
+  body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:#fff;display:flex;flex-direction:column;}
+  .header{padding:12px 24px 10px;border-bottom:2px solid #2d2416;flex-shrink:0;}
+  .kp{font-size:8px;color:#c0703a;letter-spacing:2px;font-weight:700;font-style:italic;margin-bottom:3px;}
+  .title{font-size:20px;font-weight:900;color:#2d2416;letter-spacing:-0.5px;}
+  .title span{color:#c0703a;text-decoration:underline;text-underline-offset:3px;}
+  .grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:8px;padding:10px 24px 10px;}
+  .footer{background:#2d2416;padding:7px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+  .footer span{font-size:8px;color:#c8b89a;letter-spacing:1px;}
+  @media print{
+    html,body{width:297mm;height:210mm;}
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+  @page{size:A4 landscape;margin:0;}
+</style>
+</head><body>
+<div class="header">
+  <div class="kp">Key Performance · 2026 주요목표 실적</div>
+  <div class="title">CSO 품질팀 <span>주요업무 실적 요약</span></div>
+</div>
+<div class="grid">${cardsHTML}</div>
+<div class="footer">
+  <span>HDC현대산업개발 · 품질팀 · 내부 배포용</span>
+  <span>${today}</span>
+</div>
+<script>window.onload=function(){setTimeout(function(){window.print();},600);};</script>
+</body></html>`);
     win.document.close();
-    setTimeout(()=>{ win.focus(); win.print(); }, 800);
   };
 
   return (
@@ -1310,11 +1360,11 @@ function SummaryModal({ allData, onClose }) {
         <div className="no-print" style={{position:"fixed",top:"16px",right:"24px",display:"flex",gap:"8px",alignItems:"center",zIndex:6001}}>
           {updatedAt&&<span style={{fontSize:"10px",color:"rgba(255,255,255,0.6)"}}>최종 요약: {new Date(updatedAt).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>}
           <button onClick={e=>{e.stopPropagation();doSDU();}} disabled={isRefreshing}
-            style={{padding:"8px 14px",background:isRefreshing?"rgba(255,255,255,0.1)":"rgba(255,193,7,0.25)",border:"1px solid rgba(255,193,7,0.5)",borderRadius:"8px",color:"#ffc107",fontSize:"12px",fontWeight:"700",cursor:isRefreshing?"default":"pointer",letterSpacing:"1px"}}>
-            {isRefreshing?"⏳ 요약 중...":"SDU"}
+            style={{padding:"7px 14px",background:isRefreshing?"rgba(255,255,255,0.1)":"rgba(255,193,7,0.25)",border:"1px solid rgba(255,193,7,0.5)",borderRadius:"8px",color:"#ffc107",fontSize:"12px",fontWeight:"700",cursor:isRefreshing?"default":"pointer",letterSpacing:"1px",whiteSpace:"nowrap"}}>
+            {isRefreshing?"⏳ 요약 중...":"UD"}
           </button>
-          <button onClick={handlePrint} style={{padding:"8px 20px",background:"#c0703a",border:"none",borderRadius:"8px",color:"#fff",fontSize:"13px",fontWeight:"700",cursor:"pointer"}}>🖨️ PDF 출력</button>
-          <button onClick={onClose} style={{padding:"8px 16px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:"8px",color:"#fff",fontSize:"13px",cursor:"pointer"}}>✕ 닫기</button>
+          <button onClick={e=>{e.stopPropagation();handlePrint();}} style={{padding:"7px 16px",background:"#c0703a",border:"none",borderRadius:"8px",color:"#fff",fontSize:"12px",fontWeight:"700",cursor:"pointer",whiteSpace:"nowrap"}}>PDF</button>
+          <button onClick={e=>{e.stopPropagation();onClose();}} style={{padding:"7px 14px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:"8px",color:"#fff",fontSize:"12px",cursor:"pointer",whiteSpace:"nowrap"}}>✕ 닫기</button>
         </div>
         <div id="sum-wrap" onClick={e=>e.stopPropagation()}
           style={{background:"#fff",width:"1050px",maxWidth:"97vw",borderRadius:"4px",boxShadow:"0 8px 40px rgba(0,0,0,0.3)",fontFamily:"'Noto Sans KR','Malgun Gothic',sans-serif",overflow:"hidden"}}>
