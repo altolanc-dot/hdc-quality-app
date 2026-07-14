@@ -1178,6 +1178,24 @@ function SummaryModal({ allData, onClose }) {
     if(totalGoals===0) return;
     setIsRefreshing(true);
     const newCards = {};
+
+    // 환경 감지: Vercel이면 /api/summarize, 아니면 Anthropic 직접 호출
+    const isVercel = typeof window!=="undefined" && window.location.hostname.includes("vercel.app");
+
+    const callAPI = async (prompt) => {
+      if(isVercel){
+        const res = await fetch("/api/summarize",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});
+        return await res.json();
+      } else {
+        const res = await fetch("https://api.anthropic.com/v1/messages",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:800,messages:[{role:"user",content:prompt}]})
+        });
+        return await res.json();
+      }
+    };
+
     for(const item of ITEMS){
       setLoadingMap(p=>({...p,[item.num]:true}));
       const raw = getRaw(item);
@@ -1190,8 +1208,7 @@ function SummaryModal({ allData, onClose }) {
       const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
       const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내, 설명 1~2문장.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
       try {
-        const res = await fetch("/api/summarize",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});
-        const data = await res.json();
+        const data = await callAPI(prompt);
         const text = (data.content?.[0]?.text||"[]").replace(/```json|```/g,"").trim();
         const parsed = JSON.parse(text);
         newCards[item.num] = parsed;
@@ -1292,7 +1309,7 @@ function SummaryModal({ allData, onClose }) {
       <div id="sum-wrap-outer" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:6000,display:"flex",alignItems:"flex-start",justifyContent:"center",overflowY:"auto",padding:"20px 0"}} onClick={onClose}>
         <div className="no-print" style={{position:"fixed",top:"16px",right:"24px",display:"flex",gap:"8px",alignItems:"center",zIndex:6001}}>
           {updatedAt&&<span style={{fontSize:"10px",color:"rgba(255,255,255,0.6)"}}>최종 요약: {new Date(updatedAt).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>}
-          <button onClick={doSDU} disabled={isRefreshing}
+          <button onClick={e=>{e.stopPropagation();doSDU();}} disabled={isRefreshing}
             style={{padding:"8px 14px",background:isRefreshing?"rgba(255,255,255,0.1)":"rgba(255,193,7,0.25)",border:"1px solid rgba(255,193,7,0.5)",borderRadius:"8px",color:"#ffc107",fontSize:"12px",fontWeight:"700",cursor:isRefreshing?"default":"pointer",letterSpacing:"1px"}}>
             {isRefreshing?"⏳ 요약 중...":"SDU"}
           </button>
