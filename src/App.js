@@ -1131,12 +1131,12 @@ function SummaryModal({ allData, onClose }) {
   const today = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});
 
   const ITEMS = [
-    {num:1,cat:"전략",label:"예측기반 타겟점검",score:20,desc:"예측기반 타겟점검 운영안 수립 및 타겟점검 시행 100%",match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
-    {num:2,cat:"전략",label:"건설 DX",          score:15,desc:"AI 품질관리 시스템 구축 및 통합품질데이터 적기제공",  match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
-    {num:3,cat:"전략",label:"소송핵심관리",      score:10,desc:"소송핵심관리 개선안 수립 및 단지별 검증 / 평가",      match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
+    {num:1,cat:"전략",label:"예측기반 타겟점검",score:20,desc:"예측기반 타겟점검 운영안 수립·시행",match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
+    {num:2,cat:"전략",label:"건설 DX",          score:15,desc:"AI 품질관리 시스템 구축·운영",  match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
+    {num:3,cat:"전략",label:"소송핵심관리",      score:10,desc:"소송핵심관리 개선안 수립·검증",      match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
     {num:4,cat:"업무",label:"하자비용 저감",     score:20,desc:"골조/타일 하자보수비 저감 (표준단가대비 10% 절감)",  match:t=>t.includes("골조")||t.includes("타일")},
-    {num:5,cat:"업무",label:"BS 하자 개선",      score:15,desc:"입주초기 R&R 개선, 원인불명 하자 처리 프로세스 구축 (전년대비 30% 저감)", match:t=>t.includes("BS하자")},
-    {num:6,cat:"업무",label:"고객불만율 관리",   score:20,desc:"고객이 체감할 수 있는 서비스 및 장기미처리 개선 (VOC 3% 이하)", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
+    {num:5,cat:"업무",label:"BS 하자 개선",      score:15,desc:"BS 하자 처리 프로세스 구축 (전년대비 30% 저감)", match:t=>t.includes("BS하자")},
+    {num:6,cat:"업무",label:"고객불만율 관리",   score:20,desc:"고객 서비스·VOC 관리 개선 (VOC 3% 이하)", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
   ];
 
   const getRate = (item) => {
@@ -1207,7 +1207,7 @@ function SummaryModal({ allData, onClose }) {
         continue;
       }
       const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
-      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내. 설명(desc)은 42~55자 분량의 한 문장으로, 배경/방법과 핵심 결과를 간결하게 담아 카드 안에서 2줄 내외를 채우도록 작성(카드 하나에 성과 3개가 들어가므로 너무 길면 잘림). 30자 미만으로 짧게 쓰지 말 것. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~수립" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
+      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내. 설명(desc)은 58~68자 분량의 한 문장으로, 배경·방법·구체적 수치나 기간을 함께 담아 카드 안에서 2줄을 최대한 가득 채우도록 작성. 목표 분량의 하한(58자)이 아니라 상한(68자)에 가깝게, 최대한 길고 알차게 쓸 것 — 짧게 끝나서 2번째 줄이 절반도 안 채워지면 안 됨. 48자 미만은 절대 금지. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~수립" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
       try {
         const data = await callAPI(prompt);
         const text = (data.content?.[0]?.text||"[]").replace(/```json|```/g,"").trim();
@@ -1231,8 +1231,8 @@ function SummaryModal({ allData, onClose }) {
   const rateBg    = r=>r>=80?"#d1fae5":r>=50?"#fef3c7":"#fee2e2";
 
   // 화면(iframe)과 PDF 출력이 100% 동일하도록, 카드/그리드 HTML을 한 곳에서만 생성
-  // 괄호 안 내용은 줄바꿈 시 절대 쪼개지지 않도록 통째로 묶음 (예: "(전년대비 30% 저감)")
-  const noBreakParens = (text) => (text||"").replace(/\([^)]*\)/g, m => `<span style="white-space:nowrap">${m}</span>`);
+  // 괄호 안 내용은 항상 새 줄로 내려서 표시 (앞 단어가 괄호에 딸려 줄바꿈되는 것 방지)
+  const noBreakParens = (text) => (text||"").replace(/\s*(\([^)]*\))/g, m => `<br><span style="white-space:nowrap">${m.trim()}</span>`);
 
   const buildSummaryHtml = (autoPrint) => {
     const cardData = ITEMS.map(item=>({
@@ -1249,12 +1249,11 @@ function SummaryModal({ allData, onClose }) {
         <div style="display:flex;align-items:flex-start;gap:10px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #e0d8cc;flex-shrink:0;">
           <span style="font-size:28px;font-weight:900;color:#d4b896;line-height:1;flex-shrink:0;">${cd.item.num}</span>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:14px;font-weight:800;color:#2d2416;">${cd.item.label}</div>
-            <div style="display:flex;align-items:center;gap:5px;margin-top:3px;">
-              <span style="font-size:9px;color:#fff;background:${cd.item.cat==="전략"?"#3b82f6":"#22c55e"};padding:1px 7px;border-radius:8px;font-weight:700;">${cd.item.cat}목표 · ${cd.item.score}점</span>
-              <span style="font-size:9px;color:#2d2416;font-weight:400;">(${getRaw(cd.item).length}명)</span>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span style="font-size:14px;font-weight:800;color:#2d2416;">${cd.item.label}</span>
+              <span style="font-size:9px;color:#fff;background:${cd.item.cat==="전략"?"#3b82f6":"#22c55e"};padding:1px 7px;border-radius:8px;font-weight:700;flex-shrink:0;">${cd.item.cat}목표 · ${cd.item.score}점</span>
             </div>
-            ${cd.item.desc?`<div style="font-size:9px;color:#2d2416;margin-top:3px;line-height:1.4;word-break:keep-all;text-wrap:pretty;">${noBreakParens(cd.item.desc)}</div>`:""}
+            ${cd.item.desc?`<div style="font-size:9px;color:#2d2416;margin-top:3px;line-height:1.4;min-height:25px;word-break:keep-all;text-wrap:pretty;">${noBreakParens(cd.item.desc)}</div>`:`<div style="min-height:25px;"></div>`}
           </div>
           <span style="font-size:16px;font-weight:900;color:${rateColor(cd.rate)};background:${rateBg(cd.rate)};padding:3px 10px;border-radius:5px;flex-shrink:0;">${cd.rate}%</span>
         </div>
