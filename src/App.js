@@ -1251,7 +1251,7 @@ function SummaryModal({ allData, onClose }) {
               <span style="font-size:9px;color:${cd.item.cat==="전략"?"#1d4ed8":"#166534"};font-weight:700;">${cd.item.cat}목표 · ${cd.item.score}점</span>
               <span style="font-size:9px;color:#fff;background:${cd.item.cat==="전략"?"#3b82f6":"#22c55e"};padding:1px 7px;border-radius:8px;font-weight:700;">${getRaw(cd.item).length}명</span>
             </div>
-            ${cd.item.desc?`<div style="font-size:9px;color:#7a6a54;margin-top:3px;line-height:1.4;">${cd.item.desc}</div>`:""}
+            ${cd.item.desc?`<div style="font-size:9px;color:#7a6a54;margin-top:3px;line-height:1.4;word-break:keep-all;overflow-wrap:break-word;">${cd.item.desc}</div>`:""}
           </div>
           <span style="font-size:16px;font-weight:900;color:${rateColor(cd.rate)};background:${rateBg(cd.rate)};padding:3px 10px;border-radius:5px;flex-shrink:0;">${cd.rate}%</span>
         </div>
@@ -1277,7 +1277,7 @@ function SummaryModal({ allData, onClose }) {
 <title>CSO 품질팀 주요업무 실적 요약</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box;}
+  *{margin:0;padding:0;box-sizing:border-box;word-break:keep-all;overflow-wrap:break-word;}
   html,body{
     width:297mm;
     height:210mm;
