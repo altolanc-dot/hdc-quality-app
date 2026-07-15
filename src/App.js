@@ -1207,7 +1207,7 @@ function SummaryModal({ allData, onClose }) {
         continue;
       }
       const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
-      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내. 설명(desc)은 58~68자 분량의 한 문장으로, 배경·방법·구체적 수치나 기간을 함께 담아 카드 안에서 2줄을 최대한 가득 채우도록 작성. 목표 분량의 하한(58자)이 아니라 상한(68자)에 가깝게, 최대한 길고 알차게 쓸 것 — 짧게 끝나서 2번째 줄이 절반도 안 채워지면 안 됨. 48자 미만은 절대 금지. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~수립" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
+      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내. 설명(desc)은 65~75자 분량의 한 문장으로(예시 기준: "Dooray 프로젝트방 운영·품질레터 공유 체계 수립, Snowflake 기반 아이클릭 데이터 연동 및 CS 대시보드 개선 진행 중" 정도의 길이), 배경·방법·구체적 수치나 기간을 함께 담아 카드 안에서 정확히 2줄을 가득 채우도록 작성. 절대 3줄을 넘지 않을 것. 60자 미만은 절대 금지. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~수립" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
       try {
         const data = await callAPI(prompt);
         const text = (data.content?.[0]?.text||"[]").replace(/```json|```/g,"").trim();
@@ -1257,11 +1257,11 @@ function SummaryModal({ allData, onClose }) {
           </div>
           <span style="font-size:16px;font-weight:900;color:${rateColor(cd.rate)};background:${rateBg(cd.rate)};padding:3px 10px;border-radius:5px;flex-shrink:0;">${cd.rate}%</span>
         </div>
-        <div class="bwrap" style="flex:1;min-height:0;overflow:hidden;">
+        <div class="bwrap" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:8px;">
           ${cd.bullets.length===0
             ? `<div style="font-size:11px;color:#b0a090;font-style:italic;">등록된 실적이 없습니다</div>`
             : cd.bullets.map(b=>`
-                <div class="bullet-item" style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;">
+                <div class="bullet-item" style="display:flex;gap:8px;align-items:flex-start;">
                   <span style="width:6px;height:6px;border-radius:50%;background:#c0703a;flex-shrink:0;margin-top:4px;"></span>
                   <div>
                     <div style="font-size:11px;font-weight:800;color:#1a1208;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.title}</div>
