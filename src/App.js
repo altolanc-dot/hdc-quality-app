@@ -1252,21 +1252,21 @@ function SummaryModal({ allData, onClose }) {
             <div style="font-size:14px;font-weight:800;color:#2d2416;">${cd.item.label}</div>
             <div style="display:flex;align-items:center;gap:5px;margin-top:3px;">
               <span style="font-size:9px;color:#fff;background:${cd.item.cat==="전략"?"#3b82f6":"#22c55e"};padding:1px 7px;border-radius:8px;font-weight:700;">${cd.item.cat}목표 · ${cd.item.score}점</span>
-              <span style="font-size:9px;color:#2d2416;font-weight:700;">${getRaw(cd.item).length}명</span>
+              <span style="font-size:9px;color:#2d2416;font-weight:400;">(${getRaw(cd.item).length}명)</span>
             </div>
-            ${cd.item.desc?`<div style="font-size:9px;color:#7a6a54;margin-top:3px;line-height:1.4;word-break:keep-all;text-wrap:pretty;">${noBreakParens(cd.item.desc)}</div>`:""}
+            ${cd.item.desc?`<div style="font-size:9px;color:#2d2416;margin-top:3px;line-height:1.4;word-break:keep-all;text-wrap:pretty;">${noBreakParens(cd.item.desc)}</div>`:""}
           </div>
           <span style="font-size:16px;font-weight:900;color:${rateColor(cd.rate)};background:${rateBg(cd.rate)};padding:3px 10px;border-radius:5px;flex-shrink:0;">${cd.rate}%</span>
         </div>
-        <div style="flex:1;min-height:0;overflow:hidden;">
+        <div class="bwrap" style="flex:1;min-height:0;overflow:hidden;">
           ${cd.bullets.length===0
             ? `<div style="font-size:11px;color:#b0a090;font-style:italic;">등록된 실적이 없습니다</div>`
             : cd.bullets.map(b=>`
-                <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;">
+                <div class="bullet-item" style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;">
                   <span style="width:6px;height:6px;border-radius:50%;background:#c0703a;flex-shrink:0;margin-top:4px;"></span>
                   <div>
                     <div style="font-size:11px;font-weight:800;color:#1a1208;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.title}</div>
-                    <div style="font-size:10px;color:#5a4a38;line-height:1.6;word-break:keep-all;text-wrap:pretty;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${noBreakParens(b.desc)}</div>
+                    <div class="bullet-desc" style="font-size:10px;color:#5a4a38;line-height:1.6;word-break:keep-all;text-wrap:pretty;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${noBreakParens(b.desc)}</div>
                   </div>
                 </div>`).join("")
           }
@@ -1327,7 +1327,33 @@ function SummaryModal({ allData, onClose }) {
   <span>IPARK현대산업개발 · 품질팀 · 내부 배포용</span>
   <span>${footerDate}</span>
 </div>
-${autoPrint?'<script>window.onload=function(){setTimeout(function(){window.print();},700);};</script>':""}
+<script>
+// 카드 크기는 고정, 내용이 넘치면 이 카드만 자동으로 줄여서 절대 글자가 잘리지 않게 함
+function autoFit(){
+  document.querySelectorAll('.bwrap').forEach(function(wrap){
+    // 이전 autoFit 결과 초기화 후 다시 측정 (폰트 로딩 후 재측정 대응)
+    wrap.querySelectorAll('.bullet-desc').forEach(function(d){ d.style.webkitLineClamp = '2'; });
+    wrap.querySelectorAll('.bullet-item').forEach(function(it){ it.style.display = ''; });
+    function overflowing(){ return wrap.scrollHeight > wrap.clientHeight + 1; }
+    if(!overflowing()) return;
+    // 1단계: 모든 항목 설명을 2줄→1줄로 축약
+    wrap.querySelectorAll('.bullet-desc').forEach(function(d){ d.style.webkitLineClamp = '1'; });
+    if(!overflowing()) return;
+    // 2단계: 그래도 넘치면 마지막 항목부터 하나씩 숨김(최소 1개는 유지)
+    var items = wrap.querySelectorAll('.bullet-item');
+    for(var i=items.length-1;i>=1;i--){
+      items[i].style.display = 'none';
+      if(!overflowing()) break;
+    }
+  });
+}
+function runFitThenPrint(){
+  autoFit();
+  var again = function(){ autoFit(); ${autoPrint?"setTimeout(function(){window.print();},300);":""} };
+  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(again); } else { again(); }
+}
+window.onload = runFitThenPrint;
+</script>
 </body></html>`;
   };
 
