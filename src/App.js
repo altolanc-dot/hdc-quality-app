@@ -1207,7 +1207,7 @@ function SummaryModal({ allData, onClose }) {
         continue;
       }
       const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
-      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내. 설명(desc)은 55~70자 분량의 한 문장으로, 배경/방법과 구체적 결과(수치·기간·현장명 등)를 함께 담아 카드 안에서 2줄을 가득 채우도록 작성. 45자 미만으로 짧게 쓰지 말 것. 2번째 줄에 한두 글자만 넘어가는 것도 금지 — 2번째 줄도 첫 줄만큼 내용이 채워지도록 길게 쓸 것. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~수립" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
+      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내. 설명(desc)은 42~55자 분량의 한 문장으로, 배경/방법과 핵심 결과를 간결하게 담아 카드 안에서 2줄 내외를 채우도록 작성(카드 하나에 성과 3개가 들어가므로 너무 길면 잘림). 30자 미만으로 짧게 쓰지 말 것. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~수립" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
       try {
         const data = await callAPI(prompt);
         const text = (data.content?.[0]?.text||"[]").replace(/```json|```/g,"").trim();
@@ -1231,6 +1231,9 @@ function SummaryModal({ allData, onClose }) {
   const rateBg    = r=>r>=80?"#d1fae5":r>=50?"#fef3c7":"#fee2e2";
 
   // 화면(iframe)과 PDF 출력이 100% 동일하도록, 카드/그리드 HTML을 한 곳에서만 생성
+  // 괄호 안 내용은 줄바꿈 시 절대 쪼개지지 않도록 통째로 묶음 (예: "(전년대비 30% 저감)")
+  const noBreakParens = (text) => (text||"").replace(/\([^)]*\)/g, m => `<span style="white-space:nowrap">${m}</span>`);
+
   const buildSummaryHtml = (autoPrint) => {
     const cardData = ITEMS.map(item=>({
       item,
@@ -1248,10 +1251,10 @@ function SummaryModal({ allData, onClose }) {
           <div style="flex:1;min-width:0;">
             <div style="font-size:14px;font-weight:800;color:#2d2416;">${cd.item.label}</div>
             <div style="display:flex;align-items:center;gap:5px;margin-top:3px;">
-              <span style="font-size:9px;color:${cd.item.cat==="전략"?"#1d4ed8":"#166534"};font-weight:700;">${cd.item.cat}목표 · ${cd.item.score}점</span>
-              <span style="font-size:9px;color:#fff;background:${cd.item.cat==="전략"?"#3b82f6":"#22c55e"};padding:1px 7px;border-radius:8px;font-weight:700;">${getRaw(cd.item).length}명</span>
+              <span style="font-size:9px;color:#fff;background:${cd.item.cat==="전략"?"#3b82f6":"#22c55e"};padding:1px 7px;border-radius:8px;font-weight:700;">${cd.item.cat}목표 · ${cd.item.score}점</span>
+              <span style="font-size:9px;color:#2d2416;font-weight:700;">${getRaw(cd.item).length}명</span>
             </div>
-            ${cd.item.desc?`<div style="font-size:9px;color:#7a6a54;margin-top:3px;line-height:1.4;word-break:keep-all;overflow-wrap:break-word;">${cd.item.desc}</div>`:""}
+            ${cd.item.desc?`<div style="font-size:9px;color:#7a6a54;margin-top:3px;line-height:1.4;word-break:keep-all;text-wrap:pretty;">${noBreakParens(cd.item.desc)}</div>`:""}
           </div>
           <span style="font-size:16px;font-weight:900;color:${rateColor(cd.rate)};background:${rateBg(cd.rate)};padding:3px 10px;border-radius:5px;flex-shrink:0;">${cd.rate}%</span>
         </div>
@@ -1262,8 +1265,8 @@ function SummaryModal({ allData, onClose }) {
                 <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;">
                   <span style="width:6px;height:6px;border-radius:50%;background:#c0703a;flex-shrink:0;margin-top:4px;"></span>
                   <div>
-                    <div style="font-size:11px;font-weight:800;color:#1a1208;margin-bottom:2px;">${b.title}</div>
-                    <div style="font-size:10px;color:#5a4a38;line-height:1.6;">${b.desc}</div>
+                    <div style="font-size:11px;font-weight:800;color:#1a1208;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.title}</div>
+                    <div style="font-size:10px;color:#5a4a38;line-height:1.6;word-break:keep-all;text-wrap:pretty;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${noBreakParens(b.desc)}</div>
                   </div>
                 </div>`).join("")
           }
@@ -1277,7 +1280,7 @@ function SummaryModal({ allData, onClose }) {
 <title>CSO 품질팀 주요업무 실적 요약</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box;word-break:keep-all;overflow-wrap:break-word;}
+  *{margin:0;padding:0;box-sizing:border-box;word-break:keep-all;}
   html,body{
     width:297mm;
     height:210mm;
