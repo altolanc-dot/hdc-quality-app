@@ -1207,7 +1207,7 @@ function SummaryModal({ allData, onClose }) {
         continue;
       }
       const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
-      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내. 설명(desc)은 65~75자 분량의 한 문장으로(예시 기준: "Dooray 프로젝트방 운영·품질레터 공유 체계 수립, Snowflake 기반 아이클릭 데이터 연동 및 CS 대시보드 개선 진행 중" 정도의 길이), 배경·방법·구체적 수치나 기간을 함께 담아 카드 안에서 정확히 2줄을 가득 채우도록 작성. 절대 3줄을 넘지 않을 것. 60자 미만은 절대 금지. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~수립" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
+      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내. 담당자 이름(사람 이름)은 절대 포함하지 말 것 — 업무 내용만 서술. 설명(desc)은 65~75자 분량의 한 문장으로(예시 기준: "Dooray 프로젝트방 운영·품질레터 공유 체계 수립, Snowflake 기반 아이클릭 데이터 연동 및 CS 대시보드 개선 진행 중" 정도의 길이) 작성하되, 이 글자 수는 반드시 "2줄에 꽉 차는 분량"이라는 목표이지 그 이상을 억지로 채우라는 뜻이 아님. 화면에 표시될 폰트/너비 기준으로 정확히 2줄에 들어가는 분량으로 스스로 요약을 조절할 것 — 3줄이 되거나 잘리지 않도록 반드시 2줄 이내로 압축. 60자 미만은 지양. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~수립" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
       try {
         const data = await callAPI(prompt);
         const text = (data.content?.[0]?.text||"[]").replace(/```json|```/g,"").trim();
@@ -1257,15 +1257,15 @@ function SummaryModal({ allData, onClose }) {
           </div>
           <span style="font-size:16px;font-weight:900;color:${rateColor(cd.rate)};background:${rateBg(cd.rate)};padding:3px 10px;border-radius:5px;flex-shrink:0;">${cd.rate}%</span>
         </div>
-        <div class="bwrap" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:8px;">
+        <div class="bwrap" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:10px;padding:9px 0;box-sizing:border-box;">
           ${cd.bullets.length===0
             ? `<div style="font-size:11px;color:#b0a090;font-style:italic;">등록된 실적이 없습니다</div>`
             : cd.bullets.map(b=>`
                 <div class="bullet-item" style="display:flex;gap:8px;align-items:flex-start;">
                   <span style="width:6px;height:6px;border-radius:50%;background:#c0703a;flex-shrink:0;margin-top:4px;"></span>
-                  <div>
+                  <div style="min-width:0;flex:1;">
                     <div style="font-size:11px;font-weight:800;color:#1a1208;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.title}</div>
-                    <div class="bullet-desc" style="font-size:10px;color:#5a4a38;line-height:1.6;word-break:keep-all;text-wrap:pretty;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${noBreakParens(b.desc)}</div>
+                    <div class="bullet-desc" style="font-size:10px;color:#5a4a38;line-height:1.5;word-break:keep-all;text-wrap:pretty;overflow:hidden;">${noBreakParens(b.desc)}</div>
                   </div>
                 </div>`).join("")
           }
@@ -1327,18 +1327,15 @@ function SummaryModal({ allData, onClose }) {
   <span>${footerDate}</span>
 </div>
 <script>
-// 카드 크기는 고정, 내용이 넘치면 이 카드만 자동으로 줄여서 절대 글자가 잘리지 않게 함
+// 카드 크기는 고정. AI가 애초에 2줄 분량으로 요약하도록 프롬프트에서 강제하며,
+// 여기서는 폰트 크기를 바꾸는 편법 없이 그대로 보여줌. 정말 카드 전체가 넘칠 때만 최후 수단으로 항목을 숨김.
 function autoFit(){
   document.querySelectorAll('.bwrap').forEach(function(wrap){
-    // 이전 autoFit 결과 초기화 후 다시 측정 (폰트 로딩 후 재측정 대응)
-    wrap.querySelectorAll('.bullet-desc').forEach(function(d){ d.style.webkitLineClamp = '2'; });
+    // 이전 autoFit 결과 초기화 후 다시 측정
     wrap.querySelectorAll('.bullet-item').forEach(function(it){ it.style.display = ''; });
     function overflowing(){ return wrap.scrollHeight > wrap.clientHeight + 1; }
     if(!overflowing()) return;
-    // 1단계: 모든 항목 설명을 2줄→1줄로 축약
-    wrap.querySelectorAll('.bullet-desc').forEach(function(d){ d.style.webkitLineClamp = '1'; });
-    if(!overflowing()) return;
-    // 2단계: 그래도 넘치면 마지막 항목부터 하나씩 숨김(최소 1개는 유지)
+    // 카드 전체가 넘치면 마지막 항목부터 하나씩 숨김(최소 1개는 유지)
     var items = wrap.querySelectorAll('.bullet-item');
     for(var i=items.length-1;i>=1;i--){
       items[i].style.display = 'none';
