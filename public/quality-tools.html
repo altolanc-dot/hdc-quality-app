@@ -1,0 +1,3043 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IPARK 품질관리 도구모음</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        hdcBlack: '#212121',
+                        hdcRed: '#F01428',
+                        hdcGray1: '#A8A8AA',
+                        hdcGray2: '#54565A',
+                        hdcGray3: '#D0D0CE',
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome 6 & Pretendard Font CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #f8fafc;
+            color: #212121;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+        }
+
+        .canvas-container {
+            border: 2px dashed #cbd5e1;
+            min-height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background-color: #f8fafc;
+            transition: all 0.2s ease-in-out;
+            overflow: hidden;
+            outline: none;
+            border-radius: 1rem;
+        }
+        
+        .canvas-container:hover {
+            border-color: #94a3b8;
+            background-color: #f1f5f9;
+        }
+
+        .canvas-container:focus,
+        .canvas-container.focused {
+            border-color: #F01428;
+            border-style: solid;
+            background-color: #fef2f2;
+            box-shadow: 0 0 0 4px rgba(240, 20, 40, 0.15);
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+
+        .placeholder-text {
+            color: #64748b;
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .mode-btn.active {
+            background-color: #212121 !important;
+            color: white !important;
+            font-weight: 700;
+            box-shadow: 0 4px 6px -1px rgba(33, 33, 33, 0.3);
+        }
+
+        /* Module Sub-Tab Buttons (Tile & Paint) */
+        .tile-tab-btn.active,
+        .paint-tab-btn.active {
+            background-color: #212121 !important;
+            color: white !important;
+            font-weight: 700;
+            border-color: #212121 !important;
+            box-shadow: 0 4px 6px -1px rgba(33, 33, 33, 0.25);
+        }
+        .tile-tab-btn,
+        .paint-tab-btn {
+            color: #54565A;
+            background-color: #ffffff;
+            border-color: #cbd5e1;
+        }
+
+        /* Blueprint Pin Styling */
+        .pin {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            width: 26px; height: 26px;
+            background-color: #F01428; color: white;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            border: 2px solid white; cursor: pointer; z-index: 10;
+        }
+
+        .report-page-container {
+            background-color: #334155;
+            padding: 2rem 1rem;
+        }
+
+        .report-page {
+            width: 21cm;
+            min-height: 29.7cm;
+            padding: 1.8cm;
+            margin: 0 auto 2rem auto;
+            box-sizing: border-box;
+            background: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            page-break-after: always;
+            color: #111827;
+        }
+
+        .report-page:last-child {
+            page-break-after: auto;
+        }
+
+        @media print {
+            body { background-color: white !important; padding: 0 !important; }
+            body * { visibility: hidden; }
+            #report-output, #report-output *, .print-container, .print-container * { visibility: visible; }
+            #report-output { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+            .report-page-container { background-color: transparent !important; padding: 0 !important; }
+            .report-page { margin: 0 !important; border: none !important; box-shadow: none !important; width: 21cm !important; min-height: 29.7cm !important; padding: 1.5cm !important; page-break-after: always !important; }
+            .page-break { page-break-before: always; break-before: page; }
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-16 relative bg-slate-100 selection:bg-hdcRed selection:text-white">
+
+    <div id="app" class="max-w-md md:max-w-5xl mx-auto min-h-screen bg-white shadow-2xl relative flex flex-col justify-between border-x border-slate-200">
+        
+        <!-- MAIN HEADER BAR -->
+        <header class="bg-hdcBlack text-white px-5 py-4 rounded-b-3xl shadow-lg border-b-2 border-hdcRed sticky top-0 z-30 no-print">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="flex items-center gap-1.5 text-[11px] font-bold text-hdcRed tracking-wider uppercase">
+                        <span class="w-2 h-2 rounded-full bg-hdcRed animate-pulse"></span>
+                        IPARK현대산업개발_품질팀
+                    </div>
+                    <h1 class="text-xl font-extrabold text-white tracking-tight mt-0.5 flex items-center gap-2">
+                        <i class="fa-solid fa-square-check text-hdcRed text-lg"></i>
+                        품질관리 도구모음
+                    </h1>
+                </div>
+                <button onclick="openView('view-home')" class="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-xl transition flex items-center justify-center" title="홈으로 이동">
+                    <i class="fa-solid fa-house text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT CONTAINER -->
+        <main class="p-4 sm:p-6 flex-1 space-y-6">
+
+            <!-- 1. HOME MENU VIEW (6-GRID BOXES) -->
+            <div id="view-home" class="space-y-5 animate-fade-in">
+                
+                <!-- DEFAULT RECIPIENT EMAIL SETTING CARD -->
+                <div class="glass-card rounded-2xl p-4 border border-slate-200 shadow-sm space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label for="main-recipient-email" class="text-xs font-extrabold text-hdcBlack flex items-center gap-1.5">
+                            <i class="fa-solid fa-envelope text-hdcRed"></i>
+                            보고서 기본 수신 이메일 설정
+                        </label>
+                        <span id="email-save-status" class="text-[10px] font-bold text-emerald-600 hidden">✓ 저장됨</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="email" id="main-recipient-email" placeholder="example@hdc-ipark.com" class="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-hdcBlack focus:outline-none focus:border-hdcRed transition">
+                        <button onclick="saveMainEmail()" class="bg-hdcBlack hover:bg-black text-white font-bold px-3.5 py-2 rounded-xl text-xs transition active:scale-95 whitespace-nowrap">
+                            이메일 저장
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 6-GRID BOXES CONTAINER (STRICTLY 2 COLUMNS, 3 ROWS) -->
+                <div class="grid grid-cols-2 gap-3.5 sm:gap-4 w-full">
+                    
+                    <!-- BOX 1: TILE WORK -->
+                    <button onclick="openView('view-tile')" class="group p-4 bg-white hover:bg-slate-50 rounded-2xl border-2 border-slate-200 hover:border-hdcRed shadow-sm hover:shadow-md transition text-left flex flex-col justify-between h-40 relative overflow-hidden active:scale-95 w-full">
+                        <div class="flex items-center justify-between">
+                            <span class="w-8 h-8 rounded-xl bg-hdcRed/10 text-hdcRed font-black text-xs flex items-center justify-center group-hover:bg-hdcRed group-hover:text-white transition">
+                                01
+                            </span>
+                            <i class="fa-solid fa-border-all text-slate-300 group-hover:text-hdcRed text-lg transition"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xs font-extrabold text-hdcBlack group-hover:text-hdcRed transition">1. 타일공사</h2>
+                            <p class="text-[11px] font-semibold text-hdcGray2 mt-0.5 line-clamp-2">뒷채움 산출보고서</p>
+                        </div>
+                        <span class="text-[9px] font-bold text-hdcRed bg-red-50 px-2 py-0.5 rounded-md w-fit">모듈 가동중</span>
+                    </button>
+
+                    <!-- BOX 2: PAINT WORK -->
+                    <button onclick="openView('view-paint')" class="group p-4 bg-white hover:bg-slate-50 rounded-2xl border-2 border-slate-200 hover:border-hdcRed shadow-sm hover:shadow-md transition text-left flex flex-col justify-between h-40 relative overflow-hidden active:scale-95 w-full">
+                        <div class="flex items-center justify-between">
+                            <span class="w-8 h-8 rounded-xl bg-hdcRed/10 text-hdcRed font-black text-xs flex items-center justify-center group-hover:bg-hdcRed group-hover:text-white transition">
+                                02
+                            </span>
+                            <i class="fa-solid fa-paint-roller text-slate-300 group-hover:text-hdcRed text-lg transition"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xs font-extrabold text-hdcBlack group-hover:text-hdcRed transition">2. 도장공사</h2>
+                            <p class="text-[11px] font-semibold text-hdcGray2 mt-0.5 line-clamp-2">에폭시 소요물량 검증 보고서</p>
+                        </div>
+                        <span class="text-[9px] font-bold text-hdcRed bg-red-50 px-2 py-0.5 rounded-md w-fit">모듈 가동중</span>
+                    </button>
+
+                    <!-- BOX 3: RESERVED -->
+                    <button onclick="showReservedModal('3')" class="group p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-300 hover:border-slate-400 transition text-left flex flex-col justify-between h-40 opacity-70 w-full">
+                        <div class="flex items-center justify-between">
+                            <span class="w-8 h-8 rounded-xl bg-slate-200 text-slate-500 font-bold text-xs flex items-center justify-center">03</span>
+                            <i class="fa-solid fa-plus text-slate-300 text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xs font-extrabold text-slate-500">3. 예비</h2>
+                            <p class="text-[11px] text-slate-400 mt-0.5">신규 모듈 대기중</p>
+                        </div>
+                        <span class="text-[9px] font-bold text-slate-400 bg-slate-200 px-2 py-0.5 rounded-md w-fit">예비 항목</span>
+                    </button>
+
+                    <!-- BOX 4: RESERVED -->
+                    <button onclick="showReservedModal('4')" class="group p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-300 hover:border-slate-400 transition text-left flex flex-col justify-between h-40 opacity-70 w-full">
+                        <div class="flex items-center justify-between">
+                            <span class="w-8 h-8 rounded-xl bg-slate-200 text-slate-500 font-bold text-xs flex items-center justify-center">04</span>
+                            <i class="fa-solid fa-plus text-slate-300 text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xs font-extrabold text-slate-500">4. 예비</h2>
+                            <p class="text-[11px] text-slate-400 mt-0.5">신규 모듈 대기중</p>
+                        </div>
+                        <span class="text-[9px] font-bold text-slate-400 bg-slate-200 px-2 py-0.5 rounded-md w-fit">예비 항목</span>
+                    </button>
+
+                    <!-- BOX 5: RESERVED -->
+                    <button onclick="showReservedModal('5')" class="group p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-300 hover:border-slate-400 transition text-left flex flex-col justify-between h-40 opacity-70 w-full">
+                        <div class="flex items-center justify-between">
+                            <span class="w-8 h-8 rounded-xl bg-slate-200 text-slate-500 font-bold text-xs flex items-center justify-center">05</span>
+                            <i class="fa-solid fa-plus text-slate-300 text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xs font-extrabold text-slate-500">5. 예비</h2>
+                            <p class="text-[11px] text-slate-400 mt-0.5">신규 모듈 대기중</p>
+                        </div>
+                        <span class="text-[9px] font-bold text-slate-400 bg-slate-200 px-2 py-0.5 rounded-md w-fit">예비 항목</span>
+                    </button>
+
+                    <!-- BOX 6: RESERVED -->
+                    <button onclick="showReservedModal('6')" class="group p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-300 hover:border-slate-400 transition text-left flex flex-col justify-between h-40 opacity-70 w-full">
+                        <div class="flex items-center justify-between">
+                            <span class="w-8 h-8 rounded-xl bg-slate-200 text-slate-500 font-bold text-xs flex items-center justify-center">06</span>
+                            <i class="fa-solid fa-plus text-slate-300 text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xs font-extrabold text-slate-500">6. 예비</h2>
+                            <p class="text-[11px] text-slate-400 mt-0.5">신규 모듈 대기중</p>
+                        </div>
+                        <span class="text-[9px] font-bold text-slate-400 bg-slate-200 px-2 py-0.5 rounded-md w-fit">예비 항목</span>
+                    </button>
+
+                </div>
+            </div>
+
+            <!-- 2. TILE BACKFILL MODULE VIEW (3-STEP SUB-TABS) -->
+            <div id="view-tile" class="hidden animate-fade-in space-y-3">
+                <!-- TOP NAV & HEADER -->
+                <div class="flex items-center justify-between border-b border-slate-200 pb-2.5 no-print">
+                    <button onclick="openView('view-home')" class="text-hdcGray2 hover:text-hdcBlack transition p-1 flex items-center justify-center flex-shrink-0" title="목록으로 돌아가기">
+                        <i class="fa-solid fa-arrow-left text-sm"></i>
+                    </button>
+                    <h2 class="text-xs sm:text-sm font-extrabold text-hdcBlack flex items-center gap-2 whitespace-nowrap overflow-x-auto ml-auto">
+                        <span class="bg-hdcRed text-white px-2.5 py-0.5 rounded-lg text-xs font-black flex-shrink-0">IPARK</span>
+                        <span>타일뒷채움량 검수시스템</span>
+                    </h2>
+                </div>
+
+                <!-- TILE 3-STEP SUB-TABS NAVIGATION -->
+                <div class="no-print py-1">
+                    <div class="flex space-x-1.5 overflow-x-auto text-xs font-bold">
+                        <button onclick="switchTileTab(1)" id="btn-tile-tab-1" class="tile-tab-btn active px-3.5 py-2.5 rounded-xl border transition flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-hand-pointer text-hdcRed"></i> 두들김검사
+                        </button>
+                        <button onclick="switchTileTab(2)" id="btn-tile-tab-2" class="tile-tab-btn px-3.5 py-2.5 rounded-xl border transition flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-clone"></i> 철거/열화상검사
+                        </button>
+                        <button onclick="switchTileTab(3)" id="btn-tile-tab-3" class="tile-tab-btn px-3.5 py-2.5 rounded-xl border transition flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-file-contract text-hdcRed"></i> 결과보고
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TILE TAB 1: TAPPING TEST (두들김검사) -->
+                <div id="tile-screen-1" class="space-y-5">
+                    <div class="glass-card rounded-2xl p-5 shadow-sm border border-slate-200 flex justify-between items-start">
+                        <div>
+                            <h2 class="text-lg font-extrabold text-hdcBlack flex items-center gap-2">
+                                <span class="bg-hdcRed text-white px-2.5 py-0.5 rounded-lg text-xs font-black">IPARK</span>
+                                두들김 검사 데이터 대장
+                            </h2>
+                            <p class="text-xs text-hdcGray2 mt-1.5 leading-relaxed">
+                                현장별 두들김 검측 수량 및 그리드 칸 수를 기입하여 뒷채움 비율을 산출합니다.
+                            </p>
+                        </div>
+                        <button id="reset-all-btn" class="bg-hdcRed hover:bg-red-700 active:scale-95 text-white font-bold py-2 px-3.5 rounded-xl text-xs transition shadow-sm whitespace-nowrap">
+                            🔄 전체 초기화
+                        </button>
+                    </div>
+
+                    <!-- TAPPING TEST TABLE CARD -->
+                    <div class="glass-card rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm border border-slate-200">
+                        <div class="flex justify-between items-center border-b pb-3">
+                            <h3 class="text-sm font-extrabold text-hdcBlack flex items-center gap-2">
+                                <span class="text-hdcRed font-black">Ⅰ.</span> 두들김 검사 데이터 입력
+                            </h3>
+                            <span class="text-[11px] text-slate-400">행 번호를 통해 손쉽게 관리하세요</span>
+                        </div>
+
+                        <div class="overflow-x-auto rounded-xl border border-slate-200">
+                            <table id="tapping-test-table" class="min-w-[720px] w-full text-xs text-left whitespace-nowrap">
+                                <thead class="bg-slate-100 text-hdcBlack font-bold border-b">
+                                    <tr>
+                                        <th class="p-2.5 text-center w-10 whitespace-nowrap">NO</th>
+                                        <th class="p-2.5 w-28 whitespace-nowrap">현장명</th>
+                                        <th class="p-2.5 w-16 text-center whitespace-nowrap">동</th>
+                                        <th class="p-2.5 w-16 text-center whitespace-nowrap">호</th>
+                                        <th class="p-2.5 w-32 whitespace-nowrap">위치 (부위)</th>
+                                        <th class="p-2.5 w-24 whitespace-nowrap">작업자명</th>
+                                        <th class="p-2.5 w-28 text-right whitespace-nowrap">체크 칸 수 (뒷채움)</th>
+                                        <th class="p-2.5 w-28 text-right whitespace-nowrap">그리드 총 칸 수</th>
+                                        <th class="p-2.5 w-28 text-right whitespace-nowrap">면적 비율 (%)</th>
+                                        <th class="p-2.5 text-center w-10 whitespace-nowrap"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tapping-test-tbody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="text-center pt-1">
+                            <button id="add-tapping-row-btn" class="inline-flex items-center gap-1.5 text-xs font-bold text-hdcRed hover:underline">
+                                <i class="fa-solid fa-plus-circle"></i> 검사 항목 추가
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TILE TAB 2: DEMOLITION / THERMAL CANVAS ANALYSIS (철거/열화상검사) -->
+                <div id="tile-screen-2" class="hidden space-y-5">
+                    <div class="glass-card rounded-2xl p-5 shadow-sm border border-slate-200">
+                        <h2 class="text-lg font-extrabold text-hdcBlack flex items-center gap-2">
+                            <span class="bg-hdcRed text-white px-2.5 py-0.5 rounded-lg text-xs font-black">IPARK</span>
+                            철거/열화상 이미지 캔버스 분석
+                        </h2>
+                        <p class="text-xs text-hdcGray2 mt-1.5 leading-relaxed">
+                            💡 <span class="font-bold text-hdcRed">사용법:</span> 캡처(Win+Shift+S) 후, <strong>철거 캔버스 영역을 클릭</strong>하고 <kbd class="px-1.5 py-0.5 bg-slate-200 rounded text-[10px] font-mono">Ctrl + V</kbd>를 누르면 이미지가 즉시 들어갑니다.
+                        </p>
+                    </div>
+
+                    <div class="glass-card rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm border border-slate-200">
+                        <h3 class="text-sm font-extrabold text-hdcBlack flex items-center gap-2 border-b pb-3">
+                            <span class="text-hdcRed font-black">Ⅱ.</span> 철거/열화상검사 데이터 입력
+                        </h3>
+
+                        <div id="items-container" class="space-y-6"></div>
+
+                        <button id="add-item-btn" class="w-full py-3.5 border-2 border-dashed border-slate-300 hover:border-hdcRed text-slate-600 hover:text-hdcRed rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 bg-slate-50 hover:bg-red-50/50">
+                            <i class="fa-solid fa-circle-plus text-sm"></i> 새 철거/열화상 분석 항목 추가
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TILE TAB 3: SUMMARY CALCULATION & REPORT GENERATOR (결과보고) -->
+                <div id="tile-screen-3" class="hidden space-y-5">
+                    <div class="glass-card rounded-2xl p-5 shadow-sm border border-slate-200 space-y-5">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button id="calculate-summary-btn" class="flex-1 bg-hdcBlack hover:bg-black text-white font-extrabold py-3.5 px-6 rounded-xl shadow transition active:scale-95 text-xs flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-calculator text-hdcRed"></i> 📊 최종 분석 데이터 산출 및 집계
+                            </button>
+                            <button id="reset-summary-btn" class="bg-slate-500 hover:bg-slate-600 text-white font-bold py-3.5 px-5 rounded-xl transition text-xs hidden">
+                                산출 결과 접기
+                            </button>
+                        </div>
+
+                        <!-- SUMMARY OUTPUT CONTAINER -->
+                        <div id="summary-output" class="space-y-6 pt-4 border-t border-slate-200">
+                            <div>
+                                <h3 class="text-xs font-extrabold text-hdcBlack mb-2.5 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-table-list text-hdcRed"></i> 📋 전체 데이터 집계 일람
+                                </h3>
+                                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                                    <table class="min-w-[600px] w-full text-xs bg-white whitespace-nowrap">
+                                        <thead class="bg-slate-100 font-bold text-hdcBlack border-b">
+                                            <tr>
+                                                <th class="p-2.5 text-left">분류</th>
+                                                <th class="p-2.5 text-left">순번</th>
+                                                <th class="p-2.5 text-left">현장명</th>
+                                                <th class="p-2.5 text-left">동 / 호 / 부위</th>
+                                                <th class="p-2.5 text-left">작업자</th>
+                                                <th class="p-2.5 text-right">측정 면적비율</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="summary-table-body" class="divide-y divide-slate-100"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                                <div>
+                                    <h3 class="text-xs font-extrabold text-hdcBlack mb-2.5 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-building text-hdcRed"></i> 🏢 현장 종합 데이터 평균
+                                    </h3>
+                                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                                        <table class="min-w-[360px] w-full text-xs bg-white whitespace-nowrap">
+                                            <thead class="bg-slate-100 font-bold text-hdcBlack border-b">
+                                                <tr>
+                                                    <th class="p-2.5 text-left">현장명</th>
+                                                    <th class="p-2.5 text-center">두들김 평균(%)</th>
+                                                    <th class="p-2.5 text-center">철거 평균(%)</th>
+                                                    <th class="p-2.5 text-right">종합 환산율(%)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="field-summary-body" class="divide-y divide-slate-100"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 class="text-xs font-extrabold text-hdcBlack mb-2.5 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-user-gear text-hdcRed"></i> 👷 작업자별 실적 및 평균 비율
+                                    </h3>
+                                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                                        <table class="min-w-[360px] w-full text-xs bg-white whitespace-nowrap">
+                                            <thead class="bg-slate-100 font-bold text-hdcBlack border-b">
+                                                <tr>
+                                                    <th class="p-2.5 text-left">작업자명</th>
+                                                    <th class="p-2.5 text-center">검사 수량</th>
+                                                    <th class="p-2.5 text-right">평균 면적비율</th>
+                                                    <th class="p-2.5 text-left">비고</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="worker-summary-body" class="divide-y divide-slate-100"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ACTION BUTTONS -->
+                            <div id="report-generator-section" class="pt-4 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <button id="generate-report-btn" class="w-full bg-hdcRed hover:bg-red-700 text-white font-extrabold py-3.5 px-4 rounded-xl shadow transition active:scale-95 text-xs flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-file-pdf"></i> 보고서 생성 (PDF 미리보기 열기)
+                                </button>
+                                <button id="send-email-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 px-4 rounded-xl shadow transition active:scale-95 text-xs flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-paper-plane"></i> 보고서 이메일 전송
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- REPORT OUTPUT CONTAINER -->
+                    <div id="report-output" class="hidden space-y-3">
+                        <div class="flex justify-between items-center bg-hdcBlack text-white p-4 rounded-t-2xl">
+                            <span class="font-bold text-xs flex items-center gap-2"><i class="fa-solid fa-print text-hdcRed"></i> 📄 A4 명품 보고서 미리보기</span>
+                            <button id="print-report-btn" class="bg-hdcRed hover:bg-red-700 text-white font-bold py-1.5 px-4 rounded-lg text-xs transition">
+                                시스템 인쇄창 열기
+                            </button>
+                        </div>
+                        <div id="report-pages-container" class="report-page-container rounded-b-2xl"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 3. PAINT MODULE VIEW (EPOXY SMART INSPECTION SYSTEM) -->
+            <div id="view-paint" class="hidden animate-fade-in space-y-3">
+                <!-- TOP NAV & INTEGRATED TITLE HEADER -->
+                <div class="flex items-center justify-between border-b border-slate-200 pb-2.5 no-print">
+                    <button onclick="openView('view-home')" class="text-hdcGray2 hover:text-hdcBlack transition p-1 flex items-center justify-center flex-shrink-0" title="목록으로 돌아가기">
+                        <i class="fa-solid fa-arrow-left text-sm"></i>
+                    </button>
+                    <h2 class="text-xs sm:text-sm font-extrabold text-hdcBlack flex items-center gap-2 whitespace-nowrap overflow-x-auto ml-auto">
+                        <span class="bg-hdcRed text-white px-2.5 py-0.5 rounded-lg text-xs font-black flex-shrink-0">IPARK</span>
+                        <span>에폭시 소요물량 검수시스템</span>
+                    </h2>
+                </div>
+
+                <!-- SUB-TABS NAVIGATION -->
+                <div class="no-print py-1">
+                    <div class="flex space-x-1.5 overflow-x-auto text-xs font-bold">
+                        <button onclick="switchPaintTab(1)" id="btn-paint-tab-1" class="paint-tab-btn active px-3.5 py-2.5 rounded-xl border transition flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-building-flag text-hdcRed"></i> 현장정보
+                        </button>
+                        <button onclick="switchPaintTab(2)" id="btn-paint-tab-2" class="paint-tab-btn px-3.5 py-2.5 rounded-xl border transition flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-boxes-packing"></i> 자재정보
+                        </button>
+                        <button onclick="switchPaintTab(3)" id="btn-paint-tab-3" class="paint-tab-btn px-3.5 py-2.5 rounded-xl border transition flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-clipboard-check"></i> 시공검수
+                        </button>
+                        <button onclick="switchPaintTab(4)" id="btn-paint-tab-4" class="paint-tab-btn px-3.5 py-2.5 rounded-xl border transition flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-file-contract text-hdcRed"></i> 결과보고
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PAINT TAB 1: FIELD INFO & BLUEPRINTS -->
+                <div id="paint-screen-1" class="space-y-5">
+                    <!-- 기본 정보 카드 -->
+                    <div class="glass-card rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <h3 class="text-xs font-extrabold text-hdcBlack mb-3 flex items-center gap-1.5 border-b pb-2">
+                            <i class="fa-solid fa-building-flag text-hdcRed"></i> [ 기본 현장 정보 ]
+                        </h3>
+                        <div class="grid grid-cols-2 gap-2.5 text-xs">
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="block font-bold text-hdcGray2 mb-1">공사명</label>
+                                    <input type="text" id="b-project" value="IPARK 주차장 에폭시 신축공사" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-hdcRed">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-hdcGray2 mb-1">공종</label>
+                                    <input type="text" id="b-type" value="도장공사" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-hdcRed">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-hdcGray2 mb-1">공종상세</label>
+                                    <input type="text" id="b-detail" value="지하주차장 바닥 에폭시 라이닝 공사" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-hdcRed">
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="block font-bold text-hdcGray2 mb-1">시공업체</label>
+                                    <input type="text" id="b-company" value="HDC 협력도장(주)" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-hdcRed">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-hdcGray2 mb-1">시공업체 담당자</label>
+                                    <input type="text" id="b-pic" value="현장소장 김품질" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-hdcRed">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-hdcGray2 mb-1">제조사명</label>
+                                    <input type="text" id="b-mfg" value="삼화페인트" oninput="if(document.getElementById('m-manufacturer')) document.getElementById('m-manufacturer').value = this.value;" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-xl font-extrabold text-hdcRed focus:outline-none focus:border-hdcRed">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 요약 대시보드 -->
+                    <div class="bg-hdcBlack text-white rounded-2xl p-5 shadow-lg flex flex-col md:flex-row gap-4 justify-between items-center">
+                        <div>
+                            <p class="text-hdcRed font-black text-xs uppercase tracking-wider">전체 시공 총면적</p>
+                            <div class="text-3xl font-black mt-1"><span id="sum-total-area">0</span> <span class="text-base font-bold text-slate-400">m²</span></div>
+                        </div>
+                        <div id="sum-floors-area" class="flex flex-wrap gap-2 text-xs font-bold text-slate-300"></div>
+                    </div>
+
+                    <!-- 층별 도면 및 구역 관리 -->
+                    <div id="floors-container" class="space-y-5"></div>
+
+                    <button onclick="addFloor()" class="w-full py-3.5 border-2 border-dashed border-slate-300 hover:border-hdcRed text-slate-600 hover:text-hdcRed bg-white hover:bg-red-50/50 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-circle-plus text-sm"></i> 새로운 층(도면) 추가하기
+                    </button>
+                </div>
+
+                <!-- PAINT TAB 2: MATERIAL SPECS -->
+                <div id="paint-screen-2" class="hidden space-y-5">
+                    <div class="glass-card rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
+                        <div class="flex items-center gap-3 border-b pb-3">
+                            <label class="block text-xs font-extrabold text-hdcBlack">제조사 명칭:</label>
+                            <input type="text" id="m-manufacturer" value="삼화페인트" class="text-xs p-2 bg-slate-50 border border-slate-300 rounded-xl font-extrabold text-hdcRed w-48 focus:outline-none focus:border-hdcRed">
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                            <!-- 1) 하도 -->
+                            <div id="card-primer" class="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                                <div class="bg-slate-100 p-3 border-b border-slate-200 font-extrabold text-hdcBlack text-xs flex justify-between items-center">
+                                    <span>1) 하도 (Primer)</span>
+                                    <button onclick="toggleMaterialLock('primer')" id="btn-lock-primer" class="bg-hdcBlack text-white px-2.5 py-1 rounded-lg text-[11px] font-bold hover:bg-black transition flex items-center gap-1 shadow-sm">
+                                        <i class="fa-solid fa-floppy-disk"></i> 저장
+                                    </button>
+                                </div>
+                                <div class="p-3.5 space-y-3 text-xs">
+                                    <div>
+                                        <label class="font-bold text-hdcGray2 block mb-1">추천도포면적 (m²/L)</label>
+                                        <input type="number" step="0.1" id="m-p-coverage" value="6.6" onchange="calcPaintMaterials()" class="w-full p-2 border rounded-lg bg-slate-50 font-bold font-mono">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="font-bold text-hdcGray2 block mb-1">혼합비(주제) L</label>
+                                            <input type="number" step="0.1" id="m-p-base" value="10.5" onchange="calcPaintMaterials()" class="w-full p-2 border rounded-lg bg-slate-50 font-bold font-mono">
+                                        </div>
+                                        <div>
+                                            <label class="font-bold text-hdcGray2 block mb-1">혼합비(경화제) L</label>
+                                            <input type="number" step="0.1" id="m-p-hardener" value="3.5" onchange="calcPaintMaterials()" class="w-full p-2 border rounded-lg bg-slate-50 font-bold font-mono">
+                                        </div>
+                                    </div>
+                                    <div class="bg-red-50 p-2.5 rounded-xl border border-red-100 text-hdcRed font-extrabold space-y-1 text-[11px]">
+                                        <p>→ 1세트 총량: <span id="m-p-calc-vol" class="font-mono">14</span> L</p>
+                                        <p>→ 1세트당 도포면적: <span id="m-p-calc-area" class="font-mono">92.4</span> m²</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 mt-3">
+                                        <div>
+                                            <p class="font-bold text-hdcGray2 text-[10px] mb-1">주제 사진</p>
+                                            <div class="h-20 bg-slate-50 border border-dashed rounded-xl relative flex items-center justify-center overflow-hidden">
+                                                <input type="file" onchange="previewPaintImg(this, 'img-p-base')" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                                <img id="img-p-base" class="hidden max-h-full object-cover">
+                                                <i class="fa-solid fa-camera text-slate-300 absolute"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-hdcGray2 text-[10px] mb-1">경화제 사진</p>
+                                            <div class="h-20 bg-slate-50 border border-dashed rounded-xl relative flex items-center justify-center overflow-hidden">
+                                                <input type="file" onchange="previewPaintImg(this, 'img-p-hard')" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                                <img id="img-p-hard" class="hidden max-h-full object-cover">
+                                                <i class="fa-solid fa-camera text-slate-300 absolute"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 2) 중도 -->
+                            <div id="card-lining" class="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                                <div class="bg-slate-100 p-3 border-b border-slate-200 font-extrabold text-hdcBlack text-xs flex justify-between items-center">
+                                    <span>2) 중도 (Lining)</span>
+                                    <button onclick="toggleMaterialLock('lining')" id="btn-lock-lining" class="bg-hdcBlack text-white px-2.5 py-1 rounded-lg text-[11px] font-bold hover:bg-black transition flex items-center gap-1 shadow-sm">
+                                        <i class="fa-solid fa-floppy-disk"></i> 저장
+                                    </button>
+                                </div>
+                                <div class="p-3.5 space-y-3 text-xs">
+                                    <div>
+                                        <label class="font-bold text-hdcGray2 block mb-1">소요량 (kg/m²·1mm기준)</label>
+                                        <input type="number" step="0.001" id="m-l-consumption" value="1.58" onchange="calcPaintMaterials()" class="w-full p-2 border rounded-lg bg-slate-50 font-bold font-mono">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="font-bold text-hdcGray2 block mb-1">포장량(주제) kg</label>
+                                            <input type="number" step="0.1" id="m-l-base" value="20" onchange="calcPaintMaterials()" class="w-full p-2 border rounded-lg bg-slate-50 font-bold font-mono">
+                                        </div>
+                                        <div>
+                                            <label class="font-bold text-hdcGray2 block mb-1">포장량(경화제) kg</label>
+                                            <input type="number" step="0.1" id="m-l-hardener" value="4" onchange="calcPaintMaterials()" class="w-full p-2 border rounded-lg bg-slate-50 font-bold font-mono">
+                                        </div>
+                                    </div>
+                                    <div class="bg-amber-50 p-2.5 rounded-xl border border-amber-100 text-amber-900 font-extrabold space-y-1 text-[11px]">
+                                        <p>→ 1세트 총량: <span id="m-l-calc-vol" class="font-mono">24</span> kg (5:1)</p>
+                                        <p>→ 0.1mm당 소모량: <span id="m-l-calc-01" class="font-mono">0.158</span> kg/m²</p>
+                                        <p class="flex items-center gap-1 mt-1">→ 1세트당 <input type="number" step="0.1" id="m-l-test-t" value="0.3" onchange="calcPaintMaterials()" class="w-12 text-center border rounded bg-white font-mono py-0.5 text-hdcBlack"> mm 시 도포면적: <span id="m-l-calc-03t" class="text-hdcRed font-mono font-black ml-1">50.6</span> m²</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 mt-3">
+                                        <div>
+                                            <p class="font-bold text-hdcGray2 text-[10px] mb-1">주제 사진</p>
+                                            <div class="h-20 bg-slate-50 border border-dashed rounded-xl relative flex items-center justify-center overflow-hidden">
+                                                <input type="file" onchange="previewPaintImg(this, 'img-l-base')" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                                <img id="img-l-base" class="hidden max-h-full object-cover">
+                                                <i class="fa-solid fa-camera text-slate-300 absolute"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-hdcGray2 text-[10px] mb-1">경화제 사진</p>
+                                            <div class="h-20 bg-slate-50 border border-dashed rounded-xl relative flex items-center justify-center overflow-hidden">
+                                                <input type="file" onchange="previewPaintImg(this, 'img-l-hard')" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                                <img id="img-l-hard" class="hidden max-h-full object-cover">
+                                                <i class="fa-solid fa-camera text-slate-300 absolute"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 3) 상도 -->
+                            <div id="card-topcoat" class="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                                <div class="bg-slate-100 p-3 border-b border-slate-200 font-extrabold text-hdcBlack text-xs flex justify-between items-center">
+                                    <span>3) 상도 (Topcoat)</span>
+                                    <button onclick="toggleMaterialLock('topcoat')" id="btn-lock-topcoat" class="bg-hdcBlack text-white px-2.5 py-1 rounded-lg text-[11px] font-bold hover:bg-black transition flex items-center gap-1 shadow-sm">
+                                        <i class="fa-solid fa-floppy-disk"></i> 저장
+                                    </button>
+                                </div>
+                                <div class="p-3.5 space-y-3 text-xs">
+                                    <div>
+                                        <label class="font-bold text-hdcGray2 mb-1 flex items-center gap-1 flex-wrap">
+                                            <span>도포면적 (m²/L, 건조도막두께</span>
+                                            <input type="number" id="m-t-dft" value="40" onchange="calcPaintMaterials()" class="w-12 text-center border rounded px-1 py-0.5 bg-slate-50 text-hdcRed font-bold font-mono">
+                                            <span>㎛ 기준)</span>
+                                        </label>
+                                        <input type="number" step="0.1" id="m-t-coverage" value="10.8" onchange="calcPaintMaterials()" class="w-full p-2 border rounded-lg bg-slate-50 font-bold font-mono">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="font-bold text-hdcGray2 block mb-1">포장량(주제) L</label>
+                                            <input type="number" step="0.1" id="m-t-base" value="10.2" onchange="calcPaintMaterials()" class="w-full p-2 border rounded-lg bg-slate-50 font-bold font-mono">
+                                        </div>
+                                        <div>
+                                            <label class="font-bold text-hdcGray2 block mb-1">포장량(경화제) L</label>
+                                            <input type="number" step="0.1" id="m-t-hardener" value="3.8" onchange="calcPaintMaterials()" class="w-full p-2 border rounded-lg bg-slate-50 font-bold font-mono">
+                                        </div>
+                                    </div>
+                                    <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-100 text-emerald-900 font-extrabold space-y-1 text-[11px]">
+                                        <p>→ 1세트 총량: <span id="m-t-calc-vol" class="font-mono">14</span> L (2.7:1)</p>
+                                        <p>→ 1세트당 도포면적: <span id="m-t-calc-area" class="font-mono">151.2</span> m²</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 mt-3">
+                                        <div>
+                                            <p class="font-bold text-hdcGray2 text-[10px] mb-1">주제 사진</p>
+                                            <div class="h-20 bg-slate-50 border border-dashed rounded-xl relative flex items-center justify-center overflow-hidden">
+                                                <input type="file" onchange="previewPaintImg(this, 'img-t-base')" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                                <img id="img-t-base" class="hidden max-h-full object-cover">
+                                                <i class="fa-solid fa-camera text-slate-300 absolute"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-hdcGray2 text-[10px] mb-1">경화제 사진</p>
+                                            <div class="h-20 bg-slate-50 border border-dashed rounded-xl relative flex items-center justify-center overflow-hidden">
+                                                <input type="file" onchange="previewPaintImg(this, 'img-t-hard')" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                                <img id="img-t-hard" class="hidden max-h-full object-cover">
+                                                <i class="fa-solid fa-camera text-slate-300 absolute"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAINT TAB 3: EXECUTION INSPECTION -->
+                <div id="paint-screen-3" class="hidden space-y-5">
+                    <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="flex justify-between items-center mb-3 border-b pb-2.5">
+                            <h3 class="text-xs font-extrabold text-hdcBlack flex items-center gap-1.5">
+                                <i class="fa-solid fa-clipboard-check text-hdcRed"></i> 현장 소요/실투입량 검측 대장
+                            </h3>
+                            <button onclick="savePaintData()" class="bg-hdcBlack text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow hover:bg-black transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-floppy-disk text-hdcRed"></i> 데이터 저장
+                            </button>
+                        </div>
+
+                        <div class="overflow-x-auto rounded-xl border border-slate-200">
+                            <table class="w-full text-xs text-left border-collapse min-w-[820px] whitespace-nowrap">
+                                <thead class="bg-slate-100 font-bold text-hdcBlack text-center border-b">
+                                    <tr>
+                                        <th class="border-r p-2 w-1/6" rowspan="2">시공 위치</th>
+                                        <th class="border-r p-2 w-1/12" rowspan="2">구분</th>
+                                        <th class="border-r p-2" colspan="3">필요 소요수량 (통)</th>
+                                        <th class="border-r p-2" colspan="3">실 시공 수량 및 증빙사진 (통 / 📷)</th>
+                                        <th class="p-2 w-1/12" rowspan="2">최종 적정성</th>
+                                    </tr>
+                                    <tr class="bg-slate-50 border-t">
+                                        <th class="border-r p-1.5">하도</th>
+                                        <th class="border-r p-1.5">중도</th>
+                                        <th class="border-r p-1.5">상도</th>
+                                        <th class="border-r p-1.5">하도</th>
+                                        <th class="border-r p-1.5">중도</th>
+                                        <th class="border-r p-1.5">상도</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="execution-table-body" class="divide-y divide-slate-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAINT TAB 4: RESULT REPORT -->
+                <div id="paint-screen-4" class="hidden space-y-5">
+                    <div class="no-print flex justify-end gap-2">
+                        <button onclick="window.print()" class="bg-hdcRed text-white px-4 py-2.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-print"></i> 보고서 인쇄 / PDF 출력
+                        </button>
+                    </div>
+
+                    <!-- PRINT CONTAINER -->
+                    <div class="print-container bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-300 mx-auto text-slate-900 text-xs max-w-4xl space-y-6">
+                        <!-- PAGE 1 -->
+                        <div class="page-1">
+                            <div class="flex justify-between items-end border-b-2 border-hdcBlack pb-3 mb-4">
+                                <div>
+                                    <h1 class="text-xl font-black text-hdcBlack tracking-tight">주차장바닥 에폭시 시공수량 품질검수 보고서</h1>
+                                    <p class="text-[10px] text-hdcGray2 font-bold mt-0.5">IPARK현대산업개발 품질팀 검측 산출서</p>
+                                </div>
+                                <span class="text-[10px] font-mono font-bold text-slate-400">[ Page 1 / 2 ]</span>
+                            </div>
+
+                            <!-- 1. 기본 정보 -->
+                            <table class="w-full border-collapse border border-slate-300 mb-4 text-[11px] text-center">
+                                <tbody>
+                                    <tr>
+                                        <th class="border border-slate-300 bg-slate-100 p-1.5 w-1/6 font-bold">공사명</th>
+                                        <td class="border border-slate-300 p-1.5 font-bold w-2/6" id="r-project"></td>
+                                        <th class="border border-slate-300 bg-slate-100 p-1.5 w-1/6 font-bold">공종상세</th>
+                                        <td class="border border-slate-300 p-1.5 w-2/6" id="r-detail"></td>
+                                    </tr>
+                                    <tr>
+                                        <th class="border border-slate-300 bg-slate-100 p-1.5 font-bold">시공업체</th>
+                                        <td class="border border-slate-300 p-1.5" id="r-company"></td>
+                                        <th class="border border-slate-300 bg-slate-100 p-1.5 font-bold">담당자</th>
+                                        <td class="border border-slate-300 p-1.5" id="r-pic"></td>
+                                    </tr>
+                                    <tr>
+                                        <th class="border border-slate-300 bg-slate-100 p-1.5 font-bold">총 시공면적</th>
+                                        <td class="border border-slate-300 p-1.5 font-bold text-hdcRed" colspan="3" id="r-total-area"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- 2. 재료 정보 -->
+                            <h3 class="font-extrabold text-hdcBlack border-l-4 border-hdcRed pl-2 mb-2 text-xs">1. 적용 자재 사양 (제조사: <span id="r-mfg"></span>)</h3>
+                            <table class="w-full border-collapse border border-slate-300 mb-4 text-[11px] text-center">
+                                <thead class="bg-slate-100 font-bold">
+                                    <tr>
+                                        <th class="border border-slate-300 p-1.5">구분</th>
+                                        <th class="border border-slate-300 p-1.5">도포/소요율</th>
+                                        <th class="border border-slate-300 p-1.5">혼합비</th>
+                                        <th class="border border-slate-300 p-1.5">1세트 용량</th>
+                                        <th class="border border-slate-300 p-1.5">1세트당 시공면적</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="border border-slate-300 p-1.5 font-bold">하도</td>
+                                        <td class="border border-slate-300 p-1.5" id="r-p-rate"></td>
+                                        <td class="border border-slate-300 p-1.5" id="r-p-mix"></td>
+                                        <td class="border border-slate-300 p-1.5" id="r-p-vol"></td>
+                                        <td class="border border-slate-300 p-1.5 font-bold" id="r-p-area"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-slate-300 p-1.5 font-bold">중도</td>
+                                        <td class="border border-slate-300 p-1.5" id="r-l-rate"></td>
+                                        <td class="border border-slate-300 p-1.5" id="r-l-mix"></td>
+                                        <td class="border border-slate-300 p-1.5" id="r-l-vol"></td>
+                                        <td class="border border-slate-300 p-1.5 text-slate-400">두께별 별도계산</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-slate-300 p-1.5 font-bold">상도</td>
+                                        <td class="border border-slate-300 p-1.5" id="r-t-rate"></td>
+                                        <td class="border border-slate-300 p-1.5" id="r-t-mix"></td>
+                                        <td class="border border-slate-300 p-1.5" id="r-t-vol"></td>
+                                        <td class="border border-slate-300 p-1.5 font-bold" id="r-t-area"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- 층별 도면 배치 -->
+                            <div id="r-blueprint-container" class="mb-4"></div>
+
+                            <!-- 3. 시공 수량 검측 결과 -->
+                            <h3 class="font-extrabold text-hdcBlack border-l-4 border-hdcRed pl-2 mb-2 text-xs">2. 구역별 소요량 및 실투입 검수 내역</h3>
+                            <table class="w-full border-collapse border border-slate-300 text-[10px] text-center mb-2">
+                                <thead class="bg-slate-100 font-bold">
+                                    <tr>
+                                        <th class="border border-slate-300 p-1.5 w-1/4" rowspan="2">위치</th>
+                                        <th class="border border-slate-300 p-1.5" colspan="3">필요 소요량 (통)</th>
+                                        <th class="border border-slate-300 p-1.5" colspan="3">실제 시공량 (주제/경화제)</th>
+                                        <th class="border border-slate-300 p-1.5 w-1/6" rowspan="2">최종 판정</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="border border-slate-300 p-1">하도</th><th class="border border-slate-300 p-1">중도</th><th class="border border-slate-300 p-1">상도</th>
+                                        <th class="border border-slate-300 p-1">하도</th><th class="border border-slate-300 p-1">중도</th><th class="border border-slate-300 p-1">상도</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="r-execution-table"></tbody>
+                            </table>
+                        </div>
+
+                        <!-- PAGE 2 -->
+                        <div class="page-2 page-break pt-4 border-t border-slate-200">
+                            <div class="flex justify-between items-end border-b-2 border-hdcBlack pb-3 mb-4">
+                                <h1 class="text-xl font-black text-hdcBlack tracking-tight">사진 대지 (경화제 실투입 증빙)</h1>
+                                <span class="text-[10px] font-mono font-bold text-slate-400">[ Page 2 / 2 ]</span>
+                            </div>
+
+                            <table class="w-full border-collapse border border-slate-300 text-[10px] text-center mb-6 table-fixed">
+                                <thead class="bg-slate-100 font-bold">
+                                    <tr>
+                                        <th class="border border-slate-300 p-1.5 w-[18%]">위치 (층/구역)</th>
+                                        <th class="border border-slate-300 p-1.5 w-[20%]">실시공량 및 판정</th>
+                                        <th class="border border-slate-300 p-1.5 w-[20%]">하도 경화제</th>
+                                        <th class="border border-slate-300 p-1.5 w-[20%]">중도 경화제</th>
+                                        <th class="border border-slate-300 p-1.5 w-[20%]">상도 경화제</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="r-photolog-table"></tbody>
+                            </table>
+
+                            <div class="mt-12 flex justify-end gap-12 text-center text-xs">
+                                <div><p class="px-8 pb-1 font-bold">점검자 : ____________________(인)</p></div>
+                                <div><p class="px-8 pb-1 font-bold">확인자 : ____________________(인)</p></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ACTION BUTTONS SECTION (AT VERY BOTTOM) -->
+                    <div class="glass-card rounded-2xl p-5 shadow-sm border border-slate-200 no-print max-w-4xl mx-auto">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button onclick="openPaintReportPreview()" class="w-full bg-hdcRed hover:bg-red-700 text-white font-extrabold py-3.5 px-4 rounded-xl shadow transition active:scale-95 text-xs flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-file-pdf"></i> 보고서 생성 (PDF 미리보기 열기)
+                            </button>
+                            <button onclick="sendPaintReportEmail()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 px-4 rounded-xl shadow transition active:scale-95 text-xs flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-paper-plane"></i> 보고서 이메일 전송
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- FOOTER & FIXED BRANDING WATERMARK (RIGHT ALIGNED) -->
+        <footer class="p-4 pr-28 sm:pr-32 text-right text-[10px] text-hdcGray2 border-t border-slate-100 no-print">
+            © HDC Hyundai Development Company Quality Control
+        </footer>
+
+        <!-- FIXED BOTTOM-RIGHT HDC WATERMARK (RIGHT ALIGNED) -->
+        <div class="fixed bottom-3 right-3 z-40 pointer-events-none flex items-center justify-end gap-1.5 whitespace-nowrap overflow-visible no-print">
+            <svg class="h-4 w-auto flex-shrink-0" viewBox="0 0 160 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0 0H28V45H0V0Z" fill="#F01428"/>
+                <path d="M28 0C38 0 45 7 45 18C45 23 42 27 38 30L28 20V0Z" fill="#F01428"/>
+                <path d="M28 25L38 35C43 40 45 45 45 45H28V25Z" fill="#F01428"/>
+                <text x="52" y="34" font-family="'Pretendard', sans-serif" font-weight="900" font-size="34" fill="#212121" letter-spacing="-1">HDC</text>
+            </svg>
+            <span class="text-xs font-bold text-[#212121] tracking-tight drop-shadow-sm flex-shrink-0">품질팀</span>
+        </div>
+
+    </div>
+
+    <!-- MODAL: COMMON ALERT / CONFIRM / EMAIL -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200 overflow-hidden">
+            <div class="p-5">
+                <h3 id="modal-title" class="text-sm font-bold text-hdcBlack"></h3>
+                <div id="modal-message" class="mt-2 text-xs text-hdcGray2 leading-relaxed"></div>
+            </div>
+            <div id="modal-buttons" class="bg-slate-50 px-5 py-3 flex justify-end gap-2 border-t"></div>
+        </div>
+    </div>
+
+    <!-- MAIN JAVASCRIPT APP CONTROLLER -->
+    <script>
+        // --- NAVIGATION & ROUTING ---
+        function openView(viewId) {
+            document.getElementById('view-home').classList.add('hidden');
+            document.getElementById('view-tile').classList.add('hidden');
+            document.getElementById('view-paint').classList.add('hidden');
+
+            const targetView = document.getElementById(viewId);
+            if (targetView) {
+                targetView.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            if (viewId === 'view-paint') {
+                loadPaintData();
+            }
+        }
+
+        function showReservedModal(num) {
+            showModal(`예비 항목 ${num}`, `현재 [예비 항목 ${num}]은 개발 대기 상태입니다. 신규 검측 업무 모듈 추가 시 즉시 연동됩니다.`);
+        }
+
+        // --- TILE 3-STEP SUB-TAB SWITCHER ---
+        function switchTileTab(tabNum) {
+            for (let i = 1; i <= 3; i++) {
+                const screen = document.getElementById(`tile-screen-${i}`);
+                const btn = document.getElementById(`btn-tile-tab-${i}`);
+                if (screen && btn) {
+                    if (i === tabNum) {
+                        screen.classList.remove('hidden');
+                        btn.classList.add('active');
+                    } else {
+                        screen.classList.add('hidden');
+                        btn.classList.remove('active');
+                    }
+                }
+            }
+            if (tabNum === 3) {
+                handleSummaryCalculation();
+            }
+        }
+
+        // --- COMMON MODAL SYSTEM ---
+        const modal = document.getElementById('custom-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalButtons = document.getElementById('modal-buttons');
+
+        function hideModal() { modal.classList.add('hidden'); }
+
+        function showModal(title, message, type = 'alert', onConfirm = null) {
+            modalTitle.textContent = title;
+            if (typeof message === 'string') {
+                modalMessage.innerHTML = message;
+            } else {
+                modalMessage.innerHTML = '';
+                modalMessage.appendChild(message);
+            }
+            modalButtons.innerHTML = '';
+
+            if (type === 'confirm') {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.textContent = '취소';
+                cancelBtn.className = 'bg-slate-200 hover:bg-slate-300 text-hdcBlack font-bold py-1.5 px-3.5 rounded-lg text-xs transition';
+                cancelBtn.onclick = hideModal;
+                modalButtons.appendChild(cancelBtn);
+
+                const confirmBtn = document.createElement('button');
+                confirmBtn.textContent = '확인';
+                confirmBtn.className = 'bg-hdcRed hover:bg-red-700 text-white font-bold py-1.5 px-3.5 rounded-lg text-xs transition';
+                confirmBtn.onclick = () => { if (onConfirm) onConfirm(); hideModal(); };
+                modalButtons.appendChild(confirmBtn);
+            } else {
+                const okBtn = document.createElement('button');
+                okBtn.textContent = '확인';
+                okBtn.className = 'bg-hdcBlack hover:bg-black text-white font-bold py-1.5 px-4 rounded-lg text-xs transition';
+                okBtn.onclick = hideModal;
+                modalButtons.appendChild(okBtn);
+            }
+            modal.classList.remove('hidden');
+        }
+
+        // --- EMAIL RECIPIENT MANAGEMENT ---
+        function saveMainEmail() {
+            const input = document.getElementById('main-recipient-email');
+            if (!input) return;
+            const email = input.value.trim();
+            if (!email || !email.includes('@')) {
+                showModal('오류', '올바른 이메일 주소를 입력해 주세요.');
+                return;
+            }
+            localStorage.setItem('tileReportRecipientEmail', email);
+            const statusTag = document.getElementById('email-save-status');
+            if (statusTag) {
+                statusTag.classList.remove('hidden');
+                setTimeout(() => statusTag.classList.add('hidden'), 2000);
+            }
+            showModal('저장 완료', `기본 수신 이메일이 [<b>${email}</b>](으)로 보관되었습니다.`);
+        }
+
+        function loadMainEmail() {
+            const savedEmail = localStorage.getItem('tileReportRecipientEmail') || '';
+            const input = document.getElementById('main-recipient-email');
+            if (input && savedEmail) input.value = savedEmail;
+        }
+
+        // --- MODULE 01: TILE BACKFILL STATE & ENGINE ---
+        let imageAnalysisState = [];
+        let tappingTestState = [];
+        let lastActiveCanvasIndex = null;
+
+        function initTileModule() {
+            loadTileState();
+            bindTileEvents();
+        }
+
+        function saveTileState() {
+            try {
+                const combined = {
+                    tappingTest: tappingTestState,
+                    imageAnalysis: imageAnalysisState.map(item => {
+                        const copy = {...item};
+                        delete copy.image;
+                        return copy;
+                    })
+                };
+                localStorage.setItem('tileBackfillApp_v2', JSON.stringify(combined));
+            } catch(e) {
+                console.error("로컬스토리지 저장 실패:", e);
+            }
+        }
+
+        function loadTileState() {
+            try {
+                const saved = localStorage.getItem('tileBackfillApp_v2');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    tappingTestState = Array.isArray(data.tappingTest) ? data.tappingTest : [];
+                    imageAnalysisState = Array.isArray(data.imageAnalysis) ? data.imageAnalysis : [];
+                }
+            } catch(e) {
+                tappingTestState = [];
+                imageAnalysisState = [];
+            }
+
+            if (tappingTestState.length === 0) addTappingRow(false);
+            if (imageAnalysisState.length === 0) createAndAddItem(false);
+
+            renderTappingTable();
+            renderAllImageItems();
+        }
+
+        function addTappingRow(shouldSave = true) {
+            const index = tappingTestState.length;
+            tappingTestState.push({
+                id: index, site: '', building: '', unit: '', location: '', worker: '',
+                checked: '', grid: '', ratio: 0
+            });
+            renderTappingTable();
+            if (shouldSave) saveTileState();
+        }
+
+        function renderTappingTable() {
+            const tbody = document.getElementById('tapping-test-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            tappingTestState.forEach((row, idx) => {
+                row.id = idx;
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                tr.innerHTML = `
+                    <td class="p-2 text-center font-bold text-slate-500 whitespace-nowrap">${idx + 1}</td>
+                    <td class="p-1.5"><input type="text" class="w-full min-w-[90px] border border-slate-200 rounded-lg px-2 py-1 text-xs text-center font-bold" data-index="${idx}" name="site" value="${row.site || ''}" placeholder="현장명" oninput="handleTappingInput(event, ${idx})"></td>
+                    <td class="p-1.5"><input type="text" class="w-full min-w-[50px] border border-slate-200 rounded-lg px-1.5 py-1 text-xs text-center" data-index="${idx}" name="building" value="${row.building || ''}" placeholder="동" oninput="handleTappingInput(event, ${idx})"></td>
+                    <td class="p-1.5"><input type="text" class="w-full min-w-[50px] border border-slate-200 rounded-lg px-1.5 py-1 text-xs text-center" data-index="${idx}" name="unit" value="${row.unit || ''}" placeholder="호" oninput="handleTappingInput(event, ${idx})"></td>
+                    <td class="p-1.5"><input type="text" class="w-full min-w-[100px] border border-slate-200 rounded-lg px-2 py-1 text-xs text-center" data-index="${idx}" name="location" value="${row.location || ''}" placeholder="(예: 공용)" oninput="handleTappingInput(event, ${idx})"></td>
+                    <td class="p-1.5"><input type="text" class="w-full min-w-[80px] border border-slate-200 rounded-lg px-2 py-1 text-xs text-center" data-index="${idx}" name="worker" value="${row.worker || ''}" placeholder="작업자" oninput="handleTappingInput(event, ${idx})"></td>
+                    <td class="p-1.5"><input type="number" class="w-full min-w-[70px] border border-slate-200 rounded-lg px-1.5 py-1 text-xs text-right font-mono" data-index="${idx}" name="checked" value="${row.checked || ''}" placeholder="0" oninput="handleTappingInput(event, ${idx})"></td>
+                    <td class="p-1.5"><input type="number" class="w-full min-w-[70px] border border-slate-200 rounded-lg px-1.5 py-1 text-xs text-right font-mono" data-index="${idx}" name="grid" value="${row.grid || ''}" placeholder="0" oninput="handleTappingInput(event, ${idx})"></td>
+                    <td class="p-2 text-right font-extrabold text-hdcRed font-mono whitespace-nowrap">${(row.ratio || 0).toFixed(2)} %</td>
+                    <td class="p-2 text-center whitespace-nowrap"><button onclick="deleteTappingRow(${idx})" class="text-slate-400 hover:text-hdcRed font-bold">&times;</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function handleTappingInput(e, index) {
+            const row = tappingTestState[index];
+            if (!row) return;
+            row[e.target.name] = e.target.value;
+
+            const chk = parseFloat(row.checked) || 0;
+            const grd = parseFloat(row.grid) || 0;
+            row.ratio = (grd > 0) ? (chk / grd) * 100 : 0;
+
+            const tr = e.target.closest('tr');
+            if (tr) {
+                const ratioCell = tr.querySelector('td:nth-child(9)');
+                if (ratioCell) ratioCell.innerText = row.ratio.toFixed(2) + ' %';
+            }
+            saveTileState();
+            refreshSummaryIfVisible();
+        }
+
+        function deleteTappingRow(index) {
+            if (tappingTestState.length <= 1) {
+                showModal('삭제 불가', '최소 1개의 두들김 검사 항목이 필요합니다.');
+                return;
+            }
+            tappingTestState.splice(index, 1);
+            renderTappingTable();
+            saveTileState();
+            refreshSummaryIfVisible();
+        }
+
+        // --- DEMOLITION / THERMAL CANVAS ENGINE ---
+        function createAndAddItem(shouldSave = true) {
+            const index = imageAnalysisState.length;
+            imageAnalysisState.push({
+                id: index,
+                inputs: { site: '', building: '', unit: '', location: '', worker: '', remarks: '' },
+                image: null,
+                imageDataUrl: null,
+                basePoints: [],
+                targetPoints: [{ points: [], isComplete: false }],
+                activeTargetIndex: 0,
+                baseArea: 0,
+                targetArea: 0,
+                ratio: 0,
+                currentMode: 'idle',
+                zoom: 1,
+                offset: { x: 0, y: 0 },
+                isPanning: false,
+                panStart: { x: 0, y: 0 }
+            });
+            renderAllImageItems();
+            if (shouldSave) saveTileState();
+        }
+
+        function renderAllImageItems() {
+            const container = document.getElementById('items-container');
+            if (!container) return;
+            container.innerHTML = '';
+            imageAnalysisState.forEach((item, idx) => {
+                item.id = idx;
+                renderItemBlock(idx, container);
+            });
+        }
+
+        function renderItemBlock(index, parentEl) {
+            const item = imageAnalysisState[index];
+            const div = document.createElement('div');
+            div.className = 'p-4 sm:p-5 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition space-y-4';
+            div.innerHTML = `
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="text-sm font-extrabold text-hdcBlack flex items-center gap-2">
+                        <span class="w-6 h-6 bg-hdcRed/10 text-hdcRed rounded-full flex items-center justify-center text-xs font-black">철</span>
+                        철거/열화상 #${index + 1}
+                    </h3>
+                    <button onclick="deleteImageItem(${index})" class="text-slate-400 hover:text-hdcRed font-bold text-xs flex items-center gap-1 transition">
+                        <i class="fa-solid fa-trash-can"></i> 이 항목 삭제
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
+                    <input type="text" placeholder="현장명" value="${item.inputs.site || ''}" oninput="imageAnalysisState[${index}].inputs.site=this.value; saveTileState(); refreshSummaryIfVisible();" class="p-2 border border-slate-200 rounded-lg">
+                    <input type="text" placeholder="동" value="${item.inputs.building || ''}" oninput="imageAnalysisState[${index}].inputs.building=this.value; saveTileState(); refreshSummaryIfVisible();" class="p-2 border border-slate-200 rounded-lg">
+                    <input type="text" placeholder="호" value="${item.inputs.unit || ''}" oninput="imageAnalysisState[${index}].inputs.unit=this.value; saveTileState(); refreshSummaryIfVisible();" class="p-2 border border-slate-200 rounded-lg">
+                    <input type="text" placeholder="위치 (예: 부부)" value="${item.inputs.location || ''}" oninput="imageAnalysisState[${index}].inputs.location=this.value; saveTileState(); refreshSummaryIfVisible();" class="p-2 border border-slate-200 rounded-lg">
+                    <input type="text" placeholder="작업자명" value="${item.inputs.worker || ''}" oninput="imageAnalysisState[${index}].inputs.worker=this.value; saveTileState(); refreshSummaryIfVisible();" class="p-2 border border-slate-200 rounded-lg">
+                </div>
+
+                <div class="canvas-container" id="canvas-container-${index}" data-index="${index}" tabindex="0">
+                    <div class="placeholder-text px-4 py-10 text-center text-xs">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-300 mb-2"></i><br>
+                        <span class="font-extrabold text-slate-700">여기를 클릭 후 Ctrl+V로 이미지를 붙여넣으세요!</span><br>
+                        <small class="text-slate-400 mt-1 inline-block">마우스 휠: 확대/축소 | 휠 드래그: 자유 이동</small>
+                    </div>
+                    <canvas id="canvas-${index}" data-index="${index}"></canvas>
+                </div>
+
+                <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-xs">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button class="mode-btn px-3 py-2 border rounded-lg font-bold bg-slate-100 hover:bg-slate-200 transition" data-index="${index}" data-mode="base" onclick="handleModeButtonClick(${index}, 'base')">
+                            🟥 1. 바탕(전체)면적 지정
+                        </button>
+                        <span class="text-slate-300">|</span>
+                        <div class="flex items-center gap-1.5">
+                            <label class="font-bold text-slate-600">비고:</label>
+                            <input type="text" placeholder="인쇄용 비고" value="${item.inputs.remarks || ''}" oninput="imageAnalysisState[${index}].inputs.remarks=this.value; saveTileState();" class="p-1.5 border rounded-lg w-36">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="handleUndoClick(${index})" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition">점 되돌리기</button>
+                        <button onclick="clearCanvasData(${index})" class="bg-hdcRed hover:bg-red-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition">초기화</button>
+                    </div>
+
+                    <div id="result-${index}" class="bg-slate-50 border p-2.5 rounded-xl text-xs font-mono grid grid-cols-2 gap-x-3 gap-y-1 w-full xl:w-auto">
+                        <span class="text-slate-500">바탕전체: <b class="text-hdcBlack base-area">${(item.baseArea || 0).toLocaleString()}</b> px²</span>
+                        <span class="text-slate-500">채움총합: <b class="text-hdcBlack target-area">${(item.targetArea || 0).toLocaleString()}</b> px²</span>
+                        <span class="col-span-2 text-right font-extrabold text-hdcRed text-xs">뒷채움 비율: <span class="ratio-val">${(item.ratio || 0).toFixed(2)}</span> %</span>
+                    </div>
+                </div>
+
+                <div class="p-3 border rounded-xl bg-slate-50 space-y-2 text-xs" id="target-areas-container-${index}">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h4 class="font-bold text-slate-600 whitespace-nowrap">🟩 2. 뒷채움 블록지정 (멀티플):</h4>
+                            <button onclick="handleAddTargetArea(${index})" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold w-6 h-6 rounded-full transition text-xs flex items-center justify-center">+</button>
+                            <div class="target-areas-list flex flex-wrap gap-1.5" id="target-areas-list-${index}"></div>
+                        </div>
+                        <button onclick="handleCompleteToggle(${index})" class="complete-btn bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-bold py-1.5 px-3.5 rounded-lg text-xs transition flex items-center justify-center gap-1">
+                            <span class="checkbox-icon">□</span> 검사 매핑 완료
+                        </button>
+                    </div>
+                </div>
+            `;
+            parentEl.appendChild(div);
+
+            if (item.imageDataUrl) {
+                const img = new Image();
+                img.onload = () => {
+                    item.image = img;
+                    const cContainer = document.getElementById(`canvas-container-${index}`);
+                    const canvas = document.getElementById(`canvas-${index}`);
+                    if (cContainer && canvas) {
+                        const maxWidth = cContainer.clientWidth || 300;
+                        let newWidth = img.width, newHeight = img.height;
+                        if (img.width > maxWidth) {
+                            const ratio = maxWidth / img.width;
+                            newWidth = maxWidth;
+                            newHeight = img.height * ratio;
+                        }
+                        canvas.width = newWidth;
+                        canvas.height = newHeight;
+                        cContainer.style.height = `${newHeight}px`;
+                        cContainer.querySelector('.placeholder-text').style.display = 'none';
+                        redrawCanvas(index);
+                    }
+                };
+                img.src = item.imageDataUrl;
+            }
+            updateTargetAreasList(index);
+            updateCompleteButtonVisibility(index);
+        }
+
+        function deleteImageItem(index) {
+            if (imageAnalysisState.length <= 1) {
+                showModal('삭제 불가', '최소 1개의 분석 캔버스가 필요합니다.');
+                return;
+            }
+            imageAnalysisState.splice(index, 1);
+            renderAllImageItems();
+            saveTileState();
+            refreshSummaryIfVisible();
+        }
+
+        function clearCanvasData(index) {
+            showModal('항목 초기화', '그려진 영역 데이터를 지우시겠습니까?', 'confirm', () => {
+                const item = imageAnalysisState[index];
+                if (!item) return;
+                item.basePoints = [];
+                item.targetPoints = [{ points: [], isComplete: false }];
+                item.baseArea = 0;
+                item.targetArea = 0;
+                item.ratio = 0;
+                item.currentMode = 'idle';
+                item.zoom = 1;
+                item.offset = { x: 0, y: 0 };
+                item.activeTargetIndex = 0;
+                renderAllImageItems();
+                saveTileState();
+                refreshSummaryIfVisible();
+            });
+        }
+
+        function bindTileEvents() {
+            const resetBtn = document.getElementById('reset-all-btn');
+            if (resetBtn) resetBtn.onclick = handleResetAllTile;
+
+            const addTappingBtn = document.getElementById('add-tapping-row-btn');
+            if (addTappingBtn) addTappingBtn.onclick = () => addTappingRow(true);
+
+            const addItemBtn = document.getElementById('add-item-btn');
+            if (addItemBtn) addItemBtn.onclick = () => createAndAddItem(true);
+
+            const calcSummaryBtn = document.getElementById('calculate-summary-btn');
+            if (calcSummaryBtn) calcSummaryBtn.onclick = handleSummaryCalculation;
+
+            const resetSummaryBtn = document.getElementById('reset-summary-btn');
+            if (resetSummaryBtn) resetSummaryBtn.onclick = () => {
+                document.getElementById('summary-output').classList.add('hidden');
+                resetSummaryBtn.classList.add('hidden');
+            };
+
+            const genReportBtn = document.getElementById('generate-report-btn');
+            if (genReportBtn) genReportBtn.onclick = openTileReportPreview;
+
+            const sendEmailBtn = document.getElementById('send-email-btn');
+            if (sendEmailBtn) sendEmailBtn.onclick = sendTileReportEmail;
+
+            const printReportBtn = document.getElementById('print-report-btn');
+            if (printReportBtn) printReportBtn.onclick = () => window.print();
+
+            const itemsCont = document.getElementById('items-container');
+            if (itemsCont) {
+                itemsCont.addEventListener('click', e => {
+                    const container = e.target.closest('.canvas-container');
+                    if (container) {
+                        document.querySelectorAll('.canvas-container').forEach(c => c.classList.remove('focused'));
+                        container.classList.add('focused');
+                        container.focus();
+                        lastActiveCanvasIndex = parseInt(container.dataset.index);
+                    }
+                    if (e.target.tagName === 'CANVAS') {
+                        handleCanvasClick(e, parseInt(e.target.dataset.index));
+                    }
+                });
+
+                itemsCont.addEventListener('wheel', e => {
+                    const container = e.target.closest('.canvas-container');
+                    if (container) handleWheel(e, parseInt(container.dataset.index));
+                }, { passive: false });
+
+                itemsCont.addEventListener('mousedown', e => {
+                    const canvas = e.target.closest('canvas');
+                    if (canvas) handleMouseDown(e, parseInt(canvas.dataset.index));
+                });
+            }
+
+            document.addEventListener('paste', e => {
+                const activeEl = document.activeElement;
+                const container = activeEl ? activeEl.closest('.canvas-container') : null;
+                let targetIdx = container ? parseInt(container.dataset.index) : lastActiveCanvasIndex;
+                if (targetIdx !== null && imageAnalysisState[targetIdx]) {
+                    handlePaste(e, targetIdx);
+                }
+            });
+
+            window.addEventListener('mousemove', e => {
+                imageAnalysisState.forEach(s => { if (s.isPanning) handleMouseMove(e, s.id); });
+            });
+
+            window.addEventListener('mouseup', e => {
+                imageAnalysisState.forEach(s => { if (s.isPanning) handleMouseUp(e, s.id); });
+            });
+        }
+
+        async function handlePaste(event, index) {
+            const items = (event.clipboardData || window.clipboardData).items;
+            let file = null;
+            for (const item of items) {
+                if (item.type.indexOf('image') === 0) {
+                    file = item.getAsFile();
+                    break;
+                }
+            }
+            if (!file) return;
+            event.preventDefault();
+
+            const state = imageAnalysisState.find(item => item.id === index);
+            if (!state) return;
+
+            const container = document.getElementById(`canvas-container-${index}`);
+            const placeholder = container.querySelector('.placeholder-text');
+            placeholder.innerHTML = '<span class="text-hdcRed font-bold">⚙ 고효율 이미지 변환 중...</span>';
+
+            try {
+                const compressedDataUrl = await compressImage(file, 1024, 0.6);
+                state.imageDataUrl = compressedDataUrl;
+
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.getElementById(`canvas-${index}`);
+                    const maxWidth = container.clientWidth;
+                    let newWidth = img.width, newHeight = img.height;
+                    if (img.width > maxWidth) {
+                        const ratio = maxWidth / img.width;
+                        newWidth = maxWidth;
+                        newHeight = img.height * ratio;
+                    }
+                    state.image = img;
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+                    container.style.height = `${newHeight}px`;
+                    placeholder.style.display = 'none';
+                    redrawCanvas(index);
+                    saveTileState();
+                };
+                img.src = compressedDataUrl;
+            } catch (err) {
+                placeholder.innerHTML = '<span class="text-hdcRed font-bold">⚠️ 이미지 가공 처리 중 오류가 발생했습니다.</span>';
+            }
+        }
+
+        function compressImage(file, maxWidth, quality) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width, height = img.height;
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = reject;
+                    img.src = event.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function handleModeButtonClick(index, mode) {
+            const state = imageAnalysisState[index];
+            if (!state) return;
+            state.currentMode = mode;
+            const container = document.getElementById(`canvas-container-${index}`).closest('.p-4, .p-5');
+            const modeBtn = container.querySelector('.mode-btn[data-mode="base"]');
+            if (mode === 'base') {
+                state.activeTargetIndex = -1;
+                if (modeBtn) modeBtn.classList.add('active');
+            } else {
+                if (modeBtn) modeBtn.classList.remove('active');
+            }
+            updateTargetAreasList(index);
+            redrawCanvas(index);
+        }
+
+        function handleAddTargetArea(index) {
+            const state = imageAnalysisState[index];
+            if (!state) return;
+            const currentTarget = state.targetPoints[state.activeTargetIndex];
+            if (currentTarget && !currentTarget.isComplete && currentTarget.points.length < 3) {
+                showModal('안내', '현재 구역 지정이 안 끝났습니다. 최소 3개 지점을 클릭하여 다각형을 닫은 뒤 추가해 주세요.');
+                return;
+            }
+            state.targetPoints.push({ points: [], isComplete: false });
+            setActiveTargetArea(index, state.targetPoints.length - 1);
+        }
+
+        function setActiveTargetArea(itemIndex, targetIndex) {
+            const state = imageAnalysisState[itemIndex];
+            if (!state) return;
+            state.activeTargetIndex = targetIndex;
+            state.currentMode = 'target';
+            updateTargetAreasList(itemIndex);
+            updateCompleteButtonVisibility(itemIndex);
+            redrawCanvas(itemIndex);
+        }
+
+        function handleCompleteToggle(index) {
+            const state = imageAnalysisState.find(item => item.id === index);
+            if (!state) return;
+            const allTargets = state.targetPoints;
+            const isAllComplete = allTargets.every(t => t.isComplete);
+
+            if (isAllComplete) {
+                allTargets.forEach(t => t.isComplete = false);
+                state.currentMode = 'target';
+                showModal('수정 가능', '수정 모드로 전환되었습니다.');
+            } else {
+                if (!allTargets.every(t => t.points.length >= 3)) {
+                    showModal('완성 불가', '모든 지정 구역에 최소 3개 이상의 꼭짓점 클릭이 필요합니다.');
+                    return;
+                }
+                allTargets.forEach(t => t.isComplete = true);
+                state.currentMode = 'idle';
+                showModal('잠금 완료', '작업 구역 매핑이 잠금 확정되었습니다.');
+            }
+            updateTargetAreasList(index);
+            updateCompleteButtonVisibility(index);
+            redrawCanvas(index);
+            saveTileState();
+        }
+
+        function updateTargetAreasList(index) {
+            const state = imageAnalysisState[index];
+            if (!state) return;
+            const listContainer = document.getElementById(`target-areas-list-${index}`);
+            if (!listContainer) return;
+            listContainer.innerHTML = '';
+
+            state.targetPoints.forEach((polygon, i) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'relative flex items-center';
+
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                    i === state.activeTargetIndex && state.currentMode === 'target'
+                        ? 'bg-hdcRed text-white ring-2 ring-red-300'
+                        : polygon.isComplete
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                }`;
+                btn.textContent = `${String.fromCharCode(9312 + i)} 구역${polygon.isComplete ? ' ✓' : ''}`;
+                btn.onclick = () => setActiveTargetArea(index, i);
+                wrapper.appendChild(btn);
+
+                if (state.targetPoints.length > 1) {
+                    const del = document.createElement('button');
+                    del.innerHTML = '&times;';
+                    del.className = 'absolute -top-1.5 -right-1.5 bg-hdcRed text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-black';
+                    del.onclick = (e) => {
+                        e.stopPropagation();
+                        state.targetPoints.splice(i, 1);
+                        if (state.activeTargetIndex >= state.targetPoints.length) state.activeTargetIndex = state.targetPoints.length - 1;
+                        calculateAndDisplayArea(index, 'target');
+                        updateTargetAreasList(index);
+                        redrawCanvas(index);
+                    };
+                    wrapper.appendChild(del);
+                }
+                listContainer.appendChild(wrapper);
+            });
+        }
+
+        function updateCompleteButtonVisibility(index) {
+            const state = imageAnalysisState[index];
+            const itemBlock = document.getElementById(`canvas-container-${index}`)?.closest('.p-4, .p-5');
+            if (!state || !itemBlock) return;
+            const completeBtn = itemBlock.querySelector('.complete-btn');
+            if (!completeBtn) return;
+            const checkboxIcon = completeBtn.querySelector('.checkbox-icon');
+
+            const isAllComplete = state.targetPoints.every(t => t.isComplete);
+            const isAllDrawable = state.targetPoints.every(t => t.points.length >= 3);
+
+            if (isAllComplete) {
+                checkboxIcon.textContent = '☑';
+                completeBtn.disabled = false;
+            } else {
+                checkboxIcon.textContent = '□';
+                completeBtn.disabled = !isAllDrawable;
+            }
+        }
+
+        function handleUndoClick(index) {
+            const state = imageAnalysisState[index];
+            if (!state || state.currentMode === 'idle') return;
+            if (state.currentMode === 'base') {
+                if (state.basePoints.length > 0) state.basePoints.pop();
+            } else if (state.currentMode === 'target' && state.activeTargetIndex > -1) {
+                const target = state.targetPoints[state.activeTargetIndex];
+                if (target && !target.isComplete && target.points.length > 0) target.points.pop();
+            }
+            calculateAndDisplayArea(index, state.currentMode);
+            redrawCanvas(index);
+        }
+
+        function handleWheel(event, index) {
+            event.preventDefault();
+            const state = imageAnalysisState[index];
+            if (!state || !state.image) return;
+
+            const canvas = document.getElementById(`canvas-${index}`);
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+
+            const oldZoom = state.zoom;
+            state.zoom *= (event.deltaY < 0) ? 1.15 : 1 / 1.15;
+            state.zoom = Math.max(0.4, Math.min(state.zoom, 15));
+
+            const worldX = (mouseX - state.offset.x) / oldZoom;
+            const worldY = (mouseY - state.offset.y) / oldZoom;
+
+            state.offset.x = mouseX - worldX * state.zoom;
+            state.offset.y = mouseY - worldY * state.zoom;
+
+            clampOffset(index);
+            redrawCanvas(index);
+        }
+
+        function handleMouseDown(event, index) {
+            if (event.button === 1 || (event.button === 0 && event.shiftKey)) {
+                event.preventDefault();
+                const state = imageAnalysisState[index];
+                if (!state || !state.image) return;
+                state.isPanning = true;
+                state.panStart.x = event.clientX - state.offset.x;
+                state.panStart.y = event.clientY - state.offset.y;
+            }
+        }
+
+        function handleMouseMove(event, index) {
+            const state = imageAnalysisState[index];
+            if (state && state.isPanning) {
+                event.preventDefault();
+                state.offset.x = event.clientX - state.panStart.x;
+                state.offset.y = event.clientY - state.panStart.y;
+                clampOffset(index);
+                redrawCanvas(index);
+            }
+        }
+
+        function handleMouseUp(event, index) {
+            const state = imageAnalysisState[index];
+            if (state) state.isPanning = false;
+        }
+
+        function clampOffset(index) {
+            const state = imageAnalysisState[index];
+            const canvas = document.getElementById(`canvas-${index}`);
+            if (!state || !canvas) return;
+            const scaledW = canvas.width * state.zoom;
+            const scaledH = canvas.height * state.zoom;
+
+            if (state.zoom > 1) {
+                state.offset.x = Math.max(canvas.width - scaledW, Math.min(0, state.offset.x));
+                state.offset.y = Math.max(canvas.height - scaledH, Math.min(0, state.offset.y));
+            } else {
+                state.offset.x = (canvas.width - scaledW) / 2;
+                state.offset.y = (canvas.height - scaledH) / 2;
+            }
+        }
+
+        function handleCanvasClick(event, index) {
+            const state = imageAnalysisState[index];
+            if (!state || state.isPanning || state.currentMode === 'idle' || !state.image) return;
+
+            const canvas = document.getElementById(`canvas-${index}`);
+            const rect = canvas.getBoundingClientRect();
+            const worldX = (event.clientX - rect.left - state.offset.x) / state.zoom;
+            const worldY = (event.clientY - rect.top - state.offset.y) / state.zoom;
+
+            if (state.currentMode === 'base') {
+                state.basePoints.push({ x: worldX, y: worldY });
+            } else if (state.currentMode === 'target' && state.activeTargetIndex > -1) {
+                const cur = state.targetPoints[state.activeTargetIndex];
+                if (cur && !cur.isComplete) cur.points.push({ x: worldX, y: worldY });
+            }
+            calculateAndDisplayArea(index, state.currentMode);
+            redrawCanvas(index);
+        }
+
+        function calculateAndDisplayArea(index, areaType) {
+            const state = imageAnalysisState[index];
+            if (!state) return;
+            if (areaType === 'base') {
+                state.baseArea = shoelaceFormula(state.basePoints);
+            } else {
+                state.targetArea = state.targetPoints.reduce((sum, p) => sum + shoelaceFormula(p.points), 0);
+            }
+            state.ratio = (state.baseArea > 0) ? (state.targetArea / state.baseArea) * 100 : 0;
+            updateResultDisplay(index);
+            updateCompleteButtonVisibility(index);
+            refreshSummaryIfVisible();
+        }
+
+        function updateResultDisplay(index) {
+            const state = imageAnalysisState[index];
+            const res = document.getElementById(`result-${index}`);
+            if (!state || !res) return;
+            res.querySelector('.base-area').textContent = Math.round(state.baseArea).toLocaleString();
+            res.querySelector('.target-area').textContent = Math.round(state.targetArea).toLocaleString();
+            res.querySelector('.ratio-val').textContent = state.ratio.toFixed(2);
+        }
+
+        function shoelaceFormula(points) {
+            if (!points || points.length < 3) return 0;
+            let area = 0;
+            const n = points.length;
+            for (let i = 0; i < n; i++) {
+                area += (points[i].x * points[(i + 1) % n].y - points[(i + 1) % n].x * points[i].y);
+            }
+            return Math.abs(area / 2);
+        }
+
+        function getPolygonCentroid(points) {
+            let signedArea = 0, cx = 0, cy = 0;
+            const n = points.length;
+            if (n < 3) return points[0] || {x:0, y:0};
+            for (let i = 0; i < n; i++) {
+                const p1 = points[i], p2 = points[(i + 1) % n];
+                const cp = (p1.x * p2.y) - (p2.x * p1.y);
+                signedArea += cp;
+                cx += (p1.x + p2.x) * cp;
+                cy += (p1.y + p2.y) * cp;
+            }
+            if (signedArea === 0) return points[0];
+            signedArea *= 0.5;
+            return { x: cx / (6 * signedArea), y: cy / (6 * signedArea) };
+        }
+
+        function redrawCanvas(index) {
+            const state = imageAnalysisState[index];
+            const canvas = document.getElementById(`canvas-${index}`);
+            if (!state || !canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.translate(state.offset.x, state.offset.y);
+            ctx.scale(state.zoom, state.zoom);
+
+            if (state.image) ctx.drawImage(state.image, 0, 0, canvas.width, canvas.height);
+
+            drawPolygon(ctx, state.basePoints, '#212121', 'rgba(33, 33, 33, 0.1)', state.zoom);
+
+            state.targetPoints.forEach((polygon, i) => {
+                const isActive = (state.currentMode === 'target' && i === state.activeTargetIndex);
+                const strokeColor = isActive ? '#F01428' : '#10b981';
+                const fillColor = isActive ? 'rgba(240, 20, 40, 0.35)' : 'rgba(16, 185, 129, 0.25)';
+                drawPolygon(ctx, polygon.points, strokeColor, fillColor, state.zoom);
+
+                if (polygon.points.length > 2) {
+                    const centroid = getPolygonCentroid(polygon.points);
+                    const numberChar = String.fromCharCode(9312 + i);
+                    const fontSize = 16 / state.zoom;
+                    ctx.font = `bold ${fontSize}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 4 / state.zoom;
+                    ctx.strokeText(numberChar, centroid.x, centroid.y);
+                    ctx.fillStyle = strokeColor;
+                    ctx.fillText(numberChar, centroid.x, centroid.y);
+                }
+            });
+            ctx.restore();
+        }
+
+        function drawPolygon(ctx, points, strokeColor, fillColor, zoom) {
+            if (!points || points.length < 1) return;
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 2.5 / zoom;
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+            if (points.length > 2) {
+                ctx.closePath();
+                if (fillColor) { ctx.fillStyle = fillColor; ctx.fill(); }
+            }
+            ctx.stroke();
+
+            ctx.fillStyle = strokeColor;
+            points.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4.5 / zoom, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+        }
+
+        function getConsolidatedData() {
+            const allItems = [];
+            tappingTestState.forEach((item, i) => {
+                allItems.push({
+                    type: '두들김 검사', id: i + 1, site: item.site,
+                    location: [item.building, item.unit, item.location].filter(Boolean).join('/') || '-',
+                    worker: item.worker || '-', remarks: '-', ratio: item.ratio || 0
+                });
+            });
+            imageAnalysisState.forEach((item, i) => {
+                allItems.push({
+                    type: '철거 검사', id: i + 1, site: item.inputs.site,
+                    location: [item.inputs.building, item.inputs.unit, item.inputs.location].filter(Boolean).join('/') || '-',
+                    worker: item.inputs.worker || '-', remarks: item.inputs.remarks || '-', ratio: item.ratio || 0
+                });
+            });
+
+            const fieldMap = {};
+            allItems.forEach(item => {
+                if (!item.site || !item.site.trim()) return;
+                const sName = item.site.trim();
+                if (!fieldMap[sName]) fieldMap[sName] = { tapping: [], demolition: [] };
+                if (item.type === '두들김 검사') fieldMap[sName].tapping.push(item.ratio);
+                else fieldMap[sName].demolition.push(item.ratio);
+            });
+
+            const fieldSummary = Object.keys(fieldMap).map(siteName => {
+                const tList = fieldMap[siteName].tapping;
+                const dList = fieldMap[siteName].demolition;
+                const tAvg = tList.length ? tList.reduce((a, b) => a + b, 0) / tList.length : 0;
+                const dAvg = dList.length ? dList.reduce((a, b) => a + b, 0) / dList.length : 0;
+                return { site: siteName, tappingAvg: tAvg, demolitionAvg: dAvg, compositeAvg: dList.length ? dAvg : tAvg };
+            });
+
+            const workerMap = {};
+            allItems.forEach(item => {
+                if (!item.worker || item.worker === '-') return;
+                const wName = item.worker.trim();
+                if (!workerMap[wName]) workerMap[wName] = [];
+                workerMap[wName].push(item.ratio);
+            });
+
+            const workerSummary = Object.keys(workerMap).map(workerName => {
+                const list = workerMap[workerName];
+                const avgVal = list.length ? list.reduce((a, b) => a + b, 0) / list.length : 0;
+                return {
+                    worker: workerName, count: list.length, avg: avgVal,
+                    remarks: avgVal >= 80 ? '품질 준수 우수' : '밀착 시공 권장'
+                };
+            }).sort((a,b) => b.avg - a.avg);
+
+            return { allItems, workerSummary, fieldSummary };
+        }
+
+        function handleSummaryCalculation() {
+            const { allItems, workerSummary, fieldSummary } = getConsolidatedData();
+
+            const sumTbody = document.getElementById('summary-table-body');
+            if (sumTbody) {
+                sumTbody.innerHTML = allItems.map(item => `
+                    <tr class="hover:bg-slate-50 border-b">
+                        <td class="p-2.5 font-bold text-hdcBlack whitespace-nowrap">${item.type}</td>
+                        <td class="p-2.5 font-mono text-slate-500 whitespace-nowrap">${item.id}</td>
+                        <td class="p-2.5 font-bold whitespace-nowrap">${item.site || '-'}</td>
+                        <td class="p-2.5 text-slate-600 whitespace-nowrap">${item.location}</td>
+                        <td class="p-2.5 text-slate-600 whitespace-nowrap">${item.worker}</td>
+                        <td class="p-2.5 text-right font-extrabold text-hdcRed font-mono whitespace-nowrap">${item.ratio.toFixed(2)} %</td>
+                    </tr>
+                `).join('');
+            }
+
+            const fieldTbody = document.getElementById('field-summary-body');
+            if (fieldTbody) {
+                fieldTbody.innerHTML = fieldSummary.map(data => `
+                    <tr class="hover:bg-slate-50 border-b">
+                        <td class="p-2.5 font-bold text-hdcBlack whitespace-nowrap">${data.site}</td>
+                        <td class="p-2.5 text-center font-mono whitespace-nowrap">${data.tappingAvg.toFixed(2)} %</td>
+                        <td class="p-2.5 text-center font-mono whitespace-nowrap">${data.demolitionAvg.toFixed(2)} %</td>
+                        <td class="p-2.5 text-right font-extrabold text-hdcRed font-mono whitespace-nowrap">${data.compositeAvg.toFixed(2)} %</td>
+                    </tr>
+                `).join('');
+            }
+
+            const workerTbody = document.getElementById('worker-summary-body');
+            if (workerTbody) {
+                workerTbody.innerHTML = workerSummary.map(data => `
+                    <tr class="hover:bg-slate-50 border-b">
+                        <td class="p-2.5 font-bold text-hdcBlack whitespace-nowrap">${data.worker}</td>
+                        <td class="p-2.5 text-center font-mono whitespace-nowrap">${data.count} 개소</td>
+                        <td class="p-2.5 text-right font-extrabold text-hdcRed font-mono whitespace-nowrap">${data.avg.toFixed(2)} %</td>
+                        <td class="p-2.5 text-xs font-bold whitespace-nowrap ${data.avg >= 80 ? 'text-emerald-600' : 'text-amber-600'}">${data.remarks}</td>
+                    </tr>
+                `).join('');
+            }
+
+            const sumOut = document.getElementById('summary-output');
+            if (sumOut) sumOut.classList.remove('hidden');
+            const resSumBtn = document.getElementById('reset-summary-btn');
+            if (resSumBtn) resSumBtn.classList.remove('hidden');
+        }
+
+        function refreshSummaryIfVisible() {
+            const summaryOutput = document.getElementById('summary-output');
+            if (summaryOutput && !summaryOutput.classList.contains('hidden')) {
+                handleSummaryCalculation();
+            }
+        }
+
+        function handleResetAllTile() {
+            showModal('전체 초기화', '모든 두들김 및 철거 검사 데이터를 소실합니다. 진행하시겠습니까?', 'confirm', () => {
+                localStorage.removeItem('tileBackfillApp_v2');
+                window.location.reload();
+            });
+        }
+
+        function openTileReportPreview() {
+            const savedEmail = localStorage.getItem('tileReportRecipientEmail') || '미지정';
+            const { allItems, fieldSummary } = getConsolidatedData();
+            const todayStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+            const validImages = imageAnalysisState.filter(i => i.image);
+
+            let htmlContent = `
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>IPARK 타일뒷채움 점검 보고서</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <style>
+        @page { size: A4 portrait; margin: 0; }
+        body { background-color: #334155; margin: 0; padding: 20px 0; font-family: 'Pretendard', sans-serif; }
+        .report-page { width: 21cm; min-height: 29.7cm; padding: 1.8cm; margin: 0 auto 20px auto; background: white; box-shadow: 0 10px 25px rgba(0,0,0,0.3); box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; }
+        table { table-layout: fixed; width: 100%; border-collapse: collapse; }
+        th, td { word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <div class="fixed top-4 right-4 z-50 print:hidden flex gap-2">
+        <button onclick="window.print()" class="bg-red-600 hover:bg-red-700 text-white font-extrabold px-5 py-2.5 rounded-xl shadow-lg text-xs">🖨️ 바로 인쇄 / PDF 저장</button>
+        <button onclick="window.close()" class="bg-gray-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs">닫기</button>
+    </div>
+
+    <!-- PAGE 1: SUMMARY -->
+    <div class="report-page">
+        <div>
+            <div class="flex justify-between items-start border-b-2 border-black pb-4 mb-6">
+                <div>
+                    <h1 class="text-2xl font-black text-black tracking-tight">IPARK 타일뒷채움 점검 보고서</h1>
+                    <p class="text-xs text-gray-500 mt-1 font-bold">IPARK현대산업개발 품질팀 검측 산출서</p>
+                </div>
+                <div class="text-right text-xs">
+                    <p class="font-bold text-black">발행일: ${todayStr}</p>
+                    <p class="text-red-600 font-bold mt-0.5">수신처: ${savedEmail}</p>
+                </div>
+            </div>
+
+            <div class="space-y-6 text-xs">
+                <div>
+                    <h3 class="font-black text-black border-l-4 border-red-600 pl-2 mb-2">1. 현장별 검측 종합 환산율</h3>
+                    <table class="border text-center border-gray-300">
+                        <tr class="bg-gray-100 font-bold">
+                            <td class="p-2 border">현장명</td>
+                            <td class="p-2 border">두들김 평균(%)</td>
+                            <td class="p-2 border">철거 검사 평균(%)</td>
+                            <td class="p-2 border">종합 환산율(%)</td>
+                        </tr>
+                        ${fieldSummary.map(f => `<tr><td class="p-2 border font-bold">${f.site}</td><td class="p-2 border font-mono">${f.tappingAvg.toFixed(2)} %</td><td class="p-2 border font-mono">${f.demolitionAvg.toFixed(2)} %</td><td class="p-2 border font-mono font-extrabold text-red-600">${f.compositeAvg.toFixed(2)} %</td></tr>`).join('')}
+                    </table>
+                </div>
+
+                <div>
+                    <h3 class="font-black text-black border-l-4 border-red-600 pl-2 mb-2">2. 검측소별 정밀 세부 데이터</h3>
+                    <table class="border text-center border-gray-300 text-[11px]">
+                        <tr class="bg-gray-100 font-bold">
+                            <td class="p-1.5 border">구분</td>
+                            <td class="p-1.5 border">순번</td>
+                            <td class="p-1.5 border">현장명</td>
+                            <td class="p-1.5 border">위치</td>
+                            <td class="p-1.5 border">작업자</td>
+                            <td class="p-1.5 border">뒷채움 비율</td>
+                        </tr>
+                        ${allItems.map(a => `<tr><td class="p-1.5 border">${a.type}</td><td class="p-1.5 border font-mono">${a.id}</td><td class="p-1.5 border font-bold">${a.site||'-'}</td><td class="p-1.5 border">${a.location}</td><td class="p-1.5 border">${a.worker}</td><td class="p-1.5 border font-mono font-bold text-red-600">${a.ratio.toFixed(2)} %</td></tr>`).join('')}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="border-t pt-3 flex justify-between items-center text-xs">
+            <span class="text-gray-400 font-bold">IPARK현대산업개발 품질팀</span>
+            <span class="font-black text-black">HDC IPARK</span>
+        </div>
+    </div>
+            `;
+
+            if (validImages.length > 0) {
+                const itemsPerPage = 2;
+                for (let i = 0; i < validImages.length; i += itemsPerPage) {
+                    const chunk = validImages.slice(i, i + itemsPerPage);
+                    htmlContent += `
+                    <div class="report-page">
+                        <div>
+                            <div class="flex justify-between items-start border-b-2 border-black pb-4 mb-6">
+                                <h1 class="text-xl font-black text-black">철거/열화상 분석 사진 대지</h1>
+                                <span class="text-xs font-mono font-bold text-gray-400">PAGE ${Math.floor(i / itemsPerPage) + 2}</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-6">
+                                ${chunk.map(item => {
+                                    const canvas = document.getElementById(`canvas-${item.id}`);
+                                    const snapshot = canvas ? canvas.toDataURL('image/jpeg', 0.9) : '';
+                                    return `
+                                    <div class="border border-gray-300 p-3 rounded-xl flex flex-col bg-white">
+                                        <p class="font-bold text-center text-xs mb-2">[ #${item.id + 1} ] ${item.inputs.site || '현장미지정'}</p>
+                                        <div class="border rounded bg-gray-50 overflow-hidden mb-2 flex items-center justify-center">
+                                            <img src="${snapshot}" class="max-h-[220px] object-contain w-full">
+                                        </div>
+                                        <div class="text-[11px] space-y-1">
+                                            <p><b>동/호/위치:</b> ${item.inputs.building||''}/${item.inputs.unit||''}/${item.inputs.location||''}</p>
+                                            <p><b>작업자:</b> ${item.inputs.worker||'-'}</p>
+                                            <p class="text-red-600 font-bold"><b>충전비율:</b> ${item.ratio.toFixed(2)} %</p>
+                                        </div>
+                                    </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                        <div class="border-t pt-3 flex justify-between items-center text-xs">
+                            <span class="text-gray-400 font-bold">IPARK현대산업개발 품질팀</span>
+                            <span class="font-black text-black">HDC IPARK</span>
+                        </div>
+                    </div>
+                    `;
+                }
+            }
+
+            htmlContent += `</body></html>`;
+
+            const win = window.open('', '_blank');
+            if (win) {
+                win.document.open();
+                win.document.write(htmlContent);
+                win.document.close();
+            } else {
+                showModal('팝업 차단', '브라우저 팝업 허용을 설정해 주세요.');
+            }
+        }
+
+        function sendTileReportEmail() {
+            const savedEmail = localStorage.getItem('tileReportRecipientEmail') || '';
+            if (!savedEmail) {
+                showModal('이메일 미설정', '메인 화면에서 <b>기본 수신 이메일</b>을 먼저 설정 및 저장해 주세요.', 'alert', () => {
+                    openView('view-home');
+                });
+                return;
+            }
+
+            const { allItems, fieldSummary } = getConsolidatedData();
+            const subject = `[IPARK 품질팀] 타일뒷채움 점검 보고서`;
+            let bodyText = `[IPARK현대산업개발 품질팀 - 타일뒷채움 점검 보고서]\n\n`;
+            bodyText += `■ 수신처: ${savedEmail}\n`;
+            bodyText += `■ 총 점검 개소: ${allItems.length} 개소\n\n`;
+            bodyText += `[현장별 환산율 요약]\n`;
+            fieldSummary.forEach(f => {
+                bodyText += `- ${f.site}: 두들김 ${f.tappingAvg.toFixed(2)}% / 철거 ${f.demolitionAvg.toFixed(2)}% -> 종합 ${f.compositeAvg.toFixed(2)}%\n`;
+            });
+            bodyText += `\n상세 PDF 보고서는 시스템에서 바로 확인 가능합니다.`;
+
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(savedEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+
+            const modalBox = document.createElement('div');
+            modalBox.className = 'space-y-3';
+            modalBox.innerHTML = `
+                <p class="font-bold text-hdcBlack text-xs">선택하신 수신처: <span class="text-hdcRed">${savedEmail}</span></p>
+                <p class="text-xs text-hdcGray2">원하시는 발송 수단을 선택해 주세요:</p>
+                <div class="space-y-2 pt-1">
+                    <button onclick="window.open('${gmailUrl}', '_blank'); hideModal();" class="w-full bg-hdcRed hover:bg-red-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-google"></i> Gmail 웹 작성창 바로 열기
+                    </button>
+                    <button onclick="document.execCommand('copy'); showModal('복사 완료', '보고서 요약문이 클립보드에 복사되었습니다.');" class="w-full bg-hdcBlack hover:bg-black text-white font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-copy"></i> 보고서 요약 텍스트 복사
+                    </button>
+                </div>
+            `;
+            showModal('보고서 이메일 전송', modalBox);
+        }
+
+        // --- MODULE 02: EPOXY PAINT SMART INSPECTION SYSTEM ENGINE ---
+        const paintState = {
+            floors: [
+                {
+                    id: 1,
+                    name: "지하 1층",
+                    thickness: 0.3,
+                    image: null,
+                    zones: [
+                        { id: 'z1', name: 'A구역', area: 3440, pinX: null, pinY: null, polygon: [] },
+                        { id: 'z2', name: 'B구역', area: 2359, pinX: null, pinY: null, polygon: [] }
+                    ]
+                }
+            ],
+            materials: {
+                primer: { coverage: 6.6, base: 10.5, hardener: 3.5, img: null, isLocked: false },
+                lining: { consumption: 1.58, base: 20, hardener: 4, img: null, isLocked: false },
+                topcoat: { coverage: 10.8, base: 10.2, hardener: 3.8, dft: 40, img: null, isLocked: false }
+            },
+            execution: {},
+            polygonMode: null
+        };
+
+        const PAINT_ZONE_COLORS = ['#F01428', '#10b981', '#6366f1', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+
+        function switchPaintTab(tabNum) {
+            for (let i = 1; i <= 4; i++) {
+                const screen = document.getElementById(`paint-screen-${i}`);
+                const btn = document.getElementById(`btn-paint-tab-${i}`);
+                if (screen && btn) {
+                    if (i === tabNum) {
+                        screen.classList.remove('hidden');
+                        btn.classList.add('active');
+                    } else {
+                        screen.classList.add('hidden');
+                        btn.classList.remove('active');
+                    }
+                }
+            }
+            if (tabNum === 3) renderPaintExecutionTable();
+            else if (tabNum === 4) generatePaintReport();
+        }
+
+        function previewPaintImg(input, targetImgId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById(targetImgId);
+                    if (img) {
+                        img.src = e.target.result;
+                        img.classList.remove('hidden');
+                    }
+                    if (targetImgId.includes('p-base') || targetImgId.includes('p-hard')) paintState.materials.primer.img = e.target.result;
+                    if (targetImgId.includes('l-base') || targetImgId.includes('l-hard')) paintState.materials.lining.img = e.target.result;
+                    if (targetImgId.includes('t-base') || targetImgId.includes('t-hard')) paintState.materials.topcoat.img = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function calcPaintMaterials() {
+            const pCov = parseFloat(document.getElementById('m-p-coverage')?.value || 6.6);
+            const pBase = parseFloat(document.getElementById('m-p-base')?.value || 10.5);
+            const pHard = parseFloat(document.getElementById('m-p-hardener')?.value || 3.5);
+            const pVol = pBase + pHard;
+            const pArea = pVol * pCov;
+
+            paintState.materials.primer.coverage = pCov;
+            paintState.materials.primer.base = pBase;
+            paintState.materials.primer.hardener = pHard;
+            paintState.materials.primer.total = pVol;
+            paintState.materials.primer.areaPerSet = pArea;
+
+            if (document.getElementById('m-p-calc-vol')) document.getElementById('m-p-calc-vol').innerText = pVol.toFixed(1);
+            if (document.getElementById('m-p-calc-area')) document.getElementById('m-p-calc-area').innerText = pArea.toFixed(1);
+
+            const lCons = parseFloat(document.getElementById('m-l-consumption')?.value || 1.58);
+            const lBase = parseFloat(document.getElementById('m-l-base')?.value || 20);
+            const lHard = parseFloat(document.getElementById('m-l-hardener')?.value || 4);
+            const lVol = lBase + lHard;
+            const lCons01 = lCons * 0.1;
+            const lTestT = parseFloat(document.getElementById('m-l-test-t')?.value || 0.3);
+            const lArea03 = (lCons * lTestT) > 0 ? (lVol / (lCons * lTestT)) : 0;
+
+            paintState.materials.lining.consumption = lCons;
+            paintState.materials.lining.base = lBase;
+            paintState.materials.lining.hardener = lHard;
+            paintState.materials.lining.total = lVol;
+
+            if (document.getElementById('m-l-calc-vol')) document.getElementById('m-l-calc-vol').innerText = lVol.toFixed(1);
+            if (document.getElementById('m-l-calc-01')) document.getElementById('m-l-calc-01').innerText = lCons01.toFixed(3);
+            if (document.getElementById('m-l-calc-03t')) document.getElementById('m-l-calc-03t').innerText = lArea03.toFixed(1);
+
+            const tDft = parseFloat(document.getElementById('m-t-dft')?.value || 40);
+            const tCov = parseFloat(document.getElementById('m-t-coverage')?.value || 10.8);
+            const tBase = parseFloat(document.getElementById('m-t-base')?.value || 10.2);
+            const tHard = parseFloat(document.getElementById('m-t-hardener')?.value || 3.8);
+            const tVol = tBase + tHard;
+            const tArea = tVol * tCov;
+
+            paintState.materials.topcoat.dft = tDft;
+            paintState.materials.topcoat.coverage = tCov;
+            paintState.materials.topcoat.base = tBase;
+            paintState.materials.topcoat.hardener = tHard;
+            paintState.materials.topcoat.total = tVol;
+            paintState.materials.topcoat.areaPerSet = tArea;
+
+            if (document.getElementById('m-t-calc-vol')) document.getElementById('m-t-calc-vol').innerText = tVol.toFixed(1);
+            if (document.getElementById('m-t-calc-area')) document.getElementById('m-t-calc-area').innerText = tArea.toFixed(1);
+        }
+
+        function toggleMaterialLock(type) {
+            const mat = paintState.materials[type];
+            if (!mat) return;
+            mat.isLocked = !mat.isLocked;
+
+            const card = document.getElementById(`card-${type}`);
+            const btn = document.getElementById(`btn-lock-${type}`);
+
+            if (card && btn) {
+                const inputs = card.querySelectorAll('input:not([type="file"])');
+                inputs.forEach(input => {
+                    input.disabled = mat.isLocked;
+                    if (mat.isLocked) {
+                        input.classList.add('bg-slate-100', 'text-slate-500');
+                    } else {
+                        input.classList.remove('bg-slate-100', 'text-slate-500');
+                    }
+                });
+
+                if (mat.isLocked) {
+                    btn.className = "bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold hover:bg-emerald-500 transition flex items-center gap-1 shadow-sm";
+                    btn.innerHTML = `<i class="fa-solid fa-lock"></i> 저장됨 (수정)`;
+                } else {
+                    btn.className = "bg-hdcBlack text-white px-2.5 py-1 rounded-lg text-[11px] font-bold hover:bg-black transition flex items-center gap-1 shadow-sm";
+                    btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> 저장`;
+                }
+            }
+        }
+
+        function addFloor() {
+            const newId = paintState.floors.length ? Math.max(...paintState.floors.map(f => f.id)) + 1 : 1;
+            paintState.floors.push({
+                id: newId,
+                name: `지하 ${newId}층`,
+                thickness: 0.3,
+                image: null,
+                zones: [{ id: 'z1', name: 'A구역', area: 1000, pinX: null, pinY: null, polygon: [] }]
+            });
+            renderPaintFloors();
+        }
+
+        function deleteFloor(floorId) {
+            if (paintState.floors.length <= 1) {
+                showModal('삭제 불가', '최소 1개 층이 필요합니다.');
+                return;
+            }
+            paintState.floors = paintState.floors.filter(f => f.id !== floorId);
+            renderPaintFloors();
+        }
+
+        function updateFloorThickness(floorId, val) {
+            const floor = paintState.floors.find(f => f.id === floorId);
+            if (floor) floor.thickness = parseFloat(val) || 0.3;
+            updatePaintSummary();
+        }
+
+        function addZone(floorId) {
+            const floor = paintState.floors.find(f => f.id === floorId);
+            if (!floor) return;
+            const newZIdx = floor.zones.length;
+            const charLabel = String.fromCharCode(65 + newZIdx);
+            floor.zones.push({
+                id: `z${Date.now()}`,
+                name: `${charLabel}구역`,
+                area: 500,
+                pinX: null, pinY: null, polygon: []
+            });
+            renderPaintFloors();
+        }
+
+        function deleteZone(floorId, zoneId) {
+            const floor = paintState.floors.find(f => f.id === floorId);
+            if (!floor) return;
+            if (floor.zones.length <= 1) {
+                showModal('삭제 불가', '각 층별로 최소 1개의 구역이 존재해야 합니다.');
+                return;
+            }
+            floor.zones = floor.zones.filter(z => z.id !== zoneId);
+            renderPaintFloors();
+        }
+
+        function updateZoneNameVal(floorId, zoneId, val) {
+            const floor = paintState.floors.find(f => f.id === floorId);
+            if (floor) {
+                const zone = floor.zones.find(z => z.id === zoneId);
+                if (zone) zone.name = val;
+            }
+        }
+
+        function updateZoneAreaVal(floorId, zoneId, val) {
+            const floor = paintState.floors.find(f => f.id === floorId);
+            if (floor) {
+                const zone = floor.zones.find(z => z.id === zoneId);
+                if (zone) zone.area = parseFloat(val) || 0;
+            }
+            updatePaintSummary();
+        }
+
+        function handleBlueprintUpload(input, floorId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const floor = paintState.floors.find(f => f.id === floorId);
+                    if (floor) {
+                        floor.image = e.target.result;
+                        renderPaintFloors();
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function togglePolygonMode(floorId, zoneId) {
+            if (paintState.polygonMode && paintState.polygonMode.floorId === floorId && paintState.polygonMode.zoneId === zoneId) {
+                finishPolygon();
+            } else {
+                paintState.polygonMode = { floorId, zoneId };
+                renderPaintFloors();
+            }
+        }
+
+        function undoPolygonPoint(floorId, zoneId) {
+            const floor = paintState.floors.find(f => f.id === floorId);
+            if (!floor) return;
+            const zone = floor.zones.find(z => z.id === zoneId);
+            if (zone && zone.polygon && zone.polygon.length > 0) {
+                zone.polygon.pop();
+                if (zone.polygon.length < 3) {
+                    zone.pinX = null;
+                    zone.pinY = null;
+                }
+                renderPaintFloors();
+            }
+        }
+
+        function clearPolygon(floorId, zoneId) {
+            const floor = paintState.floors.find(f => f.id === floorId);
+            if (!floor) return;
+            const zone = floor.zones.find(z => z.id === zoneId);
+            if (zone) {
+                zone.polygon = [];
+                zone.pinX = null;
+                zone.pinY = null;
+                zone.area = 0;
+                renderPaintFloors();
+            }
+        }
+
+        function finishPolygon() {
+            if (paintState.polygonMode) {
+                const { floorId, zoneId } = paintState.polygonMode;
+                const floor = paintState.floors.find(f => f.id === floorId);
+                if (floor) {
+                    const zone = floor.zones.find(z => z.id === zoneId);
+                    if (zone && zone.polygon && zone.polygon.length >= 3) {
+                        calculatePolygonCenterAndArea(zone);
+                    }
+                }
+            }
+            paintState.polygonMode = null;
+            renderPaintFloors();
+        }
+
+        function calculatePolygonCenterAndArea(zone) {
+            const pts = zone.polygon;
+            if (!pts || pts.length < 3) return;
+            let sumX = 0, sumY = 0;
+            pts.forEach(p => { sumX += p.x; sumY += p.y; });
+            zone.pinX = sumX / pts.length;
+            zone.pinY = sumY / pts.length;
+
+            let areaAcc = 0;
+            for (let i = 0; i < pts.length; i++) {
+                const j = (i + 1) % pts.length;
+                areaAcc += (pts[i].x * pts[j].y) - (pts[j].x * pts[i].y);
+            }
+            const approxM2 = Math.round(Math.abs(areaAcc) * 2.5);
+            if (approxM2 > 0) zone.area = approxM2;
+            updatePaintSummary();
+        }
+
+        function handleBlueprintClick(e, floorId) {
+            if (!paintState.polygonMode || paintState.polygonMode.floorId !== floorId) return;
+            const container = e.currentTarget;
+            const rect = container.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+            const floor = paintState.floors.find(f => f.id === floorId);
+            if (!floor) return;
+            const zone = floor.zones.find(z => z.id === paintState.polygonMode.zoneId);
+            if (!zone) return;
+
+            if (!zone.polygon) zone.polygon = [];
+            zone.polygon.push({ x: parseFloat(x.toFixed(2)), y: parseFloat(y.toFixed(2)) });
+
+            renderPaintFloors();
+        }
+
+        function updatePaintSummary() {
+            let total = 0;
+            const summaryContainer = document.getElementById('sum-floors-area');
+            if (summaryContainer) summaryContainer.innerHTML = "";
+
+            paintState.floors.forEach(f => {
+                let fTotal = 0;
+                f.zones.forEach(z => { fTotal += (parseFloat(z.area) || 0); });
+                total += fTotal;
+                if (summaryContainer) {
+                    summaryContainer.innerHTML += `
+                        <div class="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+                            <span class="text-slate-400">${f.name}:</span> <span class="text-white font-bold">${fTotal.toLocaleString()} m²</span>
+                        </div>
+                    `;
+                }
+            });
+
+            const totalElem = document.getElementById('sum-total-area');
+            if (totalElem) totalElem.innerText = total.toLocaleString();
+        }
+
+        function renderPaintFloors() {
+            const container = document.getElementById('floors-container');
+            if (!container) return;
+            container.innerHTML = "";
+
+            paintState.floors.forEach((f) => {
+                let thicknessOptions = "";
+                for (let t = 0.1; t <= 3.0; t += 0.1) {
+                    const tVal = parseFloat(t.toFixed(1));
+                    const selected = Math.abs(f.thickness - tVal) < 0.05 ? "selected" : "";
+                    thicknessOptions += `<option value="${tVal}" ${selected}>${tVal} T</option>`;
+                }
+
+                let zonesRows = "";
+                f.zones.forEach((z, zIdx) => {
+                    const isPolyActive = paintState.polygonMode && paintState.polygonMode.floorId === f.id && paintState.polygonMode.zoneId === z.id;
+                    const zoneColor = PAINT_ZONE_COLORS[zIdx % PAINT_ZONE_COLORS.length];
+
+                    zonesRows += `
+                        <tr class="border-b border-slate-200 whitespace-nowrap">
+                            <td class="p-2 font-bold text-center whitespace-nowrap">
+                                <span class="inline-block w-5 h-5 rounded-full text-white text-[10px] flex items-center justify-center font-bold" style="background-color: ${zoneColor}">
+                                    ${String.fromCharCode(65 + zIdx)}
+                                </span>
+                            </td>
+                            <td class="p-2 whitespace-nowrap">
+                                <input type="text" value="${z.name}" onchange="updateZoneNameVal(${f.id}, '${z.id}', this.value)" class="w-full p-1 border rounded text-xs font-bold bg-white">
+                            </td>
+                            <td class="p-2 whitespace-nowrap">
+                                <input type="number" step="1" value="${z.area}" onchange="updateZoneAreaVal(${f.id}, '${z.id}', this.value)" class="w-full p-1 border rounded text-xs font-bold text-hdcRed font-mono bg-white">
+                            </td>
+                            <td class="p-2 text-center whitespace-nowrap">
+                                <div class="flex items-center justify-center gap-1 whitespace-nowrap">
+                                    <button onclick="togglePolygonMode(${f.id}, '${z.id}')" class="px-2 py-1 ${isPolyActive ? 'bg-hdcRed text-white animate-pulse' : 'bg-slate-100 text-slate-700 border'} rounded text-[10px] font-bold whitespace-nowrap">
+                                        <i class="fa-solid fa-draw-polygon mr-0.5"></i> ${isPolyActive ? '완료' : '면적'}
+                                    </button>
+                                    ${isPolyActive ? `
+                                        <button onclick="undoPolygonPoint(${f.id}, '${z.id}')" class="px-1.5 py-1 bg-amber-500 text-white rounded text-[10px] whitespace-nowrap"><i class="fa-solid fa-rotate-left"></i></button>
+                                    ` : ''}
+                                    <button onclick="clearPolygon(${f.id}, '${z.id}')" class="px-1.5 py-1 bg-slate-200 text-slate-600 rounded text-[10px] hover:bg-red-100 hover:text-hdcRed whitespace-nowrap"><i class="fa-solid fa-eraser"></i></button>
+                                </div>
+                            </td>
+                            <td class="p-2 text-center whitespace-nowrap">
+                                <button onclick="deleteZone(${f.id}, '${z.id}')" class="text-slate-400 hover:text-hdcRed font-bold">&times;</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                let svgPolygons = "";
+                let pinsHTML = "";
+
+                f.zones.forEach((z, zIdx) => {
+                    const color = PAINT_ZONE_COLORS[zIdx % PAINT_ZONE_COLORS.length];
+                    if (z.polygon && z.polygon.length > 0) {
+                        const ptsStr = z.polygon.map(p => `${p.x},${p.y}`).join(' ');
+                        svgPolygons += `<polygon points="${ptsStr}" fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-width="0.8" />`;
+                    }
+                    if (z.pinX != null && z.pinY != null && z.polygon && z.polygon.length >= 3) {
+                        pinsHTML += `
+                            <div class="pin" style="left: ${z.pinX}%; top: ${z.pinY}%; background-color: ${color};">
+                                ${String.fromCharCode(65 + zIdx)}
+                            </div>
+                        `;
+                    }
+                });
+
+                container.innerHTML += `
+                    <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200 space-y-4">
+                        <div class="flex flex-wrap justify-between items-center gap-3 border-b pb-3">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-map text-hdcRed text-base"></i>
+                                <input type="text" value="${f.name}" class="font-extrabold text-hdcBlack text-sm bg-slate-50 border rounded-lg px-2 py-1">
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="flex items-center gap-1 text-xs whitespace-nowrap">
+                                    <span class="font-bold text-hdcGray2">설계두께:</span>
+                                    <select onchange="updateFloorThickness(${f.id}, this.value)" class="p-1 border rounded-lg font-bold text-hdcRed font-mono bg-white">
+                                        ${thicknessOptions}
+                                    </select>
+                                </div>
+                                <button onclick="deleteFloor(${f.id})" class="text-xs bg-red-50 text-hdcRed px-2.5 py-1 rounded-lg border border-red-200 hover:bg-red-100 font-bold whitespace-nowrap">층 삭제</button>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col space-y-4">
+                            <!-- 1. 평면도 및 시공구역 작도 -->
+                            <div class="space-y-2">
+                                <div class="flex justify-between items-center text-xs whitespace-nowrap">
+                                    <span class="font-bold text-hdcBlack">평면도 및 시공구역 작도</span>
+                                    <label class="cursor-pointer bg-hdcBlack text-white px-2.5 py-1 rounded-lg text-[11px] font-bold hover:bg-black whitespace-nowrap">
+                                        <i class="fa-solid fa-upload mr-1"></i> 도면 선택
+                                        <input type="file" accept="image/*" onchange="handleBlueprintUpload(this, ${f.id})" class="hidden">
+                                    </label>
+                                </div>
+                                <div onclick="handleBlueprintClick(event, ${f.id})" class="relative w-full bg-white rounded-xl overflow-hidden min-h-[220px] border border-slate-300 flex items-center justify-center cursor-crosshair select-none">
+                                    ${f.image 
+                                        ? `<img src="${f.image}" class="w-full h-auto block max-h-[400px] object-contain">`
+                                        : `<div class="text-center p-6 text-slate-400">
+                                            <i class="fa-solid fa-image text-3xl mb-2 text-slate-300"></i>
+                                            <p class="text-xs">도면 이미지를 업로드 후 화면을 클릭해 구역을 그리세요.</p>
+                                           </div>`
+                                    }
+                                    <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                        ${svgPolygons}
+                                    </svg>
+                                    ${pinsHTML}
+                                </div>
+                            </div>
+
+                            <!-- 2. 구역별 면적 목록 (항상 하단 세로 배치) -->
+                            <div class="space-y-2">
+                                <div class="flex justify-between items-center whitespace-nowrap">
+                                    <span class="font-bold text-xs text-hdcBlack">구역별 면적 목록</span>
+                                    <button onclick="addZone(${f.id})" class="text-xs bg-red-50 text-hdcRed px-2 py-1 rounded-lg border border-red-200 font-bold hover:bg-red-100 whitespace-nowrap">
+                                        <i class="fa-solid fa-plus mr-0.5"></i> 구역 추가
+                                    </button>
+                                </div>
+                                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                                    <table class="w-full text-xs text-left border-collapse whitespace-nowrap min-w-[360px]">
+                                        <thead class="bg-slate-100 font-bold text-hdcBlack whitespace-nowrap">
+                                            <tr class="whitespace-nowrap">
+                                                <th class="p-2 text-center w-8 whitespace-nowrap">기호</th>
+                                                <th class="p-2 whitespace-nowrap">구역명</th>
+                                                <th class="p-2 whitespace-nowrap">면적(m²)</th>
+                                                <th class="p-2 text-center whitespace-nowrap">그리기</th>
+                                                <th class="p-2 text-center w-8 whitespace-nowrap"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="whitespace-nowrap">
+                                            ${zonesRows}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            updatePaintSummary();
+        }
+
+        function uploadItemPhoto(input, key, field) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+
+                        const today = new Date();
+                        const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
+
+                        const fontSize = Math.max(18, Math.round(canvas.height * 0.045));
+                        ctx.font = `bold ${fontSize}px sans-serif`;
+
+                        const padding = Math.round(fontSize * 0.5);
+                        const textWidth = ctx.measureText(dateStr).width;
+                        const marginX = Math.max(padding * 2, canvas.width * 0.04);
+                        const marginY = Math.max(padding * 2, canvas.height * 0.04);
+
+                        const x = canvas.width - textWidth - marginX;
+                        const y = canvas.height - marginY;
+
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                        ctx.fillRect(x - padding, y - fontSize + (padding * 0.2), textWidth + (padding * 2), fontSize + (padding * 0.8));
+
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillText(dateStr, x, y);
+
+                        const watermarkedUrl = canvas.toDataURL('image/jpeg', 0.88);
+
+                        if (!paintState.execution[key]) paintState.execution[key] = { actP_B:0, actP_H:0, actL_B:0, actL_H:0, actT_B:0, actT_H:0 };
+                        paintState.execution[key][field] = watermarkedUrl;
+                        renderPaintExecutionTable();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function removeItemPhoto(e, key, field) {
+            e.stopPropagation();
+            if (paintState.execution[key]) {
+                paintState.execution[key][field] = null;
+                renderPaintExecutionTable();
+            }
+        }
+
+        function updateExecutionVal(key, field, val) {
+            if (!paintState.execution[key]) paintState.execution[key] = { actP_B:0, actP_H:0, actL_B:0, actL_H:0, actT_B:0, actT_H:0 };
+            paintState.execution[key][field] = parseInt(val, 10) || 0;
+            renderPaintExecutionTable();
+        }
+
+        function renderPaintExecutionTable() {
+            const tbody = document.getElementById('execution-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = "";
+            calcPaintMaterials();
+
+            paintState.floors.forEach(f => {
+                tbody.innerHTML += `
+                    <tr class="bg-hdcBlack text-white border-b-2 border-slate-800">
+                        <td colspan="9" class="p-2.5 font-extrabold text-xs text-left">
+                            <i class="fa-solid fa-layer-group text-hdcRed mr-1.5"></i> ${f.name} 
+                            <span class="text-[10px] font-normal text-slate-300 ml-2 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">설계두께: ${f.thickness}T</span>
+                        </td>
+                    </tr>
+                `;
+
+                f.zones.forEach((z, i) => {
+                    const key = `${f.id}_${z.id}`;
+                    if (!paintState.execution[key]) paintState.execution[key] = { actP_B:0, actP_H:0, actL_B:0, actL_H:0, actT_B:0, actT_H:0 };
+                    
+                    const reqP = ((z.area / (paintState.materials.primer.areaPerSet || 1)) || 0).toFixed(1);
+                    const reqL = (((z.area * f.thickness * paintState.materials.lining.consumption) / (paintState.materials.lining.total || 1)) || 0).toFixed(1);
+                    const reqT = ((z.area / (paintState.materials.topcoat.areaPerSet || 1)) || 0).toFixed(1);
+                    
+                    const act = paintState.execution[key];
+                    
+                    const passP = (act.actP_B || 0) >= parseFloat(reqP) && (act.actP_H || 0) >= parseFloat(reqP);
+                    const passL = (act.actL_B || 0) >= parseFloat(reqL) && (act.actL_H || 0) >= parseFloat(reqL);
+                    const passT = (act.actT_B || 0) >= parseFloat(reqT) && (act.actT_H || 0) >= parseFloat(reqT);
+                    const isTotalPass = passP && passL && passT;
+
+                    const renderCell = (valField, photoField, passCond) => {
+                        const val = act[valField] || '';
+                        const img = act[photoField];
+                        const borderBg = passCond ? 'border-emerald-400 bg-emerald-50 text-emerald-800' : 'border-slate-300 bg-white text-slate-800';
+
+                        return `
+                            <td class="p-1 border border-slate-200">
+                                <div class="flex items-center justify-center gap-1">
+                                    <input type="number" step="1" min="0" placeholder="통" value="${val}" oninput="this.value = this.value.replace(/[^0-9]/g, '')" onchange="updateExecutionVal('${key}', '${valField}', this.value)" class="w-12 p-1 border ${borderBg} rounded text-center font-bold text-xs font-mono outline-none">
+                                    <div class="relative w-6 h-6 bg-slate-50 border border-dashed ${img ? 'border-hdcRed' : 'border-slate-300'} rounded flex items-center justify-center overflow-hidden flex-shrink-0 group">
+                                        ${img 
+                                            ? `<img src="${img}" class="w-full h-full object-cover">
+                                               <button onclick="removeItemPhoto(event, '${key}', '${photoField}')" class="absolute inset-0 bg-hdcRed/80 text-white text-[9px] font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 z-20">×</button>`
+                                            : `<i class="fa-solid fa-camera text-slate-400 text-[9px]"></i>`
+                                        }
+                                        <input type="file" accept="image/*" capture="environment" onchange="uploadItemPhoto(this, '${key}', '${photoField}')" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                    </div>
+                                </div>
+                            </td>
+                        `;
+                    };
+
+                    tbody.innerHTML += `
+                        <tr class="bg-white border-b border-slate-200">
+                            <td class="p-1.5 font-bold text-hdcBlack text-center border-r" rowspan="2">
+                                ${z.name} <br><span class="inline-block mt-0.5 w-4 h-4 bg-slate-200 rounded-full text-[9px] flex items-center justify-center mx-auto text-slate-600">${String.fromCharCode(65+i)}</span>
+                            </td>
+                            <td class="p-1 text-center bg-slate-50 font-bold text-[10px] border-r">주제(Base)</td>
+                            <td class="p-1 text-center font-mono">${reqP}</td>
+                            <td class="p-1 text-center font-mono">${reqL}</td>
+                            <td class="p-1 text-center font-mono">${reqT}</td>
+                            
+                            ${renderCell('actP_B', 'imgP_B', (act.actP_B || 0) >= parseFloat(reqP))}
+                            ${renderCell('actL_B', 'imgL_B', (act.actL_B || 0) >= parseFloat(reqL))}
+                            ${renderCell('actT_B', 'imgT_B', (act.actT_B || 0) >= parseFloat(reqT))}
+                            
+                            <td class="p-1 text-center border-l" rowspan="2">
+                                ${isTotalPass 
+                                    ? `<span class="inline-block px-2 py-1 bg-emerald-600 text-white rounded font-bold text-[10px] shadow-sm w-full">적정</span>` 
+                                    : `<span class="inline-block px-2 py-1 bg-hdcRed text-white rounded font-bold text-[10px] shadow-sm w-full">부족</span>`}
+                            </td>
+                        </tr>
+                        <tr class="bg-white border-b-2 border-slate-300">
+                            <td class="p-1 text-center bg-amber-50 font-bold text-[10px] text-amber-900 border-r">경화제</td>
+                            <td class="p-1 text-center font-mono">${reqP}</td>
+                            <td class="p-1 text-center font-mono">${reqL}</td>
+                            <td class="p-1 text-center font-mono">${reqT}</td>
+                            
+                            ${renderCell('actP_H', 'imgP_H', (act.actP_H || 0) >= parseFloat(reqP))}
+                            ${renderCell('actL_H', 'imgL_H', (act.actL_H || 0) >= parseFloat(reqL))}
+                            ${renderCell('actT_H', 'imgT_H', (act.actT_H || 0) >= parseFloat(reqT))}
+                        </tr>
+                    `;
+                });
+            });
+        }
+
+        function generatePaintReport() {
+            if (document.getElementById('r-project')) document.getElementById('r-project').innerText = document.getElementById('b-project')?.value || '';
+            if (document.getElementById('r-detail')) document.getElementById('r-detail').innerText = document.getElementById('b-detail')?.value || '';
+            if (document.getElementById('r-company')) document.getElementById('r-company').innerText = document.getElementById('b-company')?.value || '';
+            if (document.getElementById('r-pic')) document.getElementById('r-pic').innerText = document.getElementById('b-pic')?.value || '';
+            if (document.getElementById('r-total-area')) document.getElementById('r-total-area').innerText = (document.getElementById('sum-total-area')?.innerText || '0') + " m²";
+            if (document.getElementById('r-mfg')) document.getElementById('r-mfg').innerText = document.getElementById('b-mfg')?.value || document.getElementById('m-manufacturer')?.value || '';
+
+            const p = paintState.materials.primer;
+            if (document.getElementById('r-p-rate')) document.getElementById('r-p-rate').innerText = `${p.coverage} m²/L`;
+            if (document.getElementById('r-p-mix')) document.getElementById('r-p-mix').innerText = `${p.base}:${p.hardener} (부피비)`;
+            if (document.getElementById('r-p-vol')) document.getElementById('r-p-vol').innerText = `${p.total} L`;
+            if (document.getElementById('r-p-area')) document.getElementById('r-p-area').innerText = `${(p.areaPerSet || 0).toFixed(1)} m²`;
+
+            const l = paintState.materials.lining;
+            if (document.getElementById('r-l-rate')) document.getElementById('r-l-rate').innerText = `${l.consumption} kg/m²·mm`;
+            if (document.getElementById('r-l-mix')) document.getElementById('r-l-mix').innerText = `${l.base}:${l.hardener} (무게비)`;
+            if (document.getElementById('r-l-vol')) document.getElementById('r-l-vol').innerText = `${l.total} kg`;
+
+            const t = paintState.materials.topcoat;
+            if (document.getElementById('r-t-rate')) document.getElementById('r-t-rate').innerText = `${t.coverage} m²/L (${t.dft || 40}㎛)`;
+            if (document.getElementById('r-t-mix')) document.getElementById('r-t-mix').innerText = `${t.base}:${t.hardener} (부피비)`;
+            if (document.getElementById('r-t-vol')) document.getElementById('r-t-vol').innerText = `${t.total} L`;
+            if (document.getElementById('r-t-area')) document.getElementById('r-t-area').innerText = `${(t.areaPerSet || 0).toFixed(1)} m²`;
+
+            const bpContainer = document.getElementById('r-blueprint-container');
+            if (bpContainer) {
+                bpContainer.innerHTML = "";
+                const floorCount = paintState.floors.length || 1;
+                let gridHTML = `<div class="grid gap-2" style="grid-template-columns: repeat(${floorCount}, minmax(0, 1fr));">`;
+
+                paintState.floors.forEach(f => {
+                    let svgPolygons = "";
+                    let pinsHTML = "";
+
+                    f.zones.forEach((z, zIdx) => {
+                        const color = PAINT_ZONE_COLORS[zIdx % PAINT_ZONE_COLORS.length];
+                        if (z.polygon && z.polygon.length > 0) {
+                            const ptsStr = z.polygon.map(pt => `${pt.x},${pt.y}`).join(' ');
+                            svgPolygons += `<polygon points="${ptsStr}" fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-width="1.2" />`;
+                        }
+                        if (z.pinX != null && z.pinY != null && z.polygon && z.polygon.length >= 3) {
+                            pinsHTML += `
+                                <div class="pin" style="left: ${z.pinX}%; top: ${z.pinY}%; background-color: ${color}; width: 20px; height: 20px; font-size: 10px;">
+                                    ${String.fromCharCode(65 + zIdx)}
+                                </div>
+                            `;
+                        }
+                    });
+
+                    gridHTML += `
+                        <div class="border border-slate-300 rounded-lg p-1.5 bg-slate-50 text-center space-y-1">
+                            <div class="font-bold text-[10px] text-hdcBlack border-b border-slate-200 pb-0.5">
+                                ${f.name}
+                            </div>
+                            <div class="relative w-full bg-slate-900 rounded overflow-hidden min-h-[100px] aspect-video flex items-center justify-center border border-slate-200 select-none">
+                                ${f.image 
+                                    ? `<img src="${f.image}" class="w-full h-full object-contain block">`
+                                    : `<div class="text-slate-400 text-[9px]">도면 미등록</div>`
+                                }
+                                <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    ${svgPolygons}
+                                </svg>
+                                ${pinsHTML}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                gridHTML += `</div>`;
+                bpContainer.innerHTML = gridHTML;
+            }
+
+            const tbodyExec = document.getElementById('r-execution-table');
+            if (tbodyExec) {
+                tbodyExec.innerHTML = "";
+
+                paintState.floors.forEach(f => {
+                    f.zones.forEach(z => {
+                        const key = `${f.id}_${z.id}`;
+                        const reqP = ((z.area / (p.areaPerSet || 1)) || 0).toFixed(1);
+                        const reqL = (((z.area * f.thickness * l.consumption) / (l.total || 1)) || 0).toFixed(1);
+                        const reqT = ((z.area / (t.areaPerSet || 1)) || 0).toFixed(1);
+                        const act = paintState.execution[key] || {actP_B:0, actP_H:0, actL_B:0, actL_H:0, actT_B:0, actT_H:0};
+                        const isTotalPass = (act.actP_B||0) >= parseFloat(reqP) && (act.actP_H||0) >= parseFloat(reqP) && (act.actL_B||0) >= parseFloat(reqL) && (act.actL_H||0) >= parseFloat(reqL) && (act.actT_B||0) >= parseFloat(reqT) && (act.actT_H||0) >= parseFloat(reqT);
+
+                        tbodyExec.innerHTML += `
+                            <tr class="border-b border-slate-300">
+                                <td class="border border-slate-300 p-1 font-bold">${f.name} ${z.name} <br><span class="text-[9px] text-slate-500 font-normal">(${z.area}m², ${f.thickness}T)</span></td>
+                                <td class="border border-slate-300 p-1 font-mono">${reqP}</td>
+                                <td class="border border-slate-300 p-1 font-mono">${reqL}</td>
+                                <td class="border border-slate-300 p-1 font-mono">${reqT}</td>
+                                <td class="border border-slate-300 p-1 font-bold font-mono ${act.actP_B < parseFloat(reqP) || act.actP_H < parseFloat(reqP) ? 'text-hdcRed':''}">${act.actP_B||0} / ${act.actP_H||0}</td>
+                                <td class="border border-slate-300 p-1 font-bold font-mono ${act.actL_B < parseFloat(reqL) || act.actL_H < parseFloat(reqL) ? 'text-hdcRed':''}">${act.actL_B||0} / ${act.actL_H||0}</td>
+                                <td class="border border-slate-300 p-1 font-bold font-mono ${act.actT_B < parseFloat(reqT) || act.actT_H < parseFloat(reqT) ? 'text-hdcRed':''}">${act.actT_B||0} / ${act.actT_H||0}</td>
+                                <td class="border border-slate-300 p-1 font-bold ${isTotalPass ? 'text-emerald-700 bg-emerald-50' : 'text-hdcRed bg-red-50'}">${isTotalPass ? '적정' : '부족'}</td>
+                            </tr>
+                        `;
+                    });
+                });
+            }
+
+            const tbodyPhotoLog = document.getElementById('r-photolog-table');
+            if (tbodyPhotoLog) {
+                tbodyPhotoLog.innerHTML = "";
+
+                paintState.floors.forEach(f => {
+                    f.zones.forEach(z => {
+                        const key = `${f.id}_${z.id}`;
+                        const reqP = ((z.area / (p.areaPerSet || 1)) || 0).toFixed(1);
+                        const reqL = (((z.area * f.thickness * l.consumption) / (l.total || 1)) || 0).toFixed(1);
+                        const reqT = ((z.area / (t.areaPerSet || 1)) || 0).toFixed(1);
+                        const act = paintState.execution[key] || {actP_B:0, actP_H:0, actL_B:0, actL_H:0, actT_B:0, actT_H:0};
+
+                        const passP = (act.actP_B||0) >= parseFloat(reqP) && (act.actP_H||0) >= parseFloat(reqP);
+                        const passL = (act.actL_B||0) >= parseFloat(reqL) && (act.actL_H||0) >= parseFloat(reqL);
+                        const passT = (act.actT_B||0) >= parseFloat(reqT) && (act.actT_H||0) >= parseFloat(reqT);
+                        const isTotalPass = passP && passL && passT;
+
+                        const renderPhotoCell = (imgHard) => {
+                            return `
+                                <div class="p-0.5 w-full h-full">
+                                    <div class="w-full border rounded p-1 bg-slate-50 text-center flex flex-col items-center justify-center">
+                                        <div class="h-20 w-full flex items-center justify-center bg-slate-100 rounded overflow-hidden">
+                                            ${imgHard ? `<img src="${imgHard}" class="w-full h-full object-contain">` : `<span class="text-[9px] text-slate-300">미등록</span>`}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        };
+
+                        tbodyPhotoLog.innerHTML += `
+                            <tr class="border-b border-slate-300">
+                                <td class="border border-slate-300 p-1.5 font-bold bg-slate-50">
+                                    <span class="text-hdcRed">${f.name}</span><br>
+                                    <span class="text-hdcBlack text-xs">${z.name}</span><br>
+                                    <span class="text-[9px] text-slate-500 font-normal">(${z.area}m², ${f.thickness}T)</span>
+                                </td>
+                                <td class="border border-slate-300 p-1.5 text-left space-y-0.5">
+                                    <p class="text-[9px]"><span class="font-bold">하도:</span> ${act.actP_B||0}/${act.actP_H||0}통 (필:${reqP})</p>
+                                    <p class="text-[9px]"><span class="font-bold">중도:</span> ${act.actL_B||0}/${act.actL_H||0}통 (필:${reqL})</p>
+                                    <p class="text-[9px]"><span class="font-bold">상도:</span> ${act.actT_B||0}/${act.actT_H||0}통 (필:${reqT})</p>
+                                    <div class="mt-1 pt-1 border-t text-center">
+                                        <span class="inline-block px-1.5 py-0.5 rounded font-bold text-[9px] ${isTotalPass ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-hdcRed'}">
+                                            ${isTotalPass ? '적정 (Pass)' : '부족 (Fail)'}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="border border-slate-300 p-0.5">${renderPhotoCell(act.imgP_H)}</td>
+                                <td class="border border-slate-300 p-0.5">${renderPhotoCell(act.imgL_H)}</td>
+                                <td class="border border-slate-300 p-0.5">${renderPhotoCell(act.imgT_H)}</td>
+                            </tr>
+                        `;
+                    });
+                });
+            }
+        }
+
+        function savePaintData() {
+            const projectInfo = {
+                project: document.getElementById('b-project')?.value || '',
+                type: document.getElementById('b-type')?.value || '',
+                detail: document.getElementById('b-detail')?.value || '',
+                company: document.getElementById('b-company')?.value || '',
+                pic: document.getElementById('b-pic')?.value || '',
+                mfg: document.getElementById('b-mfg')?.value || ''
+            };
+
+            calcPaintMaterials();
+
+            const dataToSave = {
+                projectInfo,
+                floors: paintState.floors,
+                materials: paintState.materials,
+                execution: paintState.execution
+            };
+
+            try {
+                localStorage.setItem('epoxy_smart_inspection_data', JSON.stringify(dataToSave));
+                showModal('저장 완료', '도장공사 데이터가 로컬 스토리지에 보관되었습니다.');
+            } catch(e) {
+                showModal('저장 실패', '로컬 스토리지 데이터 저장 중 오류가 발생했습니다.');
+            }
+        }
+
+        function loadPaintData() {
+            try {
+                const saved = localStorage.getItem('epoxy_smart_inspection_data');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.projectInfo) {
+                        if (document.getElementById('b-project')) document.getElementById('b-project').value = parsed.projectInfo.project || '';
+                        if (document.getElementById('b-type')) document.getElementById('b-type').value = parsed.projectInfo.type || '';
+                        if (document.getElementById('b-detail')) document.getElementById('b-detail').value = parsed.projectInfo.detail || '';
+                        if (document.getElementById('b-company')) document.getElementById('b-company').value = parsed.projectInfo.company || '';
+                        if (document.getElementById('b-pic')) document.getElementById('b-pic').value = parsed.projectInfo.pic || '';
+                        if (document.getElementById('b-mfg')) document.getElementById('b-mfg').value = parsed.projectInfo.mfg || '';
+                        if (document.getElementById('m-manufacturer')) document.getElementById('m-manufacturer').value = parsed.projectInfo.mfg || '';
+                    }
+                    if (parsed.floors && Array.isArray(parsed.floors)) paintState.floors = parsed.floors;
+                    if (parsed.materials) {
+                        paintState.materials = parsed.materials;
+                        if (paintState.materials.primer) {
+                            if (document.getElementById('m-p-coverage')) document.getElementById('m-p-coverage').value = paintState.materials.primer.coverage || 6.6;
+                            if (document.getElementById('m-p-base')) document.getElementById('m-p-base').value = paintState.materials.primer.base || 10.5;
+                            if (document.getElementById('m-p-hardener')) document.getElementById('m-p-hardener').value = paintState.materials.primer.hardener || 3.5;
+                        }
+                        if (paintState.materials.lining) {
+                            if (document.getElementById('m-l-consumption')) document.getElementById('m-l-consumption').value = paintState.materials.lining.consumption || 1.58;
+                            if (document.getElementById('m-l-base')) document.getElementById('m-l-base').value = paintState.materials.lining.base || 20;
+                            if (document.getElementById('m-l-hardener')) document.getElementById('m-l-hardener').value = paintState.materials.lining.hardener || 4;
+                        }
+                        if (paintState.materials.topcoat) {
+                            if (document.getElementById('m-t-dft')) document.getElementById('m-t-dft').value = paintState.materials.topcoat.dft || 40;
+                            if (document.getElementById('m-t-coverage')) document.getElementById('m-t-coverage').value = paintState.materials.topcoat.coverage || 10.8;
+                            if (document.getElementById('m-t-base')) document.getElementById('m-t-base').value = paintState.materials.topcoat.base || 10.2;
+                            if (document.getElementById('m-t-hardener')) document.getElementById('m-t-hardener').value = paintState.materials.topcoat.hardener || 3.8;
+                        }
+                    }
+                    if (parsed.execution) paintState.execution = parsed.execution;
+                }
+            } catch(e) {
+                console.error("도장 데이터 복구 오류:", e);
+            }
+            calcPaintMaterials();
+            renderPaintFloors();
+            renderPaintExecutionTable();
+        }
+
+        // --- PAINT REPORT PREVIEW & EMAIL FUNCTIONS ---
+        function openPaintReportPreview() {
+            generatePaintReport();
+            const printContent = document.querySelector('#view-paint .print-container')?.innerHTML || '';
+
+            let htmlContent = `
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>IPARK 주차장 바닥 에폭시 시공수량 품질검수 보고서</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <style>
+        @page { size: A4 portrait; margin: 0; }
+        body { background-color: #334155; margin: 0; padding: 20px 0; font-family: 'Pretendard', sans-serif; }
+        .print-container { background: white; margin: 0 auto; padding: 2rem; max-width: 21cm; min-height: 29.7cm; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border-radius: 1rem; }
+        .page-break { page-break-before: always; break-before: page; }
+        @media print {
+            body { background: white; padding: 0; }
+            .print-container { box-shadow: none; border: none; padding: 1.5cm; }
+        }
+    </style>
+</head>
+<body>
+    <div class="fixed top-4 right-4 z-50 print:hidden flex gap-2">
+        <button onclick="window.print()" class="bg-red-600 hover:bg-red-700 text-white font-extrabold px-5 py-2.5 rounded-xl shadow-lg text-xs">🖨️ 바로 인쇄 / PDF 저장</button>
+        <button onclick="window.close()" class="bg-gray-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs">닫기</button>
+    </div>
+    <div class="print-container">
+        ${printContent}
+    </div>
+</body>
+</html>`;
+
+            const win = window.open('', '_blank');
+            if (win) {
+                win.document.open();
+                win.document.write(htmlContent);
+                win.document.close();
+            } else {
+                showModal('팝업 차단', '브라우저 팝업 허용을 설정해 주세요.');
+            }
+        }
+
+        function sendPaintReportEmail() {
+            generatePaintReport();
+            const savedEmail = localStorage.getItem('tileReportRecipientEmail') || '';
+            if (!savedEmail) {
+                showModal('이메일 미설정', '메인 화면에서 <b>기본 수신 이메일</b>을 먼저 설정 및 저장해 주세요.', 'alert', () => {
+                    openView('view-home');
+                });
+                return;
+            }
+
+            const proj = document.getElementById('b-project')?.value || 'IPARK 주차장 에폭시 신축공사';
+            const totalArea = document.getElementById('sum-total-area')?.innerText || '0';
+            const subject = `[IPARK 품질팀] 주차장 에폭시 시공수량 품질검수 보고서 (${proj})`;
+            
+            let bodyText = `[IPARK현대산업개발 품질팀 - 주차장 에폭시 시공수량 품질검수 보고서]\n\n`;
+            bodyText += `■ 공사명: ${proj}\n`;
+            bodyText += `■ 수신처: ${savedEmail}\n`;
+            bodyText += `■ 총 시공면적: ${totalArea} m²\n\n`;
+            bodyText += `[구역별 검측 현황]\n`;
+
+            paintState.floors.forEach(f => {
+                f.zones.forEach(z => {
+                    const key = `${f.id}_${z.id}`;
+                    const act = paintState.execution[key] || {actP_B:0, actP_H:0, actL_B:0, actL_H:0, actT_B:0, actT_H:0};
+                    bodyText += `- ${f.name} ${z.name} (${z.area}m²): 하도 ${act.actP_B||0}/${act.actP_H||0}통, 중도 ${act.actL_B||0}/${act.actL_H||0}통, 상도 ${act.actT_B||0}/${act.actT_H||0}통\n`;
+                });
+            });
+            bodyText += `\n상세 PDF 보고서는 시스템에서 바로 확인 가능합니다.`;
+
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(savedEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+
+            const modalBox = document.createElement('div');
+            modalBox.className = 'space-y-3';
+            modalBox.innerHTML = `
+                <p class="font-bold text-hdcBlack text-xs">선택하신 수신처: <span class="text-hdcRed">${savedEmail}</span></p>
+                <p class="text-xs text-hdcGray2">원하시는 발송 수단을 선택해 주세요:</p>
+                <div class="space-y-2 pt-1">
+                    <button onclick="window.open('${gmailUrl}', '_blank'); hideModal();" class="w-full bg-hdcRed hover:bg-red-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-google"></i> Gmail 웹 작성창 바로 열기
+                    </button>
+                    <button onclick="document.execCommand('copy'); showModal('복사 완료', '보고서 요약문이 클립보드에 복사되었습니다.');" class="w-full bg-hdcBlack hover:bg-black text-white font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-copy"></i> 보고서 요약 텍스트 복사
+                    </button>
+                </div>
+            `;
+            showModal('보고서 이메일 전송', modalBox);
+        }
+
+        // --- DOM CONTENT LOADED INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMainEmail();
+            initTileModule();
+            calcPaintMaterials();
+        });
+    </script>
+</body>
+</html>
