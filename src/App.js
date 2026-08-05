@@ -756,7 +756,6 @@ const AI_WORK_LINKS = [
   {icon:"🏭", title:"레미콘 공장 사전검수 대시보드", desc:"레미콘 공장 사전검수 종합보고 대시보드", href:"/remicon-dashboard.html"},
   {icon:"🏢", title:"준공단지 외벽 BI 현황 대시보드", desc:"현대산업개발 준공단지 외벽 BI 현황", href:"/exterior-bi-dashboard.html"},
   {icon:"📝", title:"품질점검 강평", desc:"품질점검 강평 자동화 도구", href:"https://script.google.com/macros/s/AKfycbx2iawukavqOgMdDbJh0oNj47zUktiTcZQxXRBFIx-3iQfpkUX8ThS2jxBPw1SvH3la7A/exec"},
-  {icon:"📊", title:"품질점검 종합 현황판", desc:"품질점검 종합 현황판", href:"https://quality-dashboard1.vercel.app/"},
   {icon:"🧰", title:"IPARK 품질관리 도구모음", desc:"IPARK 품질관리 도구모음", href:"/quality-tools.html"},
 ];
 function AIWorkModal({ onClose }) {
