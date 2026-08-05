@@ -756,6 +756,7 @@ const AI_WORK_LINKS = [
   {icon:"🏭", title:"레미콘 공장 사전검수 대시보드", desc:"레미콘 공장 사전검수 종합보고 대시보드", href:"/remicon-dashboard.html"},
   {icon:"🏢", title:"준공단지 외벽 BI 현황 대시보드", desc:"현대산업개발 준공단지 외벽 BI 현황", href:"/exterior-bi-dashboard.html"},
   {icon:"📝", title:"품질점검 강평", desc:"품질점검 강평 자동화 도구", href:"https://script.google.com/macros/s/AKfycbx2iawukavqOgMdDbJh0oNj47zUktiTcZQxXRBFIx-3iQfpkUX8ThS2jxBPw1SvH3la7A/exec"},
+  {icon:"📊", title:"품질점검 종합 현황판", desc:"대외비 - 접근 제한됨", href:"https://quality-dashboard1.vercel.app/", disabled:true},
   {icon:"🧰", title:"IPARK 품질관리 도구모음", desc:"IPARK 품질관리 도구모음", href:"/quality-tools.html"},
 ];
 function AIWorkModal({ onClose }) {
@@ -767,19 +768,22 @@ function AIWorkModal({ onClose }) {
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:"20px",color:"rgba(255,255,255,0.8)",cursor:"pointer"}}>✕</button>
         </div>
         <div style={{padding:"16px 18px",display:"flex",flexDirection:"column",gap:"8px"}}>
-          {AI_WORK_LINKS.map((item,i)=>(
-            <a key={i} href={item.href} target="_blank" rel="noopener noreferrer"
-              style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#fff",border:"1px solid #e8d5c0",borderRadius:"10px",textDecoration:"none",transition:"background 0.15s"}}
-              onMouseEnter={e=>e.currentTarget.style.background="#f4ecf9"}
-              onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
-              <span style={{fontSize:"22px",flexShrink:0}}>{item.icon}</span>
+          {AI_WORK_LINKS.map((item,i)=>{
+            const Tag = item.disabled ? "div" : "a";
+            return (
+            <Tag key={i} {...(item.disabled?{}:{href:item.href,target:"_blank",rel:"noopener noreferrer"})}
+              style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:item.disabled?"#f2ede8":"#fff",border:"1px solid #e8d5c0",borderRadius:"10px",textDecoration:"none",transition:"background 0.15s",opacity:item.disabled?0.55:1,cursor:item.disabled?"not-allowed":"pointer"}}
+              onMouseEnter={e=>{ if(!item.disabled) e.currentTarget.style.background="#f4ecf9"; }}
+              onMouseLeave={e=>{ if(!item.disabled) e.currentTarget.style.background="#fff"; }}>
+              <span style={{fontSize:"22px",flexShrink:0,filter:item.disabled?"grayscale(1)":"none"}}>{item.icon}</span>
               <div style={{minWidth:0,flex:1}}>
-                <div style={{fontSize:"13px",fontWeight:"700",color:"#3b1f0a"}}>{item.title}</div>
+                <div style={{fontSize:"13px",fontWeight:"700",color:item.disabled?"#8a7a6a":"#3b1f0a"}}>{item.title}{item.disabled&&<span style={{marginLeft:"6px",fontSize:"9px",fontWeight:"700",color:"#b45309",background:"#fef3c7",padding:"1px 6px",borderRadius:"6px"}}>🔒 대외비</span>}</div>
                 <div style={{fontSize:"11px",color:"#a08060",marginTop:"1px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.desc}</div>
               </div>
-              <span style={{fontSize:"14px",color:"#a855f7",flexShrink:0}}>↗</span>
-            </a>
-          ))}
+              {!item.disabled&&<span style={{fontSize:"14px",color:"#a855f7",flexShrink:0}}>↗</span>}
+            </Tag>
+            );
+          })}
         </div>
         <div style={{padding:"12px 24px 16px",borderTop:"1px solid #e8d5c0",display:"flex",justifyContent:"flex-end"}}>
           <button onClick={onClose} style={{padding:"6px 16px",background:"#581c87",border:"none",borderRadius:"8px",fontSize:"12px",color:"#fff",cursor:"pointer",fontWeight:"600"}}>닫기</button>
