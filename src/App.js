@@ -758,6 +758,7 @@ const AI_WORK_LINKS = [
   {icon:"📝", title:"품질점검 강평", desc:"품질점검 강평 자동화 도구", href:"https://script.google.com/macros/s/AKfycbx2iawukavqOgMdDbJh0oNj47zUktiTcZQxXRBFIx-3iQfpkUX8ThS2jxBPw1SvH3la7A/exec"},
   {icon:"📊", title:"품질점검 종합 현황판", desc:"대외비 - 접근 제한됨", href:"https://quality-dashboard1.vercel.app/", disabled:true},
   {icon:"🧰", title:"IPARK 품질관리 도구모음", desc:"IPARK 품질관리 도구모음", href:"/quality-tools.html"},
+  {icon:"🗓️", title:"품질 일정관리 보드", desc:"품질팀 일정관리 보드", href:"https://qualityschedule-board.vercel.app"},
 ];
 function AIWorkModal({ onClose }) {
   return (
