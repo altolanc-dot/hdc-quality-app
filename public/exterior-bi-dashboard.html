@@ -102,6 +102,10 @@
                             <p class="text-[15px] font-bold text-sky-300 mb-1">조사 결과</p>
                             <p class="text-[13px] text-slate-200 leading-relaxed">준공후 BI 변경(입주자) 3곳(암사선사현대, 서초현대4차, 수영만아이파크), 노후도 '불량' 이상 2곳(마포아이파크포레, 현대멤피스) 확인. 안전도는 이상 없음.</p>
                         </div>
+                        <div>
+                            <p class="text-[15px] font-bold text-sky-300 mb-1 cursor-pointer hover:underline inline-flex items-center gap-1" onclick="openBrandGuidelineModal()">IPARK 브랜드 가이드라인(원칙) <i class="fa-solid fa-circle-info text-xs text-sky-400"></i></p>
+                            <p class="text-[13px] text-slate-200 leading-relaxed">2001년 3월 브랜드 런칭 이후 준공단지에 상표 적용하며, 요청시 사전 검토 후 최신 BI 디자인 지원 가능(브랜드 런칭 이전 준공단지는 원칙적 적용 불가)</p>
+                        </div>
                     </div>
 
                     <p class="text-sm font-bold text-slate-100 mt-1">경영진 의사결정 요청사항 <span class="text-slate-400 font-normal text-xs">(제목 클릭 시 상세 표시)</span></p>
@@ -514,6 +518,36 @@ function openCriteriaModal(){
             </div>
         </div>
         <p class="text-[11px] text-slate-400 mt-4 leading-relaxed"><i class="fa-solid fa-circle-info mr-1"></i>도로가 크고 접도 노출이 좋을수록 통행량·홍보효과가 높다고 보아 도로등급·노출유형에 각 40%의 높은 가중치를 부여했습니다.</p>
+    `;
+    document.getElementById('detail-modal').classList.remove('hidden');
+}
+
+function openBrandGuidelineModal(){
+    document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-shield-halved text-sky-400"></i> IPARK 브랜드 가이드라인(원칙)`;
+    document.getElementById('modal-body').innerHTML = `
+        <div class="bg-slate-700/40 border border-slate-700 rounded-lg p-3 mb-4 text-center">
+            <span class="text-sm text-slate-200">IPARK 브랜드 런칭(<span class="text-sky-400 font-bold">2001년 3월</span>) 이후 준공단지 상표 적용 원칙</span>
+        </div>
+        <div class="grid grid-cols-1 gap-3 text-xs">
+            <div class="bg-slate-700/30 rounded-lg p-3">
+                <span class="font-bold text-sky-400 text-sm">적용 대상</span>
+                <div class="flex flex-col gap-1.5 text-slate-300 mt-2 leading-relaxed">
+                    <div>IPARK 브랜드 런칭 시점인 <b class="text-slate-100">2001년 3월</b> 이후 준공단지는 상표 적용이 가능합니다.</div>
+                </div>
+            </div>
+            <div class="bg-slate-700/30 rounded-lg p-3">
+                <span class="font-bold text-indigo-400 text-sm">적용 기준</span>
+                <div class="flex flex-col gap-1.5 text-slate-300 mt-2 leading-relaxed">
+                    <div>단지명, 건물 외벽, 각종 사인물에 동일한 기준을 적용하며, 요청 시 사전 검토 후 최신 BI 디자인 지원이 가능합니다.</div>
+                </div>
+            </div>
+            <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                <span class="font-bold text-amber-400 text-sm"><i class="fa-solid fa-triangle-exclamation mr-1"></i>예외 사항</span>
+                <div class="flex flex-col gap-1.5 text-slate-300 mt-2 leading-relaxed">
+                    <div>브랜드 런칭 이전 준공단지는 원칙적으로 적용이 불가합니다.</div>
+                </div>
+            </div>
+        </div>
     `;
     document.getElementById('detail-modal').classList.remove('hidden');
 }
