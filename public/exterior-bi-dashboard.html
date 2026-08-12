@@ -74,15 +74,15 @@
 </header>
 
 <!-- Body -->
-<main class="flex-1 min-h-0 p-4 overflow-hidden">
+<main class="flex-1 min-h-0 p-4 overflow-y-auto">
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 h-full min-h-0">
 
         <!-- ============ LEFT: 경영진 의사결정 보고서 ============ -->
-        <div class="xl:col-span-3 self-start">
-            <div class="bg-slate-800 border border-amber-500/25 rounded-xl overflow-hidden flex flex-col" style="max-height:calc(100vh - 5.5rem);">
+        <div class="xl:col-span-3 flex flex-col xl:h-full xl:min-h-0">
+            <div class="bg-slate-800 border border-amber-500/25 rounded-xl flex flex-col xl:overflow-hidden xl:flex-1 xl:min-h-0">
 
-                <div class="overflow-y-auto p-4 flex flex-col gap-3 min-h-0">
-                    <div class="bg-slate-700/40 border border-slate-700 rounded-lg p-4 flex flex-col gap-3">
+                <div class="p-4 flex flex-col gap-3 xl:overflow-y-auto xl:flex-1 xl:min-h-0">
+                    <div class="bg-slate-700/40 border border-slate-700 rounded-lg p-4 flex flex-col gap-3 shrink-0">
                         <div>
                             <p class="text-[15px] font-bold text-sky-300 mb-1">조사 배경</p>
                             <p class="text-[13px] text-slate-200 leading-relaxed">준공 30년 경과 단지 다수, 브랜드 변천으로 입주자 자체관리 중이라 사인물 노후·파손이 방치돼왔습니다. 대외 노출 브랜드 자산으로서 개선 검토가 필요합니다.</p>
@@ -101,18 +101,18 @@
                         </div>
                     </div>
 
-                    <p class="text-sm font-bold text-slate-100 mt-1">경영진 의사결정 요청사항 <span class="text-slate-400 font-normal text-xs">(제목 클릭 시 상세 표시)</span></p>
+                    <p class="text-sm font-bold text-slate-100 mt-1 shrink-0">경영진 의사결정 요청사항 <span class="text-slate-400 font-normal text-xs">(제목 클릭 시 상세 표시)</span></p>
 
                     <!-- 결정1: 사인물 개선 시 브랜드 표기 처리방안 (핵심, 기본 펼침) -->
-                    <details class="group border border-sky-500/30 rounded-lg overflow-hidden bg-sky-500/5">
-                        <summary class="cursor-pointer list-none px-4 py-3.5 flex items-center justify-between select-none">
+                    <div class="border border-sky-500/30 rounded-lg overflow-hidden bg-sky-500/5 shrink-0">
+                        <div class="cursor-pointer px-4 py-3.5 flex items-center justify-between select-none" onclick="toggleDecision('decision-1')">
                             <span class="flex items-center gap-3">
                                 <span class="w-7 h-7 rounded-full bg-sky-500 text-white text-sm font-bold flex items-center justify-center shrink-0">1</span>
                                 <span class="text-base font-bold text-sky-300">사인물 개선 시 브랜드 표기 처리방안</span>
                             </span>
-                            <i class="fa-solid fa-chevron-down text-sky-400 text-sm transition-transform group-open:rotate-180"></i>
-                        </summary>
-                        <div class="px-4 pb-4 flex flex-col gap-2">
+                            <i id="decision-1-chevron" class="fa-solid fa-chevron-down text-sky-400 text-sm transition-transform"></i>
+                        </div>
+                        <div id="decision-1" class="hidden px-4 pb-4 flex flex-col gap-2">
                             <div class="bg-slate-700/50 rounded-md px-3 py-2">
                                 <p class="text-[13px] text-slate-200 font-medium">안1. 준공당시 브랜드 표기 유지</p>
                                 <p class="text-[11px] text-slate-400 mt-0.5">준공 시점의 브랜드 표기를 그대로 유지 · 구브랜드 잔존 지속</p>
@@ -130,18 +130,18 @@
                                 <p class="mt-1">※ 타사 사례: 원본 보고서 별첨 참조</p>
                             </div>
                         </div>
-                    </details>
+                    </div>
 
                     <!-- 결정 2: 개선 대상 범위 확정 -->
-                    <details class="group border border-slate-700 rounded-lg overflow-hidden">
-                        <summary class="cursor-pointer list-none px-4 py-3.5 flex items-center justify-between select-none hover:bg-slate-700/30">
+                    <div class="border border-slate-700 rounded-lg overflow-hidden shrink-0">
+                        <div class="cursor-pointer px-4 py-3.5 flex items-center justify-between select-none hover:bg-slate-700/30" onclick="toggleDecision('decision-2')">
                             <span class="flex items-center gap-3">
                                 <span class="w-7 h-7 rounded-full bg-slate-600 text-slate-100 text-sm font-bold flex items-center justify-center shrink-0">2</span>
                                 <span class="text-base font-bold text-slate-100">개선 대상 범위 확정</span>
                             </span>
-                            <i class="fa-solid fa-chevron-down text-slate-400 text-sm transition-transform group-open:rotate-180"></i>
-                        </summary>
-                        <div class="px-4 pb-4 flex flex-col gap-2">
+                            <i id="decision-2-chevron" class="fa-solid fa-chevron-down text-slate-400 text-sm transition-transform"></i>
+                        </div>
+                        <div id="decision-2" class="hidden px-4 pb-4 flex flex-col gap-2">
                             <div class="bg-slate-700/50 rounded-md px-3 py-2">
                                 <p class="text-[13px] text-slate-200 font-medium">안1. 노후도에 따른 선별 적용</p>
                                 <p class="text-[11px] text-slate-400 mt-0.5">현재 조사된 노후도 '불량' 이상 등급 단지부터 우선 적용</p>
@@ -151,9 +151,9 @@
                                 <p class="text-[11px] text-slate-400 mt-0.5">홍보효과 등을 반영한 별도의 선정 기준을 마련하여 대상 확정</p>
                             </div>
                         </div>
-                    </details>
+                    </div>
 
-                    <div class="text-[11px] text-slate-500 border-t border-slate-700 pt-3 leading-relaxed">
+                    <div class="text-[11px] text-slate-500 border-t border-slate-700 pt-3 leading-relaxed shrink-0">
                         ※ 상세 근거(개선대상 선정 <span class="text-sky-400 underline cursor-pointer hover:text-sky-300" onclick="openCriteriaModal()">매트릭스</span>, 유관부서 협의사항, 추진일정)는 원본 보고서 참조
                     </div>
                 </div>
@@ -161,7 +161,7 @@
         </div>
 
         <!-- ============ RIGHT: 데이터 종합 뷰 ============ -->
-        <div class="xl:col-span-9 h-full min-h-0 overflow-y-auto flex flex-col gap-4 pr-1">
+        <div class="xl:col-span-9 flex flex-col gap-4 pr-1 xl:h-full xl:min-h-0 xl:overflow-y-auto">
 
             <!-- Filters (기능은 유지되나 화면엔 숨김, 검색창은 헤더로 이동) -->
             <div class="hidden">
@@ -513,6 +513,14 @@ function openCriteriaModal(){
         <p class="text-[11px] text-slate-400 mt-4 leading-relaxed"><i class="fa-solid fa-circle-info mr-1"></i>도로가 크고 접도 노출이 좋을수록 통행량·홍보효과가 높다고 보아 도로등급·노출유형에 각 40%의 높은 가중치를 부여했습니다.</p>
     `;
     document.getElementById('detail-modal').classList.remove('hidden');
+}
+
+function toggleDecision(id){
+    const el = document.getElementById(id);
+    const chevron = document.getElementById(id+'-chevron');
+    if(!el) return;
+    el.classList.toggle('hidden');
+    if(chevron) chevron.classList.toggle('rotate-180');
 }
 
 function openBrandGuidelineModal(){
