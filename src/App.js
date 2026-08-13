@@ -812,7 +812,7 @@ function ReqSection({ name, reqData, setReqData, partColor }) {
           ? <button onClick={()=>{ setDraft(text); setEditing(true); }} style={{fontSize:"9px",color:"#d4842a",background:"#ffe0b2",border:"none",borderRadius:"6px",padding:"2px 8px",cursor:"pointer",fontWeight:"600"}}>수정</button>
           : <div style={{display:"flex",gap:"4px"}}>
               <button onClick={()=>setEditing(false)} style={{fontSize:"9px",color:"#8b6a4a",background:"#e8d5c0",border:"none",borderRadius:"6px",padding:"2px 8px",cursor:"pointer"}}>취소</button>
-              <button onClick={()=>{ const next={...reqData,[name]:draft}; setReqData(next); dbSet('req','all',next); setEditing(false); }}
+              <button onClick={()=>{ const next={...reqData,[name]:draft}; setReqData(next); dbSet('req','all',{[name]:draft}); setEditing(false); }}
                 style={{fontSize:"9px",color:"#fff",background:partColor,border:"none",borderRadius:"6px",padding:"2px 8px",cursor:"pointer",fontWeight:"700"}}>저장</button>
             </div>
         }
