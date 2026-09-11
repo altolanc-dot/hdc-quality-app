@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB8CS6XJKBAqlSTaOZY1g1Dt3zCVjqMvBE",
@@ -14,6 +15,7 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db  = getFirestore(app);
+const auth = getAuth(app);
 
 const dbGet = async (col, id) => {
   try {
@@ -1498,7 +1500,12 @@ export default function App() {
         const savedReq=await dbGet('req','all'); if(savedReq) setAllReq(savedReq);
       } catch(e){ console.error(e); } finally { setStorageLoaded(true); }
     };
-    load();
+    // 익명 인증이 완료된 뒤에만 Firestore 데이터를 불러옴 (보안 규칙: request.auth != null)
+    const unsubscribe = onAuthStateChanged(auth, (user)=>{
+      if(user){ load(); }
+      else { signInAnonymously(auth).catch(e=>{ console.error("익명 로그인 실패:", e); setStorageLoaded(true); }); }
+    });
+    return () => unsubscribe();
   },[]);
 
   const part=MEMBERS[activePart]; const members=allData[activePart]; const member=members[activeMember];
