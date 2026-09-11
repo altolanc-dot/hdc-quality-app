@@ -636,14 +636,14 @@ function ResultEditor({ gi, 결과, update }) {
   const [items, setItems] = useState(()=>(결과||"").split("||").filter(Boolean));
   const prevRef = useRef(결과);
   useEffect(()=>{ if(prevRef.current!==결과){ prevRef.current=결과; setItems((결과||"").split("||").filter(Boolean)); } },[결과]);
-  const commit = arr => { setItems(arr); prevRef.current=arr.filter(s=>s.trim()).join("||"); update(gi,"결과",arr.filter(s=>s.trim()).join("||")); };
-  const updItem= (ii,val)=>{ const arr=[...items]; arr[ii]=val; setItems(arr); prevRef.current=arr.filter(s=>s.trim()).join("||"); update(gi,"결과",arr.filter(s=>s.trim()).join("||")); };
+  const commit = arr => { const cleaned=arr.filter(s=>s.trim()); setItems(cleaned); prevRef.current=cleaned.join("||"); update(gi,"결과",cleaned.join("||")); };
+  const updItem= (ii,val)=>{ const arr=[...items]; arr[ii]=val; setItems(arr); }; // 타이핑 중엔 로컬 state만 변경 (부모 리렌더 방지)
   return (
     <div style={{marginTop:"5px"}}>
       <div style={{marginBottom:"3px"}}><span style={{background:"#166534",color:"#fff",padding:"1px 6px",borderRadius:"4px",fontSize:"8px",fontWeight:"700"}}>결과물(승인본)</span></div>
       {items.map((item,ii)=>(
         <div key={ii} style={{display:"flex",gap:"4px",marginBottom:"4px",alignItems:"center"}}>
-          <input value={item} onChange={e=>updItem(ii,e.target.value)} style={{flex:1,background:"#f0fdf4",border:"1px solid #86efac",borderLeft:"3px solid #166534",borderRadius:"3px",color:"#14532d",fontWeight:"500",padding:"4px 6px",fontSize:"10px",fontFamily:"inherit",outline:"none"}} />
+          <input value={item} onChange={e=>updItem(ii,e.target.value)} onBlur={()=>commit(items)} onKeyDown={e=>{ if(e.key==="Enter") commit(items); }} style={{flex:1,background:"#f0fdf4",border:"1px solid #86efac",borderLeft:"3px solid #166534",borderRadius:"3px",color:"#14532d",fontWeight:"500",padding:"4px 6px",fontSize:"10px",fontFamily:"inherit",outline:"none"}} />
           <button type="button" onPointerDown={e=>{ e.stopPropagation(); e.preventDefault(); const arr=[...items]; arr.splice(ii,1); commit(arr); }} style={{background:"none",border:"none",color:"#c0703a",cursor:"pointer",fontSize:"14px",padding:"0 4px"}}>✕</button>
         </div>
       ))}
@@ -1231,21 +1231,10 @@ function SummaryModal({ allData, onClose }) {
     setIsRefreshing(true);
     const newCards = {};
 
-    // 환경 감지: Vercel이면 /api/summarize, 아니면 Anthropic 직접 호출
-    const isVercel = typeof window!=="undefined" && window.location.hostname.includes("vercel.app");
-
+    // 배포 환경이 항상 Vercel 서버리스 API를 통하므로 라우트 단일화
     const callAPI = async (prompt) => {
-      if(isVercel){
-        const res = await fetch("/api/summarize",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});
-        return await res.json();
-      } else {
-        const res = await fetch("https://api.anthropic.com/v1/messages",{
-          method:"POST",
-          headers:{"Content-Type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:800,messages:[{role:"user",content:prompt}]})
-        });
-        return await res.json();
-      }
+      const res = await fetch("/api/summarize",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});
+      return await res.json();
     };
 
     for(const item of ITEMS){
@@ -1491,13 +1480,36 @@ export default function App() {
     const load=async()=>{
       try {
         const allNames=Object.values(MEMBERS).flatMap(pd=>pd.members.map(m=>m.name));
+        const partKeys=Object.keys(MEMBERS);
         const newData={};
-        for(const [pk,pd] of Object.entries(MEMBERS)){ newData[pk]=await Promise.all(pd.members.map(async m=>{ const saved=await dbGet('goals',m.name); return {...m,goals:m.goals.map((g,gi)=>({...g,...(saved?.[String(gi)]||saved?.[gi]||{})}))}; })); }
+
+        // 모든 파트의 모든 팀원 goals를 동시에 병렬 요청
+        const partPromises = partKeys.map(async (pk)=>{
+          const pd = MEMBERS[pk];
+          const memberPromises = pd.members.map(async (m)=>{
+            const saved = await dbGet('goals', m.name);
+            return { ...m, goals: m.goals.map((g,gi)=>({ ...g, ...(saved?.[String(gi)]||saved?.[gi]||{}) })) };
+          });
+          newData[pk] = await Promise.all(memberPromises);
+        });
+
+        // 모든 팀원의 work(업무현황)를 동시에 병렬 요청
+        const workPromises = allNames.map(async (name)=>{
+          const saved = await dbGet('work', name);
+          return { name, tasks: saved?.tasks || [...(WORK_DATA[name]||[])] };
+        });
+
+        const [, workResults, savedReq] = await Promise.all([
+          Promise.all(partPromises),
+          Promise.all(workPromises),
+          dbGet('req','all'),
+        ]);
+
         setAllData(newData);
         const newWork={};
-        for(const name of allNames){ const saved=await dbGet('work',name); newWork[name]=saved?.tasks||[...(WORK_DATA[name]||[])]; }
+        workResults.forEach(r=>{ newWork[r.name]=r.tasks; });
         setAllWork(newWork);
-        const savedReq=await dbGet('req','all'); if(savedReq) setAllReq(savedReq);
+        if(savedReq) setAllReq(savedReq);
       } catch(e){ console.error(e); } finally { setStorageLoaded(true); }
     };
     // 익명 인증이 완료된 뒤에만 Firestore 데이터를 불러옴 (보안 규칙: request.auth != null)
