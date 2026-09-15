@@ -765,10 +765,39 @@ const AI_WORK_LINKS = [
   {icon:"📝", title:"품질점검 강평", desc:"품질점검 강평 자동화 도구", href:"https://script.google.com/macros/s/AKfycbx2iawukavqOgMdDbJh0oNj47zUktiTcZQxXRBFIx-3iQfpkUX8ThS2jxBPw1SvH3la7A/exec"},
   {icon:"📊", title:"품질점검 종합 현황판", desc:"대외비 - 접근 제한됨", href:"https://quality-dashboard1.vercel.app/", disabled:true},
   {icon:"🧰", title:"IPARK 품질관리 도구모음", desc:"IPARK 품질관리 도구모음", href:"/quality-tools.html"},
-  {icon:"🗓️", title:"품질 일정관리 보드", desc:"품질팀 일정관리 보드", href:"https://qualityschedule-board.vercel.app"},
+  {icon:"🗓️", title:"품질 일정관리 보드", desc:"품질팀 일정관리 보드", href:"https://qc-schedule.vercel.app/"},
   {icon:"📈", title:"품질팀 이행실적 대시보드", desc:"품질팀 이행실적 대시보드", href:"https://2026-quality-dashboard.vercel.app/"},
 ];
 function AIWorkModal({ onClose }) {
+  const [links, setLinks] = useState(AI_WORK_LINKS);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [overIdx, setOverIdx] = useState(null);
+
+  useEffect(()=>{
+    dbGet('settings','aiWorkOrder').then(d=>{
+      const order = d?.order;
+      if(!order || !Array.isArray(order)) return;
+      const byTitle = Object.fromEntries(AI_WORK_LINKS.map(l=>[l.title,l]));
+      const ordered = order.map(t=>byTitle[t]).filter(Boolean);
+      const missing = AI_WORK_LINKS.filter(l=>!order.includes(l.title));
+      setLinks([...ordered, ...missing]);
+    });
+  },[]);
+
+  const saveOrder = (newLinks) => {
+    setLinks(newLinks);
+    dbSet('settings','aiWorkOrder',{order:newLinks.map(l=>l.title)});
+  };
+
+  const handleDrop = (dropIdx) => {
+    if(dragIdx===null || dragIdx===dropIdx){ setDragIdx(null); setOverIdx(null); return; }
+    const arr=[...links];
+    const [moved]=arr.splice(dragIdx,1);
+    arr.splice(dropIdx,0,moved);
+    saveOrder(arr);
+    setDragIdx(null); setOverIdx(null);
+  };
+
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(45,20,60,0.6)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
       <div style={{background:"#faf6f1",borderRadius:"12px",width:"560px",maxWidth:"94vw",boxShadow:"0 10px 40px rgba(88,28,135,0.35)",display:"flex",flexDirection:"column"}} onClick={e=>e.stopPropagation()}>
@@ -776,21 +805,33 @@ function AIWorkModal({ onClose }) {
           <div><div style={{fontSize:"9px",color:"rgba(255,255,255,0.7)",letterSpacing:"1px",marginBottom:"1px"}}>2026 품질팀</div><div style={{fontSize:"15px",fontWeight:"700",color:"#fff"}}>🤖 AI업무전환</div></div>
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:"20px",color:"rgba(255,255,255,0.8)",cursor:"pointer"}}>✕</button>
         </div>
-        <div style={{padding:"16px 18px",display:"flex",flexDirection:"column",gap:"8px"}}>
-          {AI_WORK_LINKS.map((item,i)=>{
+        <div style={{padding:"6px 20px 0",fontSize:"10px",color:"#a08060"}}>⠿ 손잡이를 드래그해서 순서를 바꿀 수 있어요</div>
+        <div style={{padding:"10px 18px 16px",display:"flex",flexDirection:"column",gap:"8px"}}>
+          {links.map((item,i)=>{
             const Tag = item.disabled ? "div" : "a";
+            const isDragOver = overIdx===i && dragIdx!==null && dragIdx!==i;
             return (
-            <Tag key={i} {...(item.disabled?{}:{href:item.href,target:"_blank",rel:"noopener noreferrer"})}
-              style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:item.disabled?"#f2ede8":"#fff",border:"1px solid #e8d5c0",borderRadius:"10px",textDecoration:"none",transition:"background 0.15s",opacity:item.disabled?0.55:1,cursor:item.disabled?"not-allowed":"pointer"}}
-              onMouseEnter={e=>{ if(!item.disabled) e.currentTarget.style.background="#f4ecf9"; }}
-              onMouseLeave={e=>{ if(!item.disabled) e.currentTarget.style.background="#fff"; }}>
-              <span style={{fontSize:"22px",flexShrink:0,filter:item.disabled?"grayscale(1)":"none"}}>{item.icon}</span>
-              <div style={{minWidth:0,flex:1}}>
-                <div style={{fontSize:"13px",fontWeight:"700",color:item.disabled?"#8a7a6a":"#3b1f0a"}}>{item.title}{item.disabled&&<span style={{marginLeft:"6px",fontSize:"9px",fontWeight:"700",color:"#b45309",background:"#fef3c7",padding:"1px 6px",borderRadius:"6px"}}>🔒 대외비</span>}</div>
-                <div style={{fontSize:"11px",color:"#a08060",marginTop:"1px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.desc}</div>
-              </div>
-              {!item.disabled&&<span style={{fontSize:"14px",color:"#a855f7",flexShrink:0}}>↗</span>}
-            </Tag>
+            <div key={item.title}
+              draggable
+              onDragStart={()=>setDragIdx(i)}
+              onDragOver={e=>{ e.preventDefault(); if(overIdx!==i) setOverIdx(i); }}
+              onDragLeave={()=>{ if(overIdx===i) setOverIdx(null); }}
+              onDrop={e=>{ e.preventDefault(); handleDrop(i); }}
+              onDragEnd={()=>{ setDragIdx(null); setOverIdx(null); }}
+              style={{display:"flex",alignItems:"center",gap:"6px",outline:isDragOver?"2px dashed #a855f7":"none",borderRadius:"10px",opacity:dragIdx===i?0.4:1,transition:"opacity 0.15s"}}>
+              <span style={{cursor:"grab",color:"#c4a882",fontSize:"14px",flexShrink:0,touchAction:"none"}}>⠿</span>
+              <Tag {...(item.disabled?{}:{href:item.href,target:"_blank",rel:"noopener noreferrer"})}
+                style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:item.disabled?"#f2ede8":"#fff",border:"1px solid #e8d5c0",borderRadius:"10px",textDecoration:"none",transition:"background 0.15s",opacity:item.disabled?0.55:1,cursor:item.disabled?"not-allowed":"pointer",flex:1,minWidth:0}}
+                onMouseEnter={e=>{ if(!item.disabled) e.currentTarget.style.background="#f4ecf9"; }}
+                onMouseLeave={e=>{ if(!item.disabled) e.currentTarget.style.background="#fff"; }}>
+                <span style={{fontSize:"22px",flexShrink:0,filter:item.disabled?"grayscale(1)":"none"}}>{item.icon}</span>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{fontSize:"13px",fontWeight:"700",color:item.disabled?"#8a7a6a":"#3b1f0a"}}>{item.title}{item.disabled&&<span style={{marginLeft:"6px",fontSize:"9px",fontWeight:"700",color:"#b45309",background:"#fef3c7",padding:"1px 6px",borderRadius:"6px"}}>🔒 대외비</span>}</div>
+                  <div style={{fontSize:"11px",color:"#a08060",marginTop:"1px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.desc}</div>
+                </div>
+                {!item.disabled&&<span style={{fontSize:"14px",color:"#a855f7",flexShrink:0}}>↗</span>}
+              </Tag>
+            </div>
             );
           })}
         </div>
