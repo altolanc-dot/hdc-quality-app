@@ -760,13 +760,14 @@ function NoticeModal({ onClose }) {
 
 // ── AI업무전환 팝업 ────────────────────────────────────────────
 const AI_WORK_LINKS = [
-  {icon:"🏭", title:"레미콘 공장 사전검수 대시보드", desc:"레미콘 공장 사전검수 종합보고 대시보드", href:"/remicon-dashboard.html"},
-  {icon:"🏢", title:"준공단지 외벽 BI 현황 대시보드", desc:"현대산업개발 준공단지 외벽 BI 현황", href:"/exterior-bi-dashboard.html"},
-  {icon:"📝", title:"품질점검 강평", desc:"품질점검 강평 자동화 도구", href:"https://script.google.com/macros/s/AKfycbx2iawukavqOgMdDbJh0oNj47zUktiTcZQxXRBFIx-3iQfpkUX8ThS2jxBPw1SvH3la7A/exec"},
-  {icon:"📊", title:"품질점검 종합 현황판", desc:"대외비 - 접근 제한됨", href:"https://quality-dashboard1.vercel.app/", disabled:true},
-  {icon:"🧰", title:"IPARK 품질관리 도구모음", desc:"IPARK 품질관리 도구모음", href:"/quality-tools.html"},
-  {icon:"🗓️", title:"품질 일정관리 보드", desc:"품질팀 일정관리 보드", href:"https://qc-schedule.vercel.app/"},
-  {icon:"📈", title:"품질팀 이행실적 대시보드", desc:"품질팀 이행실적 대시보드", href:"https://2026-quality-dashboard.vercel.app/"},
+  {id:"remicon", icon:"🏭", title:"레미콘 공장 사전검수 대시보드", desc:"레미콘 공장 사전검수 종합보고 대시보드", href:"/remicon-dashboard.html"},
+  {id:"exteriorBi", icon:"🏢", title:"준공단지 외벽 BI 현황 대시보드", desc:"현대산업개발 준공단지 외벽 BI 현황", href:"/exterior-bi-dashboard.html"},
+  {id:"review", icon:"📝", title:"품질점검 강평", desc:"품질점검 강평 자동화 도구", href:"https://script.google.com/macros/s/AKfycbx2iawukavqOgMdDbJh0oNj47zUktiTcZQxXRBFIx-3iQfpkUX8ThS2jxBPw1SvH3la7A/exec"},
+  {id:"qcRestricted", icon:"📊", title:"품질점검 종합 현황판", desc:"대외비 - 접근 제한됨", href:"https://quality-dashboard1.vercel.app/", disabled:true},
+  {id:"qcDashboardNew", icon:"🗂️", title:"품질점검 종합 현황판", desc:"품질점검 종합 현황판", href:"https://qc-dashboard-gold.vercel.app/"},
+  {id:"tools", icon:"🧰", title:"IPARK 품질관리 도구모음", desc:"IPARK 품질관리 도구모음", href:"/quality-tools.html"},
+  {id:"schedule", icon:"🗓️", title:"품질 일정관리 보드", desc:"품질팀 일정관리 보드", href:"https://qc-schedule.vercel.app/"},
+  {id:"performance", icon:"📈", title:"품질팀 이행실적 대시보드", desc:"품질팀 이행실적 대시보드", href:"https://2026-quality-dashboard.vercel.app/"},
 ];
 function AIWorkModal({ onClose }) {
   const [links, setLinks] = useState(AI_WORK_LINKS);
@@ -777,16 +778,16 @@ function AIWorkModal({ onClose }) {
     dbGet('settings','aiWorkOrder').then(d=>{
       const order = d?.order;
       if(!order || !Array.isArray(order)) return;
-      const byTitle = Object.fromEntries(AI_WORK_LINKS.map(l=>[l.title,l]));
-      const ordered = order.map(t=>byTitle[t]).filter(Boolean);
-      const missing = AI_WORK_LINKS.filter(l=>!order.includes(l.title));
+      const byId = Object.fromEntries(AI_WORK_LINKS.map(l=>[l.id,l]));
+      const ordered = order.map(id=>byId[id]).filter(Boolean);
+      const missing = AI_WORK_LINKS.filter(l=>!order.includes(l.id));
       setLinks([...ordered, ...missing]);
     });
   },[]);
 
   const saveOrder = (newLinks) => {
     setLinks(newLinks);
-    dbSet('settings','aiWorkOrder',{order:newLinks.map(l=>l.title)});
+    dbSet('settings','aiWorkOrder',{order:newLinks.map(l=>l.id)});
   };
 
   const handleDrop = (dropIdx) => {
@@ -811,7 +812,7 @@ function AIWorkModal({ onClose }) {
             const Tag = item.disabled ? "div" : "a";
             const isDragOver = overIdx===i && dragIdx!==null && dragIdx!==i;
             return (
-            <div key={item.title}
+            <div key={item.id}
               draggable
               onDragStart={()=>setDragIdx(i)}
               onDragOver={e=>{ e.preventDefault(); if(overIdx!==i) setOverIdx(i); }}
