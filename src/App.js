@@ -1282,22 +1282,24 @@ function SummaryModal({ allData, onClose }) {
       setLoadingMap(p=>({...p,[item.num]:true}));
       const raw = getRaw(item);
       if(!raw.length){
-        newCards[item.num]=[];
-        setCards(p=>({...p,[item.num]:[]}));
+        newCards[item.num]={done:[],pending:[]};
+        setCards(p=>({...p,[item.num]:{done:[],pending:[]}}));
         setLoadingMap(p=>({...p,[item.num]:false}));
         continue;
       }
       const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
-      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n경영진 보고용 핵심 성과 3개 이내 요약.\n규칙: 완료 결과물 또는 주요 진행사항 중심, 중복 제거, 제목 15자 이내. 담당자 이름(사람 이름)은 절대 포함하지 말 것 — 업무 내용만 서술. 설명(desc)은 65~75자 분량의 한 문장으로(예시 기준: "Dooray 프로젝트방 운영·품질레터 공유 체계 수립, Snowflake 기반 아이클릭 데이터 연동 및 CS 대시보드 개선 진행 중" 정도의 길이) 작성하되, 이 글자 수는 반드시 "2줄에 꽉 차는 분량"이라는 목표이지 그 이상을 억지로 채우라는 뜻이 아님. 화면에 표시될 폰트/너비 기준으로 정확히 2줄에 들어가는 분량으로 스스로 요약을 조절할 것 — 3줄이 되거나 잘리지 않도록 반드시 2줄 이내로 압축. 60자 미만은 지양. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~수립" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: [{"title":"제목","desc":"설명"}]`;
+      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n두 가지를 각각 추려서 JSON으로 응답.\n\n[done] 경영진 보고용 핵심 성과 3개 이내. 완료 결과물 또는 주요 진행사항 중심.\n[pending] 미진한 부분/미결사항 2개 이내. "진행현황" 텍스트에서 지연·보류·협의중·미해결·후속조치 필요 등 아직 끝나지 않았거나 걸림돌이 있는 내용만 선별. 단순히 "~진행 중"이라고만 쓰인 정상 진행 항목은 제외하고, 실제로 막혀있거나 늦어지는 것만 뽑을 것. 해당사항 없으면 빈 배열.\n\n공통 규칙: 중복 제거, 제목 15자 이내. 담당자 이름(사람 이름)은 절대 포함하지 말 것 — 업무 내용만 서술. done의 설명(desc)은 65~75자 분량의 한 문장으로(예시 기준: "Dooray 프로젝트방 운영·품질레터 공유 체계 수립, Snowflake 기반 아이클릭 데이터 연동 및 CS 대시보드 개선 진행 중" 정도의 길이) 작성하되, 이 글자 수는 반드시 "2줄에 꽉 차는 분량"이라는 목표이지 그 이상을 억지로 채우라는 뜻이 아님. 화면에 표시될 폰트/너비 기준으로 정확히 2줄에 들어가는 분량으로 스스로 요약을 조절할 것 — 3줄이 되거나 잘리지 않도록 반드시 2줄 이내로 압축. 60자 미만은 지양. pending의 설명(desc)은 30~45자 분량 한 줄로 짧게, 무엇이 왜 막혀있는지 구체적으로. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~협의 필요", "~보류" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: {"done":[{"title":"제목","desc":"설명"}],"pending":[{"title":"제목","desc":"설명"}]}`;
       try {
         const data = await callAPI(prompt);
-        const text = (data.content?.[0]?.text||"[]").replace(/```json|```/g,"").trim();
+        const text = (data.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim();
         const parsed = JSON.parse(text);
-        newCards[item.num] = parsed;
-        setCards(p=>({...p,[item.num]:parsed}));
+        const normalized = {done: Array.isArray(parsed.done)?parsed.done:[], pending: Array.isArray(parsed.pending)?parsed.pending:[]};
+        newCards[item.num] = normalized;
+        setCards(p=>({...p,[item.num]:normalized}));
       } catch(e){
-        newCards[item.num] = [{title:"오류",desc:"잠시 후 다시 시도해 주세요."}];
-        setCards(p=>({...p,[item.num]:newCards[item.num]}));
+        const fallback = {done:[{title:"오류",desc:"잠시 후 다시 시도해 주세요."}], pending:[]};
+        newCards[item.num] = fallback;
+        setCards(p=>({...p,[item.num]:fallback}));
       }
       setLoadingMap(p=>({...p,[item.num]:false}));
     }
@@ -1316,11 +1318,12 @@ function SummaryModal({ allData, onClose }) {
   const noBreakParens = (text) => (text||"").replace(/\s*(\([^)]*\))/g, m => `<br><span style="white-space:nowrap">${m.trim()}</span>`);
 
   const buildSummaryHtml = (autoPrint) => {
-    const cardData = ITEMS.map(item=>({
-      item,
-      rate: getRate(item),
-      bullets: cards[item.num]||[]
-    }));
+    const cardData = ITEMS.map(item=>{
+      const raw = cards[item.num];
+      const done = Array.isArray(raw) ? raw : (raw?.done||[]);
+      const pending = Array.isArray(raw) ? [] : (raw?.pending||[]);
+      return { item, rate: getRate(item), done, pending };
+    });
     const footerDate = updatedAt
       ? `최종 요약: ${new Date(updatedAt).toLocaleString("ko-KR",{year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"})}`
       : today;
@@ -1339,9 +1342,9 @@ function SummaryModal({ allData, onClose }) {
           <span style="font-size:16px;font-weight:900;color:${rateColor(cd.rate)};background:${rateBg(cd.rate)};padding:3px 10px;border-radius:5px;flex-shrink:0;">${cd.rate}%</span>
         </div>
         <div class="bwrap" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:10px;padding:9px 0;box-sizing:border-box;">
-          ${cd.bullets.length===0
+          ${cd.done.length===0
             ? `<div style="font-size:11px;color:#b0a090;font-style:italic;">등록된 실적이 없습니다</div>`
-            : cd.bullets.map(b=>`
+            : cd.done.map(b=>`
                 <div class="bullet-item" style="display:flex;gap:8px;align-items:flex-start;">
                   <span style="width:6px;height:6px;border-radius:50%;background:#c0703a;flex-shrink:0;margin-top:4px;"></span>
                   <div style="min-width:0;flex:1;">
@@ -1351,6 +1354,20 @@ function SummaryModal({ allData, onClose }) {
                 </div>`).join("")
           }
         </div>
+        ${cd.pending.length>0?`
+        <div class="pwrap" style="flex-shrink:0;margin-top:8px;padding-top:8px;border-top:1px dashed #d8ccb8;">
+          <div style="font-size:8px;font-weight:800;color:#b45309;letter-spacing:0.5px;margin-bottom:5px;">⚠ 미진행 · 이슈</div>
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            ${cd.pending.map(p=>`
+              <div class="pending-item" style="display:flex;gap:6px;align-items:flex-start;">
+                <span style="width:5px;height:5px;border-radius:50%;background:#c0392b;flex-shrink:0;margin-top:4px;"></span>
+                <div style="min-width:0;flex:1;">
+                  <div style="font-size:10px;font-weight:700;color:#8a3a1a;margin-bottom:1px;">${p.title}</div>
+                  <div style="font-size:9px;color:#7a5a40;line-height:1.4;word-break:keep-all;">${noBreakParens(p.desc)}</div>
+                </div>
+              </div>`).join("")}
+          </div>
+        </div>` : ""}
       </div>
     `).join("");
 
