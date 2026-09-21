@@ -1291,12 +1291,12 @@ function SummaryModal({ allData, onClose }) {
       }
       const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
       const focusLine = item.focus ? `\n\n[우선순위 지침] ${item.focus}\n위 지침에 해당하는 내용이 있으면 done/pending 선별 시 최우선으로 반영할 것.` : "";
-      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}${focusLine}\n\n두 가지를 각각 추려서 JSON으로 응답. 실적(done)이 핵심이고 미진행(pending)은 보조 정보이니, 분량 비중을 done 위주로 둘 것.\n\n[done] 경영진 보고용 핵심 성과 반드시 2~3개(자료에 서로 다른 내용이 2건 이상 있으면 무조건 2개 이상 채울 것). 완료 결과물 또는 주요 진행사항 중심. 서로 다른 팀원·다른 과제의 내용을 우선 섞어서 다양성을 확보할 것. 자료에 내용이 정말 한 건뿐일 때만 예외적으로 1개.\n[pending] 미진한 부분/미결사항 딱 1개만. 여러 이슈가 있어도 그중 가장 시급하거나 가장 대표적인 것 하나만 선정. "진행현황" 텍스트에서 지연·보류·협의중·미해결·후속조치 필요 등 실제로 막혀있는 내용만 대상으로 하고, 단순히 "~진행 중"이라고만 쓰인 정상 진행 항목은 제외. 해당사항이 전혀 없으면 빈 배열.\n\n공통 규칙: 중복 제거, 제목 15자 이내. 담당자 이름(사람 이름)은 절대 포함하지 말 것 — 업무 내용만 서술. done의 설명(desc)은 65~75자 분량의 한 문장으로(예시 기준: "Dooray 프로젝트방 운영·품질레터 공유 체계 수립, Snowflake 기반 아이클릭 데이터 연동 및 CS 대시보드 개선 진행 중" 정도의 길이) 작성하되, 이 글자 수는 반드시 "2줄에 꽉 차는 분량"이라는 목표이지 그 이상을 억지로 채우라는 뜻이 아님. 화면에 표시될 폰트/너비 기준으로 정확히 2줄에 들어가는 분량으로 스스로 요약을 조절할 것 — 3줄이 되거나 잘리지 않도록 반드시 2줄 이내로 압축. 60자 미만은 지양. pending의 설명(desc)은 30~45자 분량 한 줄로 짧게, 무엇이 왜 막혀있는지 구체적으로. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~협의 필요", "~보류" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: {"done":[{"title":"제목","desc":"설명"}],"pending":[{"title":"제목","desc":"설명"}]}`;
+      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}${focusLine}\n\n두 가지를 각각 추려서 JSON으로 응답. 실적(done)이 핵심이고 미진행(pending)은 보조 정보이니, 분량 비중을 done 위주로 둘 것.\n\n[done] 경영진 보고용 핵심 성과 반드시 2~3개(자료에 서로 다른 내용이 2건 이상 있으면 무조건 2개 이상 채울 것). 완료 결과물 또는 주요 진행사항 중심. 서로 다른 팀원·다른 과제의 내용을 우선 섞어서 다양성을 확보할 것. 자료에 내용이 정말 한 건뿐일 때만 예외적으로 1개.\n[pending] 배열 원소는 반드시 0개 또는 정확히 1개여야 함(2개 이상 절대 금지). 여러 이슈가 있어도 그중 가장 시급하거나 가장 대표적인 것 딱 하나만 선정. "진행현황" 텍스트에서 지연·보류·협의중·미해결·후속조치 필요 등 실제로 막혀있는 내용만 대상으로 하고, 단순히 "~진행 중"이라고만 쓰인 정상 진행 항목은 제외. 해당사항이 전혀 없으면 빈 배열.\n\n공통 규칙: 중복 제거, 제목 15자 이내. 담당자 이름(사람 이름)은 절대 포함하지 말 것 — 업무 내용만 서술. done의 설명(desc)은 65~75자 분량의 한 문장으로(예시 기준: "Dooray 프로젝트방 운영·품질레터 공유 체계 수립, Snowflake 기반 아이클릭 데이터 연동 및 CS 대시보드 개선 진행 중" 정도의 길이) 작성하되, 이 글자 수는 반드시 "2줄에 꽉 차는 분량"이라는 목표이지 그 이상을 억지로 채우라는 뜻이 아님. 화면에 표시될 폰트/너비 기준으로 정확히 2줄에 들어가는 분량으로 스스로 요약을 조절할 것 — 3줄이 되거나 잘리지 않도록 반드시 2줄 이내로 압축. 60자 미만은 지양. pending의 설명(desc)은 30~45자 분량 한 줄로 짧게, 무엇이 왜 막혀있는지 구체적으로. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~협의 필요", "~보류" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: {"done":[{"title":"제목","desc":"설명"}],"pending":[{"title":"제목","desc":"설명"}]}`;
       try {
         const data = await callAPI(prompt);
         const text = (data.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim();
         const parsed = JSON.parse(text);
-        const normalized = {done: Array.isArray(parsed.done)?parsed.done:[], pending: Array.isArray(parsed.pending)?parsed.pending:[]};
+        const normalized = {done: Array.isArray(parsed.done)?parsed.done:[], pending: (Array.isArray(parsed.pending)?parsed.pending:[]).slice(0,1)};
         newCards[item.num] = normalized;
         setCards(p=>({...p,[item.num]:normalized}));
       } catch(e){
@@ -1324,7 +1324,7 @@ function SummaryModal({ allData, onClose }) {
     const cardData = ITEMS.map(item=>{
       const raw = cards[item.num];
       const done = Array.isArray(raw) ? raw : (raw?.done||[]);
-      const pending = Array.isArray(raw) ? [] : (raw?.pending||[]);
+      const pending = Array.isArray(raw) ? [] : (raw?.pending||[]).slice(0,1);
       return { item, rate: getRate(item), done, pending };
     });
     const footerDate = updatedAt
@@ -1359,20 +1359,17 @@ function SummaryModal({ allData, onClose }) {
                 </div>`).join("")
           }
         </div>
-        ${cd.pending.length>0?`
-        <div class="pwrap" style="flex-shrink:0;margin-top:8px;padding-top:8px;border-top:1px dashed #d8ccb8;">
+        <div class="pwrap" style="flex-shrink:0;min-height:58px;margin-top:8px;padding-top:8px;border-top:1px dashed #d8ccb8;">
           <div style="font-size:8px;font-weight:800;color:#b45309;letter-spacing:0.5px;margin-bottom:5px;">⚠ 미진행 · 이슈</div>
-          <div style="display:flex;flex-direction:column;gap:5px;">
-            ${cd.pending.map(p=>`
-              <div class="pending-item" style="display:flex;gap:6px;align-items:flex-start;">
-                <span style="width:5px;height:5px;border-radius:50%;background:#c0392b;flex-shrink:0;margin-top:4px;"></span>
-                <div style="min-width:0;flex:1;">
-                  <div style="font-size:10px;font-weight:700;color:#8a3a1a;margin-bottom:1px;">${p.title}</div>
-                  <div style="font-size:9px;color:#7a5a40;line-height:1.4;word-break:keep-all;">${noBreakParens(p.desc)}</div>
-                </div>
-              </div>`).join("")}
-          </div>
-        </div>` : ""}
+          ${cd.pending.length>0?`
+            <div style="display:flex;gap:6px;align-items:flex-start;">
+              <span style="width:5px;height:5px;border-radius:50%;background:#c0392b;flex-shrink:0;margin-top:4px;"></span>
+              <div style="min-width:0;flex:1;">
+                <div style="font-size:10px;font-weight:700;color:#8a3a1a;margin-bottom:1px;">${cd.pending[0].title}</div>
+                <div style="font-size:9px;color:#7a5a40;line-height:1.4;word-break:keep-all;">${noBreakParens(cd.pending[0].desc)}</div>
+              </div>
+            </div>` : `<div style="font-size:9px;color:#b0a090;font-style:italic;">특이사항 없음</div>`}
+        </div>
       </div>
     `).join("");
 
