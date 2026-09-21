@@ -1223,7 +1223,8 @@ function SummaryModal({ allData, onClose }) {
   const today = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});
 
   const ITEMS = [
-    {num:1,cat:"전략",label:"예측기반 타겟점검",score:20,desc:"예측기반 타겟점검 운영안 수립·시행",match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
+    {num:1,cat:"전략",label:"예측기반 타겟점검",score:20,desc:"예측기반 타겟점검 운영안 수립·시행",match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘"),
+      focus:"QPI 개정 관련 내용은 특정 공종(전기 등) 하나로 좁히지 말고 건축·전기·설비 등 여러 공종을 종합적으로 다루는 QPI 개정으로 서술할 것. 미진행 이슈는 실행률·달성률처럼 시간이 지나면 채워지는 지표가 아니라, 현장에서 COP(자율점검)매니저를 활용한 점검 체계가 아직 정착되지 못하고 있다는 점을 있으면 우선 반영할 것."},
     {num:2,cat:"전략",label:"건설 DX",          score:15,desc:"AI 품질관리 시스템 구축·운영",  match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
     {num:3,cat:"전략",label:"소송핵심관리",      score:10,desc:"소송핵심관리 개선안 수립·검증",      match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
     {num:4,cat:"업무",label:"하자비용 저감",     score:20,desc:"골조/타일 하자보수비 저감 (표준단가대비 10% 절감)",  match:t=>t.includes("골조")||t.includes("타일"),
