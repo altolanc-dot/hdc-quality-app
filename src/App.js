@@ -1226,9 +1226,11 @@ function SummaryModal({ allData, onClose }) {
     {num:1,cat:"전략",label:"예측기반 타겟점검",score:20,desc:"예측기반 타겟점검 운영안 수립·시행",match:t=>t.includes("예측기반")||t.includes("타겟점검")||t.includes("전기공종 타겟")||t.includes("레미콘")},
     {num:2,cat:"전략",label:"건설 DX",          score:15,desc:"AI 품질관리 시스템 구축·운영",  match:t=>t.includes("건설 DX")||t.includes("I-QMS")},
     {num:3,cat:"전략",label:"소송핵심관리",      score:10,desc:"소송핵심관리 개선안 수립·검증",      match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
-    {num:4,cat:"업무",label:"하자비용 저감",     score:20,desc:"골조/타일 하자보수비 저감 (표준단가대비 10% 절감)",  match:t=>t.includes("골조")||t.includes("타일")},
+    {num:4,cat:"업무",label:"하자비용 저감",     score:20,desc:"골조/타일 하자보수비 저감 (표준단가대비 10% 절감)",  match:t=>t.includes("골조")||t.includes("타일"),
+      focus:"파일럿(시범) 시행 중인 사항 위주로 선별할 것 — 구상권 청구, 디지털 균열조사 등 시범 적용·테스트 진행 내용을 우선순위로 삼을 것"},
     {num:5,cat:"업무",label:"BS 하자 개선",      score:15,desc:"BS 하자 처리 프로세스 구축 (전년대비 30% 저감)", match:t=>t.includes("BS하자")},
-    {num:6,cat:"업무",label:"고객불만율 관리",   score:20,desc:"고객 서비스·VOC 관리 개선 (VOC 3% 이하)", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS")},
+    {num:6,cat:"업무",label:"고객불만율 관리",   score:20,desc:"고객 서비스·VOC 관리 개선 (VOC 3% 이하)", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS"),
+      focus:"입주초기 R&R 기반 근로자(협력업체 인력) 이력관리 관련 내용을 우선순위로 선별할 것"},
   ];
 
   const getRate = (item) => {
@@ -1288,7 +1290,8 @@ function SummaryModal({ allData, onClose }) {
         continue;
       }
       const dataText = raw.map(r=>`[${r.name} ${r.pct}%]\n결과물: ${r.결과.join(" / ")||"없음"}\n진행현황: ${r.비고.replace(/\n/g," ").slice(0,150)||"없음"}`).join("\n\n");
-      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}\n\n두 가지를 각각 추려서 JSON으로 응답.\n\n[done] 경영진 보고용 핵심 성과 3개 이내. 완료 결과물 또는 주요 진행사항 중심.\n[pending] 미진한 부분/미결사항 2개 이내. "진행현황" 텍스트에서 지연·보류·협의중·미해결·후속조치 필요 등 아직 끝나지 않았거나 걸림돌이 있는 내용만 선별. 단순히 "~진행 중"이라고만 쓰인 정상 진행 항목은 제외하고, 실제로 막혀있거나 늦어지는 것만 뽑을 것. 해당사항 없으면 빈 배열.\n\n공통 규칙: 중복 제거, 제목 15자 이내. 담당자 이름(사람 이름)은 절대 포함하지 말 것 — 업무 내용만 서술. done의 설명(desc)은 65~75자 분량의 한 문장으로(예시 기준: "Dooray 프로젝트방 운영·품질레터 공유 체계 수립, Snowflake 기반 아이클릭 데이터 연동 및 CS 대시보드 개선 진행 중" 정도의 길이) 작성하되, 이 글자 수는 반드시 "2줄에 꽉 차는 분량"이라는 목표이지 그 이상을 억지로 채우라는 뜻이 아님. 화면에 표시될 폰트/너비 기준으로 정확히 2줄에 들어가는 분량으로 스스로 요약을 조절할 것 — 3줄이 되거나 잘리지 않도록 반드시 2줄 이내로 압축. 60자 미만은 지양. pending의 설명(desc)은 30~45자 분량 한 줄로 짧게, 무엇이 왜 막혀있는지 구체적으로. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~협의 필요", "~보류" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: {"done":[{"title":"제목","desc":"설명"}],"pending":[{"title":"제목","desc":"설명"}]}`;
+      const focusLine = item.focus ? `\n\n[우선순위 지침] ${item.focus}\n위 지침에 해당하는 내용이 있으면 done/pending 선별 시 최우선으로 반영할 것.` : "";
+      const prompt = `품질팀 "${item.label}" 목표(${item.score}점) 팀원 실적:\n\n${dataText}${focusLine}\n\n두 가지를 각각 추려서 JSON으로 응답.\n\n[done] 경영진 보고용 핵심 성과 3개 이내. 완료 결과물 또는 주요 진행사항 중심.\n[pending] 미진한 부분/미결사항 2개 이내. "진행현황" 텍스트에서 지연·보류·협의중·미해결·후속조치 필요 등 아직 끝나지 않았거나 걸림돌이 있는 내용만 선별. 단순히 "~진행 중"이라고만 쓰인 정상 진행 항목은 제외하고, 실제로 막혀있거나 늦어지는 것만 뽑을 것. 해당사항 없으면 빈 배열.\n\n공통 규칙: 중복 제거, 제목 15자 이내. 담당자 이름(사람 이름)은 절대 포함하지 말 것 — 업무 내용만 서술. done의 설명(desc)은 65~75자 분량의 한 문장으로(예시 기준: "Dooray 프로젝트방 운영·품질레터 공유 체계 수립, Snowflake 기반 아이클릭 데이터 연동 및 CS 대시보드 개선 진행 중" 정도의 길이) 작성하되, 이 글자 수는 반드시 "2줄에 꽉 차는 분량"이라는 목표이지 그 이상을 억지로 채우라는 뜻이 아님. 화면에 표시될 폰트/너비 기준으로 정확히 2줄에 들어가는 분량으로 스스로 요약을 조절할 것 — 3줄이 되거나 잘리지 않도록 반드시 2줄 이내로 압축. 60자 미만은 지양. pending의 설명(desc)은 30~45자 분량 한 줄로 짧게, 무엇이 왜 막혀있는지 구체적으로. 모든 설명(desc)은 반드시 명사형으로 종결(예: "~완료", "~구축", "~진행 중", "~협의 필요", "~보류" 등)하고 마침표는 붙이지 않음. "~했습니다", "~합니다", "~했다" 같은 서술형 종결어미는 절대 사용하지 않음. 모든 항목이 동일한 종결 스타일과 분량을 갖도록 통일.\nJSON만 응답: {"done":[{"title":"제목","desc":"설명"}],"pending":[{"title":"제목","desc":"설명"}]}`;
       try {
         const data = await callAPI(prompt);
         const text = (data.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim();
@@ -1327,6 +1330,8 @@ function SummaryModal({ allData, onClose }) {
     const footerDate = updatedAt
       ? `최종 요약: ${new Date(updatedAt).toLocaleString("ko-KR",{year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"})}`
       : today;
+    const totalScoreSum = cardData.reduce((s,cd)=>s+cd.item.score,0);
+    const overallRate = totalScoreSum>0 ? Math.round(cardData.reduce((s,cd)=>s+cd.rate*cd.item.score,0)/totalScoreSum) : 0;
 
     const cardsHTML = cardData.map((cd)=>`
       <div style="background:#faf8f5;border:1px solid #e0d8cc;border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;box-sizing:border-box;height:100%;min-height:0;overflow:hidden;box-shadow:0 1px 2px rgba(45,36,22,0.06);">
@@ -1416,8 +1421,16 @@ function SummaryModal({ allData, onClose }) {
 </style>
 </head><body>
 <div class="header">
-  <div class="kp">Key Performance · 2026 주요목표 실적</div>
-  <div class="title">CSO 품질팀 <span>주요업무 실적 요약</span></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+    <div>
+      <div class="kp">Key Performance · 2026 주요목표 실적</div>
+      <div class="title">CSO 품질팀 <span>주요업무 실적 요약</span></div>
+    </div>
+    <div style="text-align:right;flex-shrink:0;">
+      <div style="font-size:9px;color:#8a7a68;letter-spacing:1px;margin-bottom:2px;">품질팀 전체 진행률</div>
+      <div style="font-size:26px;font-weight:900;color:${rateColor(overallRate)};background:${rateBg(overallRate)};padding:4px 14px;border-radius:8px;line-height:1;">${overallRate}%</div>
+    </div>
+  </div>
 </div>
 <div class="grid">${cardsHTML}</div>
 <div class="footer">
