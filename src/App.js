@@ -1229,7 +1229,8 @@ function SummaryModal({ allData, onClose }) {
     {num:3,cat:"전략",label:"소송핵심관리",      score:10,desc:"소송핵심관리 개선안 수립·검증",      match:t=>t.includes("준공도서")||t.includes("소송핵심")||t.includes("소송대응")||t.includes("전기·통신")},
     {num:4,cat:"업무",label:"하자비용 저감",     score:20,desc:"골조/타일 하자보수비 저감 (표준단가대비 10% 절감)",  match:t=>t.includes("골조")||t.includes("타일"),
       focus:"파일럿(시범) 시행 중인 사항 위주로 선별할 것 — 구상권 청구, 디지털 균열조사 등 시범 적용·테스트 진행 내용을 우선순위로 삼을 것"},
-    {num:5,cat:"업무",label:"BS 하자 개선",      score:15,desc:"BS 하자 처리 프로세스 구축 (전년대비 30% 저감)", match:t=>t.includes("BS하자")},
+    {num:5,cat:"업무",label:"BS 하자 개선",      score:15,desc:"BS 하자 처리 프로세스 구축 (전년대비 30% 저감)", match:t=>t.includes("BS하자"),
+      focus:"\"현장(형태별) 하자 현황 파악\" 관련 내용은 핵심 사안이 아니므로 미진행 이슈로 선정하지 말 것. 다른 더 중요한 이슈가 있으면 그것을 우선 선정하고, 없으면 빈 배열로 둘 것."},
     {num:6,cat:"업무",label:"고객불만율 관리",   score:20,desc:"고객 서비스·VOC 관리 개선 (VOC 3% 이하)", match:t=>t.includes("고객")||t.includes("VOC")||t.includes("홈케어")||t.includes("아이파크")||t.includes("SNS"),
       focus:"입주초기 R&R 기반 근로자(협력업체 인력) 이력관리 관련 내용을 우선순위로 선별할 것"},
   ];
@@ -1311,6 +1312,24 @@ function SummaryModal({ allData, onClose }) {
               normalized = {done: parsed2.done.slice(0,3), pending: (Array.isArray(parsed2.pending)?parsed2.pending:normalized.pending).slice(0,1)};
             }
           } catch(e2){ /* 재요청 실패 시 원래 응답 유지 */ }
+        }
+
+        // AI가 그래도 2개를 못 채우면, AI에 더 의존하지 않고 원본 데이터에서 직접 채움 (무조건 2개 보장)
+        if(normalized.done.length<2){
+          const used = new Set(normalized.done.map(d=>d.desc));
+          const extras = [];
+          raw.forEach(r=>{
+            r.결과.forEach(res=>{ if(res && !used.has(res)) extras.push(res); });
+            const note=(r.비고||"").trim();
+            if(note && !used.has(note)) extras.push(note);
+          });
+          if(extras.length>0){
+            const extra = extras[0];
+            normalized = {...normalized, done:[...normalized.done, {title: extra.length>14?extra.slice(0,14)+"…":extra, desc: extra.length>78?extra.slice(0,78)+"…":extra}]};
+          } else if(normalized.done.length===1){
+            // 원본 전체가 사실상 한 건뿐일 때: 목표 설명을 근거로 진행 맥락을 담은 두 번째 항목을 보충
+            normalized = {...normalized, done:[...normalized.done, {title:`${item.label} 지속 추진`, desc:`${item.desc||item.label} 목표에 따라 관련 실적·진행현황을 지속 관리 중`}]};
+          }
         }
 
         newCards[item.num] = normalized;
