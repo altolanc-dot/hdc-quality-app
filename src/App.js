@@ -767,7 +767,7 @@ const LABS_PARTS = [
 const LABS_STATUS       = ["미착수","진행중","완료","보류"];
 const LABS_STATUS_COLOR = {미착수:"#64748b",진행중:"#b8860b",완료:"#4a7c59",보류:"#a08060"};
 const LABS_STATUS_BG    = {미착수:"#f1f5f9",진행중:"#fef8e7",완료:"#e8f5ed",보류:"#f5f0eb"};
-const LABS_EMPTY        = {업무지시:"",담당:"",목표일:"",진행사항:"",상태:"미착수"};
+const LABS_EMPTY        = {업무지시:"",담당:"",지시일:"",목표일:"",진행사항:"",상태:"미착수"};
 const labsToday = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
 const labsDiff  = (target,today) => Math.round((new Date(target+"T00:00:00")-new Date(today+"T00:00:00"))/86400000);
 
@@ -824,12 +824,12 @@ function LabsModal({ onClose }) {
     완료: items.filter(isDone).length,
     지연: items.filter(overdue).length,
   };
-  const COLS = "1.7fr 0.7fr 0.9fr 1.7fr 0.7fr 0.6fr";
+  const COLS = "2fr 0.7fr 0.85fr 0.9fr 1.8fr 0.8fr";
   const inp = {width:"100%",padding:"6px 8px",border:"1px solid #cbd5e1",borderRadius:"5px",fontSize:"12px",color:"#1e293b",background:"#fff",boxSizing:"border-box",fontFamily:"inherit",outline:"none"};
 
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(10,40,40,0.55)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:"#f8fafa",borderRadius:"12px",width:"900px",maxWidth:"96vw",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 10px 40px rgba(15,118,110,0.35)"}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:"#f8fafa",borderRadius:"12px",width:"1080px",maxWidth:"96vw",height:"975px",maxHeight:"94vh",display:"flex",flexDirection:"column",boxShadow:"0 10px 40px rgba(15,118,110,0.35)"}} onClick={e=>e.stopPropagation()}>
         {/* 헤더 */}
         <div style={{padding:"14px 20px",background:"linear-gradient(90deg,#0f4c4a,#14b8a6)",borderRadius:"12px 12px 0 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
           <div><div style={{fontSize:"9px",color:"rgba(255,255,255,0.75)",letterSpacing:"1px",marginBottom:"1px"}}>2026 품질팀</div><div style={{fontSize:"15px",fontWeight:"700",color:"#fff"}}>🧪 LABS 업무지시 관리</div></div>
@@ -864,7 +864,7 @@ function LabsModal({ onClose }) {
               </button>
             ))}
           </div>
-          <button onClick={()=>setForm(form?null:{...LABS_EMPTY})}
+          <button onClick={()=>setForm(form?null:{...LABS_EMPTY,지시일:today})}
             style={{padding:"6px 16px",background:form?"#e2e8f0":pInfo.color,border:"none",borderRadius:"8px",fontSize:"12px",color:form?"#475569":"#fff",cursor:"pointer",fontWeight:"700"}}>
             {form?"✕ 닫기":"+ 업무지시 등록"}
           </button>
@@ -874,7 +874,7 @@ function LabsModal({ onClose }) {
         {form&&(
           <div style={{padding:"12px 20px",background:"#f0fdfa",borderBottom:"2px solid #14b8a6",flexShrink:0}}>
             <div style={{fontSize:"11px",fontWeight:"700",color:"#0f766e",marginBottom:"8px"}}>{form.id?"✏️ 업무지시 수정":`📝 ${pInfo.label} 업무지시 등록`}</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"8px"}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:"8px",marginBottom:"8px"}}>
               <div style={{gridColumn:"1/-1"}}>
                 <div style={{fontSize:"10px",color:"#64748b",marginBottom:"2px"}}>업무지시 *</div>
                 <textarea value={form.업무지시} onChange={e=>setForm(p=>({...p,업무지시:e.target.value}))} rows={2} placeholder="지시 내용을 입력하세요" style={{...inp,resize:"vertical",lineHeight:"1.5"}} />
@@ -882,6 +882,10 @@ function LabsModal({ onClose }) {
               <div>
                 <div style={{fontSize:"10px",color:"#64748b",marginBottom:"2px"}}>담당</div>
                 <input value={form.담당} onChange={e=>setForm(p=>({...p,담당:e.target.value}))} placeholder="담당자" style={inp} />
+              </div>
+              <div>
+                <div style={{fontSize:"10px",color:"#64748b",marginBottom:"2px"}}>업무지시일</div>
+                <input type="date" value={form.지시일||""} onChange={e=>setForm(p=>({...p,지시일:e.target.value}))} style={inp} />
               </div>
               <div>
                 <div style={{fontSize:"10px",color:"#64748b",marginBottom:"2px"}}>완료목표일</div>
@@ -897,6 +901,7 @@ function LabsModal({ onClose }) {
               </div>
             </div>
             <div style={{display:"flex",justifyContent:"flex-end",gap:"6px"}}>
+              {form.id&&<button onClick={()=>{ remove(form.id); setForm(null); }} style={{marginRight:"auto",padding:"5px 14px",background:"#fff5f5",border:"1px solid #fecaca",borderRadius:"8px",fontSize:"11px",color:"#ef4444",cursor:"pointer",fontWeight:"700"}}>🗑 삭제</button>}
               <button onClick={()=>setForm(null)} style={{padding:"5px 14px",background:"#e2e8f0",border:"none",borderRadius:"8px",fontSize:"11px",color:"#475569",cursor:"pointer",fontWeight:"600"}}>취소</button>
               <button onClick={saveForm} style={{padding:"5px 18px",background:form.업무지시.trim()?"#0f766e":"#94a3b8",border:"none",borderRadius:"8px",fontSize:"11px",color:"#fff",cursor:form.업무지시.trim()?"pointer":"default",fontWeight:"700"}}>{form.id?"수정 저장":"등록"}</button>
             </div>
@@ -905,7 +910,7 @@ function LabsModal({ onClose }) {
 
         {/* 목록 헤더 */}
         <div style={{display:"grid",gridTemplateColumns:COLS,gap:"10px",padding:"7px 20px",background:"#0f4c4a",flexShrink:0}}>
-          {["업무지시","담당","완료목표일","진행사항","상태",""].map((h,i)=><div key={i} style={{fontSize:"10px",fontWeight:"700",color:"rgba(255,255,255,0.9)"}}>{h}</div>)}
+          {["업무지시","담당","업무지시일","완료목표일","진행사항","상태"].map((h,i)=><div key={i} style={{fontSize:"10px",fontWeight:"700",color:"rgba(255,255,255,0.9)"}}>{h}</div>)}
         </div>
 
         {/* 목록 */}
@@ -918,8 +923,9 @@ function LabsModal({ onClose }) {
             const sc=LABS_STATUS_COLOR[it.상태]||"#64748b";
             return (
               <div key={it.id} style={{display:"grid",gridTemplateColumns:COLS,gap:"10px",padding:"10px 20px",borderBottom:"1px solid #e5eded",borderLeft:`4px solid ${late?"#dc2626":sc}`,background:late?"#fff5f5":isDone(it)?"#f7faf8":"#fff",alignItems:"start",opacity:isDone(it)?0.75:1}}>
-                <div style={{fontSize:"12px",fontWeight:"600",color:"#1e293b",lineHeight:"1.5",whiteSpace:"pre-line",textDecoration:isDone(it)?"line-through":"none"}}>{it.업무지시}</div>
+                <div onClick={()=>setForm({...it})} title="클릭하여 수정" style={{fontSize:"12px",fontWeight:"600",color:"#1e293b",lineHeight:"1.5",whiteSpace:"pre-line",textDecoration:isDone(it)?"line-through":"none",cursor:"pointer"}}>{it.업무지시}</div>
                 <div style={{fontSize:"11px",color:"#334155",fontWeight:"600"}}>{it.담당||"-"}</div>
+                <div style={{fontSize:"11px",color:"#475569"}}>{it.지시일||"-"}</div>
                 <div>
                   <div style={{fontSize:"11px",color:late?"#dc2626":"#334155",fontWeight:late?"700":"500"}}>{it.목표일||"-"}</div>
                   {d!==null&&!isDone(it)&&<span style={{display:"inline-block",marginTop:"2px",fontSize:"9px",fontWeight:"800",color:late?"#fff":d<=3?"#b45309":"#64748b",background:late?"#dc2626":d<=3?"#fef3c7":"#f1f5f9",padding:"1px 6px",borderRadius:"6px"}}>{d<0?`지연 ${-d}일`:d===0?"D-Day":`D-${d}`}</span>}
@@ -931,10 +937,6 @@ function LabsModal({ onClose }) {
                     style={{width:"100%",padding:"3px 4px",border:`1px solid ${sc}`,borderRadius:"6px",fontSize:"11px",fontWeight:"700",color:sc,background:LABS_STATUS_BG[it.상태]||"#fff",outline:"none",cursor:"pointer"}}>
                     {LABS_STATUS.map(s=><option key={s}>{s}</option>)}
                   </select>
-                </div>
-                <div style={{display:"flex",gap:"4px"}}>
-                  <button onClick={()=>setForm({...it})} style={{padding:"2px 7px",background:"#f1f5f9",border:"none",borderRadius:"6px",fontSize:"10px",color:"#475569",cursor:"pointer",fontWeight:"600"}}>수정</button>
-                  <button onClick={()=>remove(it.id)} style={{padding:"2px 7px",background:"#fff5f5",border:"none",borderRadius:"6px",fontSize:"10px",color:"#ef4444",cursor:"pointer",fontWeight:"600"}}>삭제</button>
                 </div>
               </div>
             );
