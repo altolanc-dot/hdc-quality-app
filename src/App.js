@@ -758,6 +758,198 @@ function NoticeModal({ onClose }) {
   );
 }
 
+// ── LABS 업무지시 관리 팝업 ────────────────────────────────────
+const LABS_PARTS = [
+  {key:"AS",   label:"AS",   color:"#a0785a"},
+  {key:"CS",   label:"CS",   color:"#2563ab"},
+  {key:"소송", label:"소송", color:"#5c3317"},
+];
+const LABS_STATUS       = ["미착수","진행중","완료","보류"];
+const LABS_STATUS_COLOR = {미착수:"#64748b",진행중:"#b8860b",완료:"#4a7c59",보류:"#a08060"};
+const LABS_STATUS_BG    = {미착수:"#f1f5f9",진행중:"#fef8e7",완료:"#e8f5ed",보류:"#f5f0eb"};
+const LABS_EMPTY        = {업무지시:"",담당:"",목표일:"",진행사항:"",상태:"미착수"};
+const labsToday = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
+const labsDiff  = (target,today) => Math.round((new Date(target+"T00:00:00")-new Date(today+"T00:00:00"))/86400000);
+
+function LabsModal({ onClose }) {
+  const [part, setPart]     = useState("AS");
+  const [data, setData]     = useState({AS:[],CS:[],소송:[]});
+  const [loaded, setLoaded] = useState(false);
+  const [filter, setFilter] = useState("미완료");
+  const [form, setForm]     = useState(null);
+  const today = labsToday();
+
+  useEffect(()=>{
+    let alive=true;
+    Promise.all(LABS_PARTS.map(p=>dbGet('labs',p.key))).then(res=>{
+      if(!alive) return;
+      const next={}; LABS_PARTS.forEach((p,i)=>{ next[p.key]=res[i]?.items||[]; });
+      setData(next); setLoaded(true);
+    });
+    return ()=>{ alive=false; };
+  },[]);
+
+  // 저장 직전에 최신 데이터를 다시 읽어 반영 (여러 명이 열어둬도 서로 덮어쓰지 않도록)
+  const mutate = async (key, fn) => {
+    const latest = await dbGet('labs',key);
+    const cur = latest?.items || data[key] || [];
+    const next = fn(cur);
+    setData(prev=>({...prev,[key]:next}));
+    dbSet('labs',key,{items:next});
+  };
+
+  const saveForm = () => {
+    if(!form.업무지시.trim()) return;
+    const now = new Date().toISOString().slice(0,16).replace("T"," ");
+    const f = {...form, 완료일: form.상태==="완료" ? (form.완료일||today) : ""};
+    mutate(part, cur=>{
+      if(f.id) return cur.map(it=>it.id===f.id?{...it,...f,수정일:now}:it);
+      return [...cur,{...f,id:`${Date.now()}-${Math.random().toString(36).slice(2,6)}`,등록일:now}];
+    });
+    setForm(null);
+  };
+  const changeStatus = (id,s) => mutate(part, cur=>cur.map(it=>it.id===id?{...it,상태:s,완료일:s==="완료"?today:""}:it));
+  const remove = id => { if(window.confirm("이 업무지시를 삭제할까요?")) mutate(part, cur=>cur.filter(it=>it.id!==id)); };
+
+  const isDone  = it => it.상태==="완료";
+  const overdue = it => !isDone(it) && it.목표일 && it.목표일<today;
+  const pInfo   = LABS_PARTS.find(p=>p.key===part);
+  const items   = data[part]||[];
+  const shown   = items
+    .filter(it=> filter==="전체" ? true : filter==="완료" ? isDone(it) : filter==="지연" ? overdue(it) : !isDone(it))
+    .sort((a,b)=>{ if(isDone(a)!==isDone(b)) return isDone(a)?1:-1; return (a.목표일||"9999").localeCompare(b.목표일||"9999"); });
+  const cnt = {
+    전체: items.length,
+    미완료: items.filter(it=>!isDone(it)).length,
+    완료: items.filter(isDone).length,
+    지연: items.filter(overdue).length,
+  };
+  const COLS = "1.7fr 0.7fr 0.9fr 1.7fr 0.7fr 0.6fr";
+  const inp = {width:"100%",padding:"6px 8px",border:"1px solid #cbd5e1",borderRadius:"5px",fontSize:"12px",color:"#1e293b",background:"#fff",boxSizing:"border-box",fontFamily:"inherit",outline:"none"};
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(10,40,40,0.55)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
+      <div style={{background:"#f8fafa",borderRadius:"12px",width:"900px",maxWidth:"96vw",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 10px 40px rgba(15,118,110,0.35)"}} onClick={e=>e.stopPropagation()}>
+        {/* 헤더 */}
+        <div style={{padding:"14px 20px",background:"linear-gradient(90deg,#0f4c4a,#14b8a6)",borderRadius:"12px 12px 0 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <div><div style={{fontSize:"9px",color:"rgba(255,255,255,0.75)",letterSpacing:"1px",marginBottom:"1px"}}>2026 품질팀</div><div style={{fontSize:"15px",fontWeight:"700",color:"#fff"}}>🧪 LABS 업무지시 관리</div></div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"20px",color:"rgba(255,255,255,0.85)",cursor:"pointer"}}>✕</button>
+        </div>
+
+        {/* 파트 탭 */}
+        <div style={{padding:"10px 20px 0",background:"#fff",borderBottom:"1px solid #e2e8f0",display:"flex",gap:"6px",flexShrink:0}}>
+          {LABS_PARTS.map(p=>{
+            const list=data[p.key]||[];
+            const open=list.filter(it=>!isDone(it)).length;
+            const late=list.filter(overdue).length;
+            const isA=part===p.key;
+            return (
+              <button key={p.key} onClick={()=>{ setPart(p.key); setForm(null); }}
+                style={{display:"flex",alignItems:"center",gap:"6px",padding:"7px 18px",background:isA?p.color:"transparent",border:`1.5px solid ${isA?p.color:"#cbd5e1"}`,borderBottom:"none",borderRadius:"8px 8px 0 0",cursor:"pointer",color:isA?"#fff":"#475569",fontWeight:"700",fontSize:"13px",marginBottom:"-1px"}}>
+                {p.label}
+                <span style={{background:isA?"rgba(255,255,255,0.3)":p.color+"20",color:isA?"#fff":p.color,fontSize:"10px",fontWeight:"800",padding:"1px 7px",borderRadius:"8px"}}>진행 {open}</span>
+                {late>0&&<span style={{background:"#dc2626",color:"#fff",fontSize:"10px",fontWeight:"800",padding:"1px 7px",borderRadius:"8px"}}>지연 {late}</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 필터 + 신규 */}
+        <div style={{padding:"9px 20px",background:"#fff",borderBottom:"1px solid #e2e8f0",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",flexShrink:0}}>
+          <div style={{display:"flex",gap:"4px",background:"#f1f5f9",borderRadius:"8px",padding:"3px"}}>
+            {["미완료","지연","완료","전체"].map(f=>(
+              <button key={f} onClick={()=>setFilter(f)}
+                style={{padding:"4px 12px",background:filter===f?"#fff":"transparent",border:"none",borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:filter===f?"700":"400",color:filter===f?(f==="지연"?"#dc2626":pInfo.color):"#64748b",boxShadow:filter===f?"0 1px 3px rgba(0,0,0,0.1)":"none"}}>
+                {f} <span style={{fontWeight:"800",color:f==="지연"&&cnt[f]>0?"#dc2626":"#94a3b8"}}>{cnt[f]}</span>
+              </button>
+            ))}
+          </div>
+          <button onClick={()=>setForm(form?null:{...LABS_EMPTY})}
+            style={{padding:"6px 16px",background:form?"#e2e8f0":pInfo.color,border:"none",borderRadius:"8px",fontSize:"12px",color:form?"#475569":"#fff",cursor:"pointer",fontWeight:"700"}}>
+            {form?"✕ 닫기":"+ 업무지시 등록"}
+          </button>
+        </div>
+
+        {/* 등록/수정 폼 */}
+        {form&&(
+          <div style={{padding:"12px 20px",background:"#f0fdfa",borderBottom:"2px solid #14b8a6",flexShrink:0}}>
+            <div style={{fontSize:"11px",fontWeight:"700",color:"#0f766e",marginBottom:"8px"}}>{form.id?"✏️ 업무지시 수정":`📝 ${pInfo.label} 업무지시 등록`}</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"8px"}}>
+              <div style={{gridColumn:"1/-1"}}>
+                <div style={{fontSize:"10px",color:"#64748b",marginBottom:"2px"}}>업무지시 *</div>
+                <textarea value={form.업무지시} onChange={e=>setForm(p=>({...p,업무지시:e.target.value}))} rows={2} placeholder="지시 내용을 입력하세요" style={{...inp,resize:"vertical",lineHeight:"1.5"}} />
+              </div>
+              <div>
+                <div style={{fontSize:"10px",color:"#64748b",marginBottom:"2px"}}>담당</div>
+                <input value={form.담당} onChange={e=>setForm(p=>({...p,담당:e.target.value}))} placeholder="담당자" style={inp} />
+              </div>
+              <div>
+                <div style={{fontSize:"10px",color:"#64748b",marginBottom:"2px"}}>완료목표일</div>
+                <input type="date" value={form.목표일} onChange={e=>setForm(p=>({...p,목표일:e.target.value}))} style={inp} />
+              </div>
+              <div>
+                <div style={{fontSize:"10px",color:"#64748b",marginBottom:"2px"}}>상태</div>
+                <select value={form.상태} onChange={e=>setForm(p=>({...p,상태:e.target.value}))} style={inp}>{LABS_STATUS.map(s=><option key={s}>{s}</option>)}</select>
+              </div>
+              <div style={{gridColumn:"1/-1"}}>
+                <div style={{fontSize:"10px",color:"#64748b",marginBottom:"2px"}}>진행사항</div>
+                <textarea value={form.진행사항} onChange={e=>setForm(p=>({...p,진행사항:e.target.value}))} rows={2} placeholder="현재 진행 상황, 협의 내용 등" style={{...inp,resize:"vertical",lineHeight:"1.5"}} />
+              </div>
+            </div>
+            <div style={{display:"flex",justifyContent:"flex-end",gap:"6px"}}>
+              <button onClick={()=>setForm(null)} style={{padding:"5px 14px",background:"#e2e8f0",border:"none",borderRadius:"8px",fontSize:"11px",color:"#475569",cursor:"pointer",fontWeight:"600"}}>취소</button>
+              <button onClick={saveForm} style={{padding:"5px 18px",background:form.업무지시.trim()?"#0f766e":"#94a3b8",border:"none",borderRadius:"8px",fontSize:"11px",color:"#fff",cursor:form.업무지시.trim()?"pointer":"default",fontWeight:"700"}}>{form.id?"수정 저장":"등록"}</button>
+            </div>
+          </div>
+        )}
+
+        {/* 목록 헤더 */}
+        <div style={{display:"grid",gridTemplateColumns:COLS,gap:"10px",padding:"7px 20px",background:"#0f4c4a",flexShrink:0}}>
+          {["업무지시","담당","완료목표일","진행사항","상태",""].map((h,i)=><div key={i} style={{fontSize:"10px",fontWeight:"700",color:"rgba(255,255,255,0.9)"}}>{h}</div>)}
+        </div>
+
+        {/* 목록 */}
+        <div style={{flex:1,overflowY:"auto"}}>
+          {!loaded&&<div style={{textAlign:"center",color:"#94a3b8",fontSize:"12px",padding:"40px 0"}}>불러오는 중...</div>}
+          {loaded&&shown.length===0&&<div style={{textAlign:"center",color:"#94a3b8",fontSize:"12px",padding:"40px 0"}}>{filter==="전체"?"등록된 업무지시가 없습니다":`${filter} 업무지시가 없습니다`}</div>}
+          {loaded&&shown.map(it=>{
+            const late=overdue(it);
+            const d = it.목표일 ? labsDiff(it.목표일,today) : null;
+            const sc=LABS_STATUS_COLOR[it.상태]||"#64748b";
+            return (
+              <div key={it.id} style={{display:"grid",gridTemplateColumns:COLS,gap:"10px",padding:"10px 20px",borderBottom:"1px solid #e5eded",borderLeft:`4px solid ${late?"#dc2626":sc}`,background:late?"#fff5f5":isDone(it)?"#f7faf8":"#fff",alignItems:"start",opacity:isDone(it)?0.75:1}}>
+                <div style={{fontSize:"12px",fontWeight:"600",color:"#1e293b",lineHeight:"1.5",whiteSpace:"pre-line",textDecoration:isDone(it)?"line-through":"none"}}>{it.업무지시}</div>
+                <div style={{fontSize:"11px",color:"#334155",fontWeight:"600"}}>{it.담당||"-"}</div>
+                <div>
+                  <div style={{fontSize:"11px",color:late?"#dc2626":"#334155",fontWeight:late?"700":"500"}}>{it.목표일||"-"}</div>
+                  {d!==null&&!isDone(it)&&<span style={{display:"inline-block",marginTop:"2px",fontSize:"9px",fontWeight:"800",color:late?"#fff":d<=3?"#b45309":"#64748b",background:late?"#dc2626":d<=3?"#fef3c7":"#f1f5f9",padding:"1px 6px",borderRadius:"6px"}}>{d<0?`지연 ${-d}일`:d===0?"D-Day":`D-${d}`}</span>}
+                  {isDone(it)&&it.완료일&&<div style={{fontSize:"9px",color:"#4a7c59",marginTop:"2px"}}>완료 {it.완료일}</div>}
+                </div>
+                <div style={{fontSize:"11px",color:it.진행사항?"#475569":"#cbd5e1",lineHeight:"1.6",whiteSpace:"pre-line"}}>{it.진행사항||"-"}</div>
+                <div>
+                  <select value={it.상태} onChange={e=>changeStatus(it.id,e.target.value)}
+                    style={{width:"100%",padding:"3px 4px",border:`1px solid ${sc}`,borderRadius:"6px",fontSize:"11px",fontWeight:"700",color:sc,background:LABS_STATUS_BG[it.상태]||"#fff",outline:"none",cursor:"pointer"}}>
+                    {LABS_STATUS.map(s=><option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div style={{display:"flex",gap:"4px"}}>
+                  <button onClick={()=>setForm({...it})} style={{padding:"2px 7px",background:"#f1f5f9",border:"none",borderRadius:"6px",fontSize:"10px",color:"#475569",cursor:"pointer",fontWeight:"600"}}>수정</button>
+                  <button onClick={()=>remove(it.id)} style={{padding:"2px 7px",background:"#fff5f5",border:"none",borderRadius:"6px",fontSize:"10px",color:"#ef4444",cursor:"pointer",fontWeight:"600"}}>삭제</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{padding:"10px 20px 14px",borderTop:"1px solid #e2e8f0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <span style={{fontSize:"10px",color:"#94a3b8"}}>완료목표일이 지난 미완료 건은 자동으로 "지연"으로 표시됩니다</span>
+          <button onClick={onClose} style={{padding:"6px 16px",background:"#0f4c4a",border:"none",borderRadius:"8px",fontSize:"12px",color:"#fff",cursor:"pointer",fontWeight:"600"}}>닫기</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── AI업무전환 팝업 ────────────────────────────────────────────
 const AI_WORK_LINKS = [
   {id:"remicon", icon:"🏭", title:"레미콘 공장 사전검수 대시보드", desc:"레미콘 공장 사전검수 종합보고 대시보드", href:"/remicon-dashboard.html"},
@@ -1567,6 +1759,7 @@ export default function App() {
   const [showNotice, setShowNotice] = useState(false);
   const [showAIWork, setShowAIWork] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [showLabs, setShowLabs] = useState(false);
   const [resultModal, setResultModal] = useState(null);
   const [restoreModal, setRestoreModal] = useState(false);
   const [restoreText, setRestoreText]   = useState("");
@@ -1665,6 +1858,7 @@ export default function App() {
           <div style={{width:"1px",height:"20px",background:"rgba(255,255,255,0.2)"}} />
           <button onClick={()=>setShowAIWork(true)} style={{padding:"4px 10px",background:"rgba(168,85,247,0.2)",border:"1px solid rgba(168,85,247,0.5)",borderRadius:"10px",color:"#d8b4fe",fontSize:"12px",fontWeight:"700",cursor:"pointer"}}>🤖 AI업무전환</button>
           <button onClick={()=>setShowNotice(true)} style={{padding:"4px 10px",background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:"10px",color:"#f5d5b5",fontSize:"12px",cursor:"pointer"}}>📢 공지</button>
+          <button onClick={()=>setShowLabs(true)} style={{padding:"4px 12px",background:"rgba(20,184,166,0.2)",border:"1px solid rgba(20,184,166,0.5)",borderRadius:"10px",color:"#5eead4",fontSize:"11px",fontWeight:"700",cursor:"pointer"}}>🧪 LABS</button>
           <button onClick={()=>setShowSummary(true)} style={{padding:"4px 12px",background:"rgba(249,115,22,0.2)",border:"1px solid rgba(249,115,22,0.5)",borderRadius:"10px",color:"#fdba74",fontSize:"11px",fontWeight:"700",cursor:"pointer"}}>📋 Summary</button>
           <div style={{width:"1px",height:"20px",background:"rgba(255,255,255,0.2)"}} />
           <button onClick={()=>{ const bk={allData,allWork,allReq,savedAt:new Date().toISOString()}; navigator.clipboard.writeText(JSON.stringify(bk)).then(()=>alert("✅ 백업 완료!")).catch(()=>alert("클립보드 복사 실패")); }} style={{padding:"4px 8px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"10px",color:"#c9a880",fontSize:"13px",cursor:"pointer"}}>BK</button>
@@ -1849,6 +2043,7 @@ export default function App() {
       )}
       {showNotice&&<NoticeModal onClose={()=>setShowNotice(false)} />}
       {showAIWork&&<AIWorkModal onClose={()=>setShowAIWork(false)} />}
+      {showLabs&&<LabsModal onClose={()=>setShowLabs(false)} />}
       {showSummary&&<SummaryModal allData={allData} onClose={()=>setShowSummary(false)} />}
       {resultModal&&<ResultModal cat={resultModal.cat} initialGroup={resultModal.initialGroup} allData={allData} onClose={()=>setResultModal(null)} />}
     </div>
