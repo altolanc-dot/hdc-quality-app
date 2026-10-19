@@ -767,7 +767,8 @@ const LABS_PARTS = [
 const LABS_STATUS       = ["미착수","진행중","완료","보류"];
 const LABS_STATUS_COLOR = {미착수:"#64748b",진행중:"#b8860b",완료:"#4a7c59",보류:"#a08060"};
 const LABS_STATUS_BG    = {미착수:"#f1f5f9",진행중:"#fef8e7",완료:"#e8f5ed",보류:"#f5f0eb"};
-const LABS_EMPTY        = {업무지시:"",담당:"",지시일:"",목표일:"",진행사항:"",상태:"미착수"};
+const LABS_EMPTY        = {업무지시:"",담당:"",지시일:"",목표일:"",이력:[],새진행:"",상태:"미착수"};
+const labsLog = it => Array.isArray(it.이력) ? it.이력 : (it.진행사항 ? [{날짜:(it.등록일||"").slice(0,10),내용:it.진행사항}] : []);
 const labsToday = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
 const labsDiff  = (target,today) => Math.round((new Date(target+"T00:00:00")-new Date(today+"T00:00:00"))/86400000);
 
@@ -801,7 +802,10 @@ function LabsModal({ onClose }) {
   const saveForm = () => {
     if(!form.업무지시.trim()) return;
     const now = new Date().toISOString().slice(0,16).replace("T"," ");
-    const f = {...form, 완료일: form.상태==="완료" ? (form.완료일||today) : ""};
+    const log = [...(form.이력||[])];
+    if((form.새진행||"").trim()) log.push({날짜:today,내용:form.새진행.trim()});
+    const {새진행,...rest} = form;
+    const f = {...rest, 이력:log, 진행사항:log.length?log[log.length-1].내용:"", 완료일: form.상태==="완료" ? (form.완료일||today) : ""};
     mutate(part, cur=>{
       if(f.id) return cur.map(it=>it.id===f.id?{...it,...f,수정일:now}:it);
       return [...cur,{...f,id:`${Date.now()}-${Math.random().toString(36).slice(2,6)}`,등록일:now}];
@@ -828,8 +832,8 @@ function LabsModal({ onClose }) {
   const inp = {width:"100%",padding:"6px 8px",border:"1px solid #cbd5e1",borderRadius:"5px",fontSize:"12px",color:"#1e293b",background:"#fff",boxSizing:"border-box",fontFamily:"inherit",outline:"none"};
 
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(10,40,40,0.55)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
-      <div style={{background:"#f8fafa",borderRadius:"12px",width:"1080px",maxWidth:"96vw",height:"975px",maxHeight:"94vh",display:"flex",flexDirection:"column",boxShadow:"0 10px 40px rgba(15,118,110,0.35)"}} onClick={e=>e.stopPropagation()}>
+    <div style={{position:"fixed",inset:0,background:"rgba(10,40,40,0.55)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:"#f8fafa",borderRadius:"12px",width:"1080px",maxWidth:"96vw",height:"975px",maxHeight:"94vh",minWidth:"640px",minHeight:"360px",resize:"both",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 10px 40px rgba(15,118,110,0.35)"}}>
         {/* 헤더 */}
         <div style={{padding:"14px 20px",background:"linear-gradient(90deg,#0f4c4a,#14b8a6)",borderRadius:"12px 12px 0 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
           <div><div style={{fontSize:"9px",color:"rgba(255,255,255,0.75)",letterSpacing:"1px",marginBottom:"1px"}}>2026 품질팀</div><div style={{fontSize:"15px",fontWeight:"700",color:"#fff"}}>🧪 LABS 업무지시 관리</div></div>
@@ -896,8 +900,19 @@ function LabsModal({ onClose }) {
                 <select value={form.상태} onChange={e=>setForm(p=>({...p,상태:e.target.value}))} style={inp}>{LABS_STATUS.map(s=><option key={s}>{s}</option>)}</select>
               </div>
               <div style={{gridColumn:"1/-1"}}>
-                <div style={{fontSize:"10px",color:"#64748b",marginBottom:"2px"}}>진행사항</div>
-                <textarea value={form.진행사항} onChange={e=>setForm(p=>({...p,진행사항:e.target.value}))} rows={2} placeholder="현재 진행 상황, 협의 내용 등" style={{...inp,resize:"vertical",lineHeight:"1.5"}} />
+                <div style={{fontSize:"10px",color:"#64748b",marginBottom:"2px"}}>진행사항 (저장 시 오늘 날짜 {today}로 누적 기록)</div>
+                {(form.이력||[]).length>0&&(
+                  <div style={{marginBottom:"6px",background:"#fff",border:"1px solid #cbd5e1",borderRadius:"5px",maxHeight:"170px",overflowY:"auto"}}>
+                    {(form.이력||[]).map((h,hi)=>({h,hi})).reverse().map(({h,hi})=>(
+                      <div key={hi} style={{display:"flex",gap:"8px",alignItems:"flex-start",padding:"5px 8px",borderBottom:"1px solid #eef2f2",fontSize:"11px"}}>
+                        <span style={{flexShrink:0,fontWeight:"700",color:"#0f766e",background:"#ccfbf1",padding:"0 6px",borderRadius:"6px",fontSize:"10px",lineHeight:"18px"}}>{h.날짜||"-"}</span>
+                        <span style={{flex:1,color:"#334155",lineHeight:"1.5",whiteSpace:"pre-line"}}>{h.내용}</span>
+                        <button type="button" onClick={()=>setForm(p=>({...p,이력:p.이력.filter((_,k)=>k!==hi)}))} style={{background:"none",border:"none",color:"#c0703a",cursor:"pointer",fontSize:"12px",padding:0}}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <textarea value={form.새진행||""} onChange={e=>setForm(p=>({...p,새진행:e.target.value}))} rows={2} placeholder="새 진행사항을 입력하세요 (기존 기록은 유지되고 날짜와 함께 추가됩니다)" style={{...inp,resize:"vertical",lineHeight:"1.5"}} />
               </div>
             </div>
             <div style={{display:"flex",justifyContent:"flex-end",gap:"6px"}}>
@@ -923,7 +938,7 @@ function LabsModal({ onClose }) {
             const sc=LABS_STATUS_COLOR[it.상태]||"#64748b";
             return (
               <div key={it.id} style={{display:"grid",gridTemplateColumns:COLS,gap:"10px",padding:"10px 20px",borderBottom:"1px solid #e5eded",borderLeft:`4px solid ${late?"#dc2626":sc}`,background:late?"#fff5f5":isDone(it)?"#f7faf8":"#fff",alignItems:"start",opacity:isDone(it)?0.75:1}}>
-                <div onClick={()=>setForm({...it})} title="클릭하여 수정" style={{fontSize:"12px",fontWeight:"600",color:"#1e293b",lineHeight:"1.5",whiteSpace:"pre-line",textDecoration:isDone(it)?"line-through":"none",cursor:"pointer"}}>{it.업무지시}</div>
+                <div onClick={()=>setForm({...it,이력:labsLog(it),새진행:""})} title="클릭하여 수정" style={{fontSize:"12px",fontWeight:"600",color:"#1e293b",lineHeight:"1.5",whiteSpace:"pre-line",textDecoration:isDone(it)?"line-through":"none",cursor:"pointer"}}>{it.업무지시}</div>
                 <div style={{fontSize:"11px",color:"#334155",fontWeight:"600"}}>{it.담당||"-"}</div>
                 <div style={{fontSize:"11px",color:"#475569"}}>{it.지시일||"-"}</div>
                 <div>
@@ -931,7 +946,16 @@ function LabsModal({ onClose }) {
                   {d!==null&&!isDone(it)&&<span style={{display:"inline-block",marginTop:"2px",fontSize:"9px",fontWeight:"800",color:late?"#fff":d<=3?"#b45309":"#64748b",background:late?"#dc2626":d<=3?"#fef3c7":"#f1f5f9",padding:"1px 6px",borderRadius:"6px"}}>{d<0?`지연 ${-d}일`:d===0?"D-Day":`D-${d}`}</span>}
                   {isDone(it)&&it.완료일&&<div style={{fontSize:"9px",color:"#4a7c59",marginTop:"2px"}}>완료 {it.완료일}</div>}
                 </div>
-                <div style={{fontSize:"11px",color:it.진행사항?"#475569":"#cbd5e1",lineHeight:"1.6",whiteSpace:"pre-line"}}>{it.진행사항||"-"}</div>
+                <div style={{fontSize:"11px",lineHeight:"1.55"}}>
+                  {labsLog(it).length===0&&<span style={{color:"#cbd5e1"}}>-</span>}
+                  {labsLog(it).slice(-3).reverse().map((h,k)=>(
+                    <div key={k} style={{display:"flex",gap:"5px",marginBottom:"2px",color:k===0?"#334155":"#64748b"}}>
+                      <span style={{flexShrink:0,fontWeight:"700",color:"#0f766e",fontSize:"10px"}}>{(h.날짜||"").slice(5)||"-"}</span>
+                      <span style={{whiteSpace:"pre-line"}}>{h.내용}</span>
+                    </div>
+                  ))}
+                  {labsLog(it).length>3&&<div style={{fontSize:"9px",color:"#94a3b8"}}>외 {labsLog(it).length-3}건 (클릭하여 전체 보기)</div>}
+                </div>
                 <div>
                   <select value={it.상태} onChange={e=>changeStatus(it.id,e.target.value)}
                     style={{width:"100%",padding:"3px 4px",border:`1px solid ${sc}`,borderRadius:"6px",fontSize:"11px",fontWeight:"700",color:sc,background:LABS_STATUS_BG[it.상태]||"#fff",outline:"none",cursor:"pointer"}}>
@@ -944,8 +968,8 @@ function LabsModal({ onClose }) {
         </div>
 
         <div style={{padding:"10px 20px 14px",borderTop:"1px solid #e2e8f0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-          <span style={{fontSize:"10px",color:"#94a3b8"}}>완료목표일이 지난 미완료 건은 자동으로 "지연"으로 표시됩니다</span>
-          <button onClick={onClose} style={{padding:"6px 16px",background:"#0f4c4a",border:"none",borderRadius:"8px",fontSize:"12px",color:"#fff",cursor:"pointer",fontWeight:"600"}}>닫기</button>
+          <span style={{fontSize:"10px",color:"#94a3b8"}}>완료목표일이 지난 미완료 건은 자동으로 "지연"으로 표시됩니다 · 우측 하단 모서리를 끌어 창 크기를 조절할 수 있습니다</span>
+          
         </div>
       </div>
     </div>
