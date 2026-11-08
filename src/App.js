@@ -36,7 +36,7 @@ const WORK_DATA = {"신성근":[],"김효진":[],"박정호":[],"박찬우":[],"
 
 const MEMBERS = {
   QC:{ label:"QC 파트", color:"#8b5e3c", members:[
-    { name:"신성근", 전략:70, 업무:30, 개인:0, goals:[
+    { name:"신성근", exclude:true, 전략:70, 업무:30, 개인:0, goals:[
       { cat:"전략", 과제:"예측기반의 타겟점검 운영", 배점:40, 내용:"현장 품질관리 핵심사항에 대한 타겟점검 시행 및 F/B" },
       { cat:"전략", 과제:"건설 DX (클라우드 기반 도서검토)", 배점:30, 내용:"클라우드 기반의 초기 도서검토 프로세스 개선" },
       { cat:"업무", 과제:"골조/타일 하자비용 저감", 배점:30, 내용:"품질점검 부적합사항에 대한 협력사 책임강화" },
@@ -96,7 +96,7 @@ const MEMBERS = {
       { cat:"업무", 과제:"고객 불만율 관리 (홈케어·기프트 개편)", 배점:20, 내용:"기존 제공되었던 서비스 항목에 대한 전면 개편" },
       { cat:"개인", 과제:"협력사 선정·평가 방식 개선", 배점:20, 내용:"협력사 선정(입찰) 및 평가 방식 개선" },
     ]},
-    { name:"이규현", 전략:60, 업무:40, 개인:0, goals:[
+    { name:"이규현", exclude:true, 전략:60, 업무:40, 개인:0, goals:[
       { cat:"전략", 과제:"예측기반의 타겟점검 운영", 배점:20, 내용:"현장 자율 운영 체계 구축" },
       { cat:"전략", 과제:"건설 DX", 배점:40, 내용:"DATA LAB CS현황 대시보드 개선\n품질데이터 구조도 수립 및 적기 제공 시스템 구축" },
       { cat:"업무", 과제:"BS하자 처리율 개선", 배점:40, 내용:"입주초기 하자, 민원에 대한 R&R 재정립" },
@@ -1195,6 +1195,7 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
 }
 
 // ── Bar ────────────────────────────────────────────────────────
+const isActiveMember = m => !m.exclude; // 퇴사자(exclude) 제외
 function Bar({ rate, color, height="5px" }) {
   return (<div style={{height,background:"#d4b896",borderRadius:"3px",overflow:"hidden",marginTop:"4px"}}><div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:color||rateColor(rate),borderRadius:"3px",transition:"width 0.5s"}} /></div>);
 }
@@ -1372,8 +1373,8 @@ function Dashboard({ allData, allWork, onNavigate }) {
     );
   };
 
-  const totalMembers=partKeys.reduce((s,p)=>s+allData[p].length,0);
-  const totalRate=Math.round(partKeys.reduce((s,p)=>s+allData[p].reduce((ss,m)=>ss+calcRate(m.goals),0),0)/totalMembers);
+  const totalMembers=partKeys.reduce((s,p)=>s+allData[p].filter(isActiveMember).length,0);
+  const totalRate=Math.round(partKeys.reduce((s,p)=>s+allData[p].filter(isActiveMember).reduce((ss,m)=>ss+calcRate(m.goals),0),0)/totalMembers);
   const totAll=partKeys.reduce((s,p)=>s+allData[p].reduce((ss,m)=>ss+(allWork[m.name]||[]).length,0),0);
   const totDone=partKeys.reduce((s,p)=>s+allData[p].reduce((ss,m)=>ss+(allWork[m.name]||[]).filter(t=>t.상태==="완료").length,0),0);
   const totUnd=totAll-totDone; const wRate=totAll>0?Math.round((totDone/totAll)*100):0;
@@ -1455,7 +1456,7 @@ function SummaryModal({ allData, onClose }) {
 
   const getRate = (item) => {
     let ts=0,td=0;
-    Object.values(allData).flat().forEach(m=>{
+    Object.values(allData).flat().filter(isActiveMember).forEach(m=>{
       m.goals.filter(g=>item.match(g.과제)&&g.배점>0).forEach(g=>{ ts+=g.배점; td+=(g.실적||0); });
     });
     return ts>0?Math.round((td/ts)*100):0;
@@ -1463,7 +1464,7 @@ function SummaryModal({ allData, onClose }) {
 
   const getRaw = (item) => {
     const rows=[];
-    Object.values(allData).flat().forEach(m=>{
+    Object.values(allData).flat().filter(isActiveMember).forEach(m=>{
       m.goals.filter(g=>item.match(g.과제)&&g.배점>0).forEach(g=>{
         const 결과=(g.결과||"").split("||").filter(s=>s.trim());
         const 비고=(g.비고||"").trim();
@@ -1489,7 +1490,7 @@ function SummaryModal({ allData, onClose }) {
 
   // SDU 수동 업데이트
   const doSDU = async () => {
-    const totalGoals = Object.values(allData).flat().reduce((s,m)=>s+m.goals.length,0);
+    const totalGoals = Object.values(allData).flat().filter(isActiveMember).reduce((s,m)=>s+m.goals.length,0);
     if(totalGoals===0) return;
     setIsRefreshing(true);
     const newCards = {};
@@ -1897,8 +1898,8 @@ export default function App() {
         {/* 팀 목표달성률 */}
         <div onClick={()=>setActiveTab("dashboard")} style={{background:"linear-gradient(135deg,#5c3317,#8b5e3c)",borderRadius:"8px",padding:"6px 12px",color:"#fff",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:"90px",flexShrink:0,cursor:"pointer"}}>
           <div style={{fontSize:"8px",color:"#f5d5b5",marginBottom:"1px"}}>팀 목표달성률</div>
-          <div style={{fontSize:"20px",fontWeight:"900",lineHeight:1}}>{Object.values(allData).flat().length>0?Math.round(Object.entries(MEMBERS).reduce((s,[p])=>s+allData[p].reduce((ss,m)=>ss+calcRate(m.goals),0),0)/Object.values(MEMBERS).reduce((s,pd)=>s+pd.members.length,0)):0}<span style={{fontSize:"9px"}}>%</span></div>
-          <div style={{fontSize:"8px",color:"#f5d5b5",marginTop:"1px"}}>총 {Object.values(MEMBERS).reduce((s,pd)=>s+pd.members.length,0)}명</div>
+          <div style={{fontSize:"20px",fontWeight:"900",lineHeight:1}}>{Object.values(allData).flat().filter(isActiveMember).length>0?Math.round(Object.entries(MEMBERS).reduce((s,[p])=>s+allData[p].filter(isActiveMember).reduce((ss,m)=>ss+calcRate(m.goals),0),0)/Object.values(MEMBERS).reduce((s,pd)=>s+pd.members.filter(isActiveMember).length,0)):0}<span style={{fontSize:"9px"}}>%</span></div>
+          <div style={{fontSize:"8px",color:"#f5d5b5",marginTop:"1px"}}>총 {Object.values(MEMBERS).reduce((s,pd)=>s+pd.members.filter(isActiveMember).length,0)}명</div>
         </div>
         {/* 파트별 목표 카드 */}
         {Object.entries(MEMBERS).map(([key,pd])=>{
