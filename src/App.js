@@ -1195,7 +1195,7 @@ function WorkPanel({ name, partColor, workData, setWorkData, reqData, setReqData
 }
 
 // ── Bar ────────────────────────────────────────────────────────
-const isActiveMember = m => !m.exclude; // 퇴사자(exclude) 제외
+const isActiveMember = m => !m.exclude; // 집계 제외 인원(exclude)
 function Bar({ rate, color, height="5px" }) {
   return (<div style={{height,background:"#d4b896",borderRadius:"3px",overflow:"hidden",marginTop:"4px"}}><div style={{height:"100%",width:`${Math.min(rate,100)}%`,background:color||rateColor(rate),borderRadius:"3px",transition:"width 0.5s"}} /></div>);
 }
@@ -1345,8 +1345,8 @@ function Dashboard({ allData, allWork, onNavigate }) {
           })();
           return (
             <div key={m.name} onClick={()=>onNavigate(pk,mi)} onMouseEnter={e=>e.currentTarget.style.background="#f5ede4"} onMouseLeave={e=>e.currentTarget.style.background=mi%2===0?"#fff":"#fdf8f4"}
-              style={{display:"grid",gridTemplateColumns:COLS,padding:"0 8px",height:`${rowH}px`,borderTop:"1px solid #f0e8e0",background:mi%2===0?"#fff":"#fdf8f4",alignItems:"center",cursor:"pointer"}}>
-              <div style={{fontSize:"11px",fontWeight:"600",color:"#3b1f0a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</div>
+              style={{display:"grid",gridTemplateColumns:COLS,padding:"0 8px",height:`${rowH}px`,borderTop:"1px solid #f0e8e0",background:mi%2===0?"#fff":"#fdf8f4",alignItems:"center",cursor:"pointer",opacity:m.exclude?0.6:1}}>
+              <div style={{fontSize:"11px",fontWeight:"600",color:m.exclude?"#a09890":"#3b1f0a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}{m.exclude&&<span style={{marginLeft:"4px",fontSize:"8px",fontWeight:"700",color:"#78716c",background:"#e7e5e4",border:"1px solid #d6d3d1",padding:"0 4px",borderRadius:"6px"}}>제외</span>}</div>
               <div style={{textAlign:"center",fontSize:"11px",color:"#1d4ed8",fontWeight:"600"}}>{m.전략}%</div>
               <div style={{textAlign:"center",fontSize:"11px",color:"#166534",fontWeight:"600"}}>{m.업무}%</div>
               <div style={{textAlign:"center",fontSize:"11px",color:"#a0785a",fontWeight:"600"}}>{m.개인}%</div>
@@ -1791,7 +1791,8 @@ export default function App() {
   const [restoreModal, setRestoreModal] = useState(false);
   const [restoreText, setRestoreText]   = useState("");
   const [activePart, setActivePart]     = useState("QC");
-  const [activeMember, setActiveMember] = useState(0);
+  const [activeMember, setActiveMember] = useState(()=>Math.max(0,MEMBERS.QC.members.findIndex(m=>!m.exclude)));
+  const firstIdx = pk => Math.max(0,(allData[pk]||[]).findIndex(isActiveMember));
   const [allData, setAllData] = useState(()=>{ const d={}; Object.entries(MEMBERS).forEach(([p,pd])=>{ d[p]=pd.members.map(m=>({...m,goals:m.goals.map(g=>({...g,실적:0,비고:"",결과:""}))})); }); return d; });
   const [allWork, setAllWork] = useState(()=>{ const d={}; Object.keys(WORK_DATA).forEach(n=>{ d[n]=[...(WORK_DATA[n]||[])]; }); return d; });
   const [allReq, setAllReq]   = useState(()=>({...REQUEST_DATA}));
@@ -1908,7 +1909,7 @@ export default function App() {
           const isA=activeTab==="detail"&&activePart===key;
           const rc2=r=>r>=80?"#4a7c59":r>=50?"#b8860b":"#c0703a";
           return (
-            <div key={key} onClick={()=>{ setActiveTab("detail"); setActivePart(key); setActiveMember(0); }}
+            <div key={key} onClick={()=>{ setActiveTab("detail"); setActivePart(key); setActiveMember(firstIdx(key)); }}
               onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 2px 8px ${pd.color}40`}
               onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
               style={{background:"#fff",border:`1px solid ${pd.color}30`,borderTop:`3px solid ${isA?pd.color:pd.color+"80"}`,borderRadius:"8px",padding:"5px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"all 0.15s",boxShadow:isA?`0 2px 8px ${pd.color}40`:"none",opacity:isA?1:0.85}}>
@@ -1938,7 +1939,7 @@ export default function App() {
           const pWR=pAll>0?Math.round((pDone/pAll)*100):0;
           const uc=pUnd===0?"#4a7c59":pUnd<=5?"#b8860b":"#c0703a";
           return (
-            <div key={key} onClick={()=>{ setActiveTab("detail"); setActivePart(key); setActiveMember(0); }}
+            <div key={key} onClick={()=>{ setActiveTab("detail"); setActivePart(key); setActiveMember(firstIdx(key)); }}
               onMouseEnter={e=>e.currentTarget.style.boxShadow="0 2px 8px #2563ab30"}
               onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
               style={{background:"#fff",border:"1px solid #bfdbfe",borderTop:"3px solid #2563ab",borderRadius:"8px",padding:"5px 10px",cursor:"pointer",flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"box-shadow 0.15s"}}>
@@ -1961,14 +1962,28 @@ export default function App() {
               {/* 팀원 사이드바 */}
               <div style={{width:"160px",minWidth:"160px",background:"#f0e6d8",borderRight:"1px solid #c4a882",overflowY:"auto"}}>
                 {members.map((m,i)=>{ const r=calcRate(m.goals); const isA=activeMember===i;
-                  return <button key={m.name} onClick={()=>setActiveMember(i)} style={{display:"block",width:"100%",padding:"12px 14px",textAlign:"left",border:"none",cursor:"pointer",background:isA?"#fff":"transparent",borderLeft:`3px solid ${isA?part.color:"transparent"}`,borderBottom:"1px solid #d4b896"}}>
-                    <div style={{fontSize:"13px",fontWeight:isA?"700":"400",color:isA?"#3b1f0a":"#7a5c40"}}>{m.name}</div>
+                  return <button key={m.name} onClick={()=>setActiveMember(i)} style={{display:"block",width:"100%",padding:"12px 14px",textAlign:"left",border:"none",cursor:"pointer",background:isA?"#fff":(m.exclude?"#e7e2dc":"transparent"),opacity:m.exclude?0.75:1,borderLeft:`3px solid ${isA?part.color:"transparent"}`,borderBottom:"1px solid #d4b896"}}>
+                    <div style={{fontSize:"13px",fontWeight:isA?"700":"400",color:m.exclude?"#8d857c":(isA?"#3b1f0a":"#7a5c40")}}>{m.name}{m.exclude&&<span style={{marginLeft:"5px",fontSize:"9px",fontWeight:"700",color:"#78716c",background:"#d6d3d1",padding:"1px 6px",borderRadius:"8px"}}>제외</span>}</div>
                     <div style={{fontSize:"10px",color:rateColor(r),marginTop:"3px"}}>달성 {r}%</div>
                     <Bar rate={r} />
                   </button>; })}
               </div>
 
-              <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+              <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+              {member.exclude&&<div style={{flexShrink:0,background:"#78716c",color:"#fff",fontSize:"11px",fontWeight:"700",padding:"6px 16px"}}>🔒 집계 제외 인원 · 조회 전용 (수정 불가) — 팀 총 인원 및 Summary 집계에서 제외됩니다</div>}
+              <div
+                {...(member.exclude?{
+                  onClickCapture:e=>{e.stopPropagation();e.preventDefault();},
+                  onMouseDownCapture:e=>{ if(e.target.closest&&e.target.closest("input,textarea,select,button")) e.preventDefault(); },
+                  onKeyDownCapture:e=>{ if(e.key!=="Tab"){e.stopPropagation();e.preventDefault();} },
+                  onChangeCapture:e=>{e.stopPropagation();},
+                  onInputCapture:e=>{e.stopPropagation();},
+                  onPasteCapture:e=>{e.stopPropagation();e.preventDefault();},
+                  onCutCapture:e=>{e.stopPropagation();e.preventDefault();},
+                  onDropCapture:e=>{e.stopPropagation();e.preventDefault();},
+                  onDragStartCapture:e=>{e.stopPropagation();e.preventDefault();},
+                }:{})}
+                style={{flex:1,display:"flex",overflow:"hidden",filter:member.exclude?"grayscale(0.85)":"none"}}>
                 {/* 좌측: 목표 관리 (브라운 계열) */}
                 <div style={{width:"50%",borderRight:"2px solid #475569",overflowY:"auto",background:"#faf6f1",display:"flex",flexDirection:"column"}}>
                   <div style={{padding:"12px 20px",borderBottom:"2px solid #d4b896",background:"linear-gradient(135deg,#5c3317,#8b5e3c)",flexShrink:0}}>
@@ -2032,6 +2047,7 @@ export default function App() {
 
                 {/* 우측: 업무 현황 (다크 슬레이트 계열 - 목표와 명확히 구분) */}
                 <WorkPanel name={member.name} partColor={part.color} workData={allWork} setWorkData={setAllWork} reqData={allReq} setReqData={setAllReq} />
+              </div>
               </div>
             </>
         }
