@@ -985,6 +985,7 @@ const AI_WORK_LINKS = [
   {id:"tools", icon:"🧰", title:"IPARK 품질관리 도구모음", desc:"IPARK 품질관리 도구모음", href:"/quality-tools.html"},
   {id:"schedule", icon:"🗓️", title:"품질 일정관리 보드", desc:"품질팀 일정관리 보드", href:"https://qc-schedule.vercel.app/"},
   {id:"performance", icon:"📈", title:"품질팀 이행실적 대시보드", desc:"품질팀 이행실적 대시보드", href:"https://2026-quality-dashboard.vercel.app/"},
+  {id:"openhouseDefect", icon:"🏠", title:"오픈하우스 하자 처리 현황 (AI분석)", desc:"오픈하우스 전 하자 처리 진행률 · D-7 목표선 · AI 예측", href:"https://hdc-openhouse-defect-public.vercel.app/"},
 ];
 function AIWorkModal({ onClose }) {
   const [links, setLinks] = useState(AI_WORK_LINKS);
